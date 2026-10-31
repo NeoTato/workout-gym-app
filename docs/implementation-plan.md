@@ -1,6 +1,6 @@
 # Native implementation milestones
 
-Status: ready for implementation planning. None of these native milestones is implemented. Existing HTML/browser checks verify the visual reference only.
+Status: native foundation underway on `feat/expo-foundation`. The first PR covers the Expo shell and automated checks only; the first saved-set path below remains a follow-up slice. Existing HTML/browser checks verify the visual reference only. Native physical-device tests have not been performed.
 
 Build in this order, keeping each slice usable and verified before adding the next. Keep prototype fixtures out of the personal database. Native app implementation is the next phase after review of this blueprint.
 

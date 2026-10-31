@@ -1,4 +1,5 @@
 .preview-browser/
+.claude/
 node_modules/
 .env
 .env.*
