@@ -9,7 +9,7 @@ import { getTheme } from '../ui/theme';
 export default function RootLayout() {
   const scheme = useColorScheme();
   const theme = getTheme(scheme);
-  // SDK 57 runtime loading also works in Expo Go, without a custom native build.
+  // Runtime loading works in Expo Go without a custom native build.
   const [loaded, error] = useFonts({
     'Recursive-Medium': require('../../assets/fonts/recursive.ttf'),
     'Recursive-Bold': require('../../assets/fonts/recursive-bold.ttf'),

@@ -21,4 +21,13 @@ describe('Home screen foundation', () => {
     expect(screen.getByTestId('home-screen')).toHaveStyle({ backgroundColor: theme.background });
     expect(screen.getByText('Today')).toHaveStyle({ color: theme.text });
   });
+
+  it('keeps the screen readable when the system has no appearance preference', async () => {
+    await render(<HomeScreen theme={getTheme(null)} />);
+
+    expect(screen.getByTestId('home-screen')).toHaveStyle({
+      backgroundColor: getTheme('light').background,
+    });
+    expect(screen.getByText('No workouts yet')).toBeOnTheScreen();
+  });
 });

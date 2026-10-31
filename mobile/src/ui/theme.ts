@@ -22,7 +22,7 @@ const dark: AppTheme = {
   accentSoft: '#452C28',
 };
 
-export function getTheme(scheme: ColorSchemeName): AppTheme {
+export function getTheme(scheme: ColorSchemeName | null): AppTheme {
   return scheme === 'dark' ? dark : light;
 }
 
