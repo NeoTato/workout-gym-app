@@ -39,6 +39,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - run: npm run test:storage
       - run: npx expo install --check
       - run: npm run build
 
