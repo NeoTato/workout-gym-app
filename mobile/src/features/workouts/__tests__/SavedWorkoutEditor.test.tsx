@@ -1,0 +1,43 @@
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import type { WorkoutDraft } from '../../../domain/workout';
+import { getTheme } from '../../../ui/theme';
+import { SavedWorkoutEditor } from '../SavedWorkoutEditor';
+
+jest.mock('expo-crypto', () => ({ randomUUID: () => 'new-id' }));
+const initial: WorkoutDraft = {
+  id: 'saved', startedAt: '2026-11-01T01:00:00Z', activityDate: '2026-11-01', timezone: 'Asia/Manila',
+  locationId: 'home', sessionType: 'Push', exercises: [{ id: 'exercise', name: 'Press', equipment: 'Dumbbells',
+    bodyweight: false, unit: 'lb', convention: 'per_hand', sets: [{ id: 'set', weight: '35', reps: '10', completed: true }] }],
+};
+const locations = [{ id: 'home', name: 'Home', kind: 'home' as const }];
+
+it('cancels without saving or mutating the original workout', async () => {
+  const save = jest.fn(), cancel = jest.fn();
+  await render(<SavedWorkoutEditor initial={initial} locations={locations} theme={getTheme('light')} save={save} cancel={cancel} />);
+  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12');
+  await fireEvent.press(screen.getByRole('button', { name: 'Cancel changes' }));
+  expect(save).not.toHaveBeenCalled(); expect(cancel).toHaveBeenCalledTimes(1);
+  expect(initial.exercises[0].sets[0].reps).toBe('10');
+});
+
+it('prevents silent loss of an edited set and saves its reconfirmed values', async () => {
+  const save = jest.fn().mockResolvedValue(undefined);
+  await render(<SavedWorkoutEditor initial={initial} locations={locations} theme={getTheme('dark')} save={save} cancel={() => undefined} />);
+  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12');
+  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  expect(save).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toHaveTextContent(/Mark each set done/);
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  expect(save.mock.calls[0][0].exercises[0].sets[0]).toMatchObject({ reps: '12', completed: true });
+});
+
+it('retains edits and allows retry after a failed save', async () => {
+  const save = jest.fn().mockRejectedValueOnce(new Error('Disk unavailable')).mockResolvedValue(undefined);
+  await render(<SavedWorkoutEditor initial={initial} locations={locations} theme={getTheme('light')} save={save} cancel={() => undefined} />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  expect(screen.getByRole('alert')).toHaveTextContent(/Your original workout is unchanged/);
+  expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('10');
+  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  expect(save).toHaveBeenCalledTimes(2);
+});

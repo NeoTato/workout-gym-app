@@ -34,6 +34,46 @@ function draft(id = 'workout-1') {
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
 
+test('edits are explicit, preserve history metadata and drafts, and roll back on failure', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize(); await store.finish(draft());
+    const original = await store.getWorkout('workout-1');
+    await store.saveDraft(draft('ongoing'));
+    const edit = await store.getWorkoutEdit('workout-1');
+    edit.sessionType = 'Upper'; edit.exercises[0].sets[0].weight = '45';
+    assert.deepEqual(await store.getWorkout('workout-1'), original);
+    await store.updateWorkout(edit);
+    const saved = await store.getWorkout('workout-1');
+    assert.equal(saved.sessionType, 'Upper'); assert.equal(saved.exercises[0].sets[0].weight, 45);
+    assert.equal(saved.startedAt, original.startedAt); assert.equal(saved.endedAt, original.endedAt);
+    assert.equal(saved.activityDate, original.activityDate);
+    assert.deepEqual(await store.getDraft(), draft('ongoing'));
+    edit.exercises[0].sets[0].weight = '55'; connection.failSets();
+    await assert.rejects(store.updateWorkout(edit), /Injected/);
+    assert.deepEqual(await store.getWorkout('workout-1'), saved);
+    assert.deepEqual(connection.db.prepare('PRAGMA foreign_key_check').all(), []);
+  } finally { connection.db.close(); }
+});
+
+test('delete affects only one workout and stale edits cannot recreate it', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    await store.finish(draft()); await store.finish(draft('other')); await store.saveDraft(draft('ongoing'));
+    const edit = await store.getWorkoutEdit('workout-1');
+    edit.exercises[0].sets[0].reps = '0';
+    await assert.rejects(store.updateWorkout(edit), /reps/);
+    assert.equal((await store.getWorkout('workout-1')).exercises[0].sets[0].reps, 10);
+    edit.exercises[0].sets[0].reps = '12';
+    await store.deleteWorkout('workout-1'); await store.deleteWorkout('workout-1');
+    await assert.rejects(store.updateWorkout(edit), /found/);
+    assert.deepEqual((await store.listWorkouts()).map(w => w.id), ['other']);
+    assert.equal(connection.db.prepare('SELECT count(*) AS count FROM sets').get().count, 1);
+    assert.deepEqual(await store.getDraft(), draft('ongoing'));
+  } finally { connection.db.close(); }
+});
+
 test('a draft and completed sets survive closing and reopening the real SQLite file', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'workout-storage-'));
   const file = join(directory, 'history.db');
@@ -51,6 +91,14 @@ test('a draft and completed sets survive closing and reopening the real SQLite f
     assert.deepEqual(saved.exercises[0].sets.map(set => ({ ...set })), [{ id: 'workout-1-set-1', weight: 35.5, reps: 10 }]);
     assert.equal(await store.getDraft(), null);
     await store.saveDraft(draft()); assert.equal(await store.getDraft(), null, 'late autosave cannot resurrect a finished draft');
+    const edit = await store.getWorkoutEdit(saved.id);
+    edit.exercises[0].sets[0].reps = '12';
+    await store.updateWorkout(edit);
+    connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize();
+    assert.equal((await store.getWorkout(saved.id)).exercises[0].sets[0].reps, 12, 'edits persist after reopening the file');
+    await store.deleteWorkout(saved.id);
+    connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize();
+    assert.equal((await store.listWorkouts()).length, 0, 'deletion persists after reopening the file');
   } finally { connection?.db.close(); rmSync(directory, { recursive: true, force: true }); }
 });
 

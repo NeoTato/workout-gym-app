@@ -4,7 +4,7 @@ A personal iOS/Android workout tracker for flexible gym and home sessions, equip
 
 ## Current state
 
-The repository contains an interactive Coral Daylight HTML design preview with fictional data and an Expo SDK 58 app in `mobile/`. The native app supports gym/Home selection, editable exercise/set entry, local draft recovery, and saved-workout history using SQLite. Routines, reporting, and exports remain planned. The approved prototype is the visual reference for the full app; no fictional workout history is seeded into the native database.
+The repository contains an interactive Coral Daylight HTML design preview with fictional data and an Expo SDK 58 app in `mobile/`. The native app supports gym/Home selection, editable exercise/set entry, local draft recovery, and saved-workout history using SQLite. Completed workouts support explicit editing and confirmed deletion; see the [device review checklist](docs/workout-editing-review.md). Routines, reporting, and exports remain planned. The approved prototype is the visual reference for the full app; no fictional workout history is seeded into the native database.
 
 Open [design-preview.html](design-preview.html) directly in a browser. Run `node verify-preview.mjs` to verify preview interactions and capture screenshots; this requires Node with built-in WebSocket support and Chrome at the Windows path configured in that script. No dependencies are currently installed.
 
