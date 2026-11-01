@@ -1,9 +1,14 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fonts, type AppTheme } from '../../ui/theme';
+import { Button } from '../../ui/controls';
+import type { SavedWorkout } from '../../domain/workout';
 
-export function HomeScreen({ theme }: { theme: AppTheme }) {
+export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen }: {
+  theme: AppTheme; workouts?: Omit<SavedWorkout, 'exercises'>[]; hasDraft?: boolean;
+  onStart?: () => void; onOpen?: (id: string) => void;
+}) {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: theme.background }]}
@@ -18,7 +23,8 @@ export function HomeScreen({ theme }: { theme: AppTheme }) {
           A little progress, at your pace.
         </Text>
 
-        <View style={[styles.card, { backgroundColor: theme.surface }]}>
+        {onStart && <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />}
+        {!workouts.length && <View style={[styles.card, { backgroundColor: theme.surface }]}>
           <View style={[styles.badge, { backgroundColor: theme.accentSoft }]}>
             <Text style={[styles.badgeLabel, { color: theme.accent }]}>A FRESH START</Text>
           </View>
@@ -28,7 +34,13 @@ export function HomeScreen({ theme }: { theme: AppTheme }) {
           <Text style={[styles.body, { color: theme.muted }]}>
             Your completed workouts will appear here.
           </Text>
-        </View>
+        </View>}
+        {workouts.map(workout => <Pressable key={workout.id} accessibilityRole="button" accessibilityLabel={`Open ${workout.sessionType} workout on ${workout.activityDate}`}
+          onPress={() => onOpen?.(workout.id)} style={[styles.card, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>{workout.sessionType}</Text>
+          <Text style={[styles.body, { color: theme.muted }]}>{workout.activityDate} · {workout.locationName}</Text>
+          <Text style={[styles.body, { color: theme.accent }]}>View completed sets →</Text>
+        </Pressable>)}
       </ScrollView>
     </SafeAreaView>
   );

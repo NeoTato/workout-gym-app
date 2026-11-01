@@ -1,9 +1,17 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { HomeScreen } from '../HomeScreen';
 import { getTheme } from '../../../ui/theme';
 
 describe('Home screen foundation', () => {
+  it('starts a new workout or resumes a saved draft', async () => {
+    const start = jest.fn();
+    const view = await render(<HomeScreen theme={getTheme('light')} onStart={start} />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Start workout' }));
+    expect(start).toHaveBeenCalledTimes(1);
+    await view.rerender(<HomeScreen theme={getTheme('light')} onStart={start} hasDraft />);
+    expect(screen.getByRole('button', { name: 'Resume workout' })).toBeOnTheScreen();
+  });
   it('starts with an honest empty history instead of prototype workout data', async () => {
     await render(<HomeScreen theme={getTheme('light')} />);
 

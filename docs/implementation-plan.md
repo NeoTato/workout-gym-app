@@ -1,6 +1,6 @@
 # Native implementation milestones
 
-Status: native foundation underway on `feat/expo-foundation`. The first PR covers the Expo shell and automated checks only; the first saved-set path below remains a follow-up slice. Existing HTML/browser checks verify the visual reference only. Native physical-device tests have not been performed.
+Status: foundation PR #1 is merged and its Home screen was tested on the user's iPhone. `feat/workout-saving` implements the first SQLite logging/draft/history slice for PR #2. See `workout-saving-review.md` for its exact scope and verification; phone persistence validation is pending. The complete milestones below remain the target, not claims that all listed behavior is already implemented.
 
 Build in this order, keeping each slice usable and verified before adding the next. Keep prototype fixtures out of the personal database. Native app implementation is the next phase after review of this blueprint.
 
