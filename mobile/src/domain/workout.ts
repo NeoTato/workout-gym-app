@@ -23,6 +23,18 @@ export function localDate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+function validReps(reps: string): boolean {
+  return /^\d+$/.test(reps.trim()) && Number.isSafeInteger(Number(reps)) && Number(reps) > 0;
+}
+
+function validLoad(weight: string): boolean {
+  return /^(?:\d+(?:\.\d*)?|\.\d+)$/.test(weight.trim()) && Number.isFinite(Number(weight));
+}
+
+export function canCompleteSet(set: Pick<SetDraft, 'weight' | 'reps'>, bodyweight: boolean): boolean {
+  return validReps(set.reps) && (bodyweight || validLoad(set.weight));
+}
+
 export function completedExercises(draft: WorkoutDraft): CompletedExercise[] {
   if (!draft.locationId) throw new Error('Choose your gym or Home.');
   if (!sessionTypes.includes(draft.sessionType)) throw new Error('Choose a session type.');
@@ -35,11 +47,11 @@ export function completedExercises(draft: WorkoutDraft): CompletedExercise[] {
       throw new Error('Choose a valid unit and load convention.');
     }
     result.push({ ...exercise, name: exercise.name.trim(), equipment: exercise.equipment.trim(), sets: sets.map(set => {
-      if (!/^\d+$/.test(set.reps.trim()) || !Number.isSafeInteger(Number(set.reps)) || Number(set.reps) < 1) {
+      if (!validReps(set.reps)) {
         throw new Error(`${exercise.name}: enter a positive whole number of reps for each completed set.`);
       }
       const value = Number(set.weight);
-      if (!exercise.bodyweight && (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(set.weight.trim()) || !Number.isFinite(value))) {
+      if (!exercise.bodyweight && !validLoad(set.weight)) {
         throw new Error(`${exercise.name}: enter a valid nonnegative load for each completed set.`);
       }
       return { id: set.id, weight: exercise.bodyweight ? null : value, reps: Number(set.reps) };

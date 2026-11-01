@@ -4,7 +4,9 @@
 
 Open a completed workout from Home and choose **Edit workout**. Change its saved location, session type, exercises, equipment labels, units, load conventions, and sets. Add/remove exercises and sets without a fixed count. Save explicitly or cancel to keep the original. Original date, timezone, start/end times, and session ID remain unchanged.
 
-Existing sets start marked done. Changing measurements clears completion, just as in workout logging. To avoid silently omitting edited work, Save requires every remaining set marked done and every remaining exercise to contain a set. At least one valid completed set is required. Remove unwanted sets/exercises explicitly. New gyms can still be created in the normal workout flow; historical editing selects existing locations.
+Existing sets start marked done. In both logging and historical editing, entering valid measurements automatically marks a set done. Loaded sets require a finite nonnegative load (including zero) and positive whole-number reps; bodyweight sets require only reps. Clearing or invalidating either required value makes the set incomplete and disables manual completion. Copied sets start incomplete even with valid copied values; edit a measurement or tap Done to confirm them. Valid sets may still be manually unchecked. Changing tracking mode, units, or load convention clears completion for explicit reconfirmation or a subsequent measurement edit.
+
+To avoid silently omitting edited work, Save requires every remaining set marked done and every remaining exercise to contain a set. At least one valid completed set is required. Remove unwanted sets/exercises explicitly. New gyms can still be created in the normal workout flow; historical editing selects existing locations.
 
 **Delete workout** opens an in-page confirmation naming the permanent effect. **Keep workout** changes nothing. **Permanently delete workout** removes that session and its sets, then returns Home.
 
@@ -20,8 +22,8 @@ Existing sets start marked done. Changing measurements clears completion, just a
 
 1. Reload the app; no new dependencies or server configuration are introduced.
 2. Open a completed workout, tap Edit, change values, then Cancel. Confirm the original remains.
-3. Edit again, change reps/load, and tap Save before marking the changed set done. Confirm the guidance appears and the set stays visible.
-4. Mark it done and Save. Confirm details and Home reflect the changes. Fully close/reopen Expo Go and verify persistence.
+3. Edit again and clear reps/load. Confirm the set becomes incomplete and cannot be marked done. Save must show guidance and retain the editor. Refill valid values and confirm automatic completion. Check zero load, invalid/zero reps, and bodyweight reps without load.
+4. Add a copied set: confirm it starts incomplete, then edit its measurements or tap Done to confirm it. Save and confirm details and Home reflect the changes. Fully close/reopen Expo Go and verify persistence. Repeat the completion checks while logging a new workout.
 5. Add/remove sets and exercises, including bodyweight sets. Confirm only explicitly removed work disappears. Invalid/empty measurements must not overwrite history.
 6. Start an unfinished workout, return Home, edit a completed session, then resume the unfinished workout. Confirm its draft remains intact.
 7. On a disposable session, choose Delete, then Keep workout. Reopen it and confirm nothing changed.
@@ -30,6 +32,6 @@ Existing sets start marked done. Changing measurements clears completion, just a
 
 ## Verification evidence
 
-Component tests cover Cancel without mutation, reconfirmation before Save, and save failure/retry. Real SQLite tests cover update rollback, preservation of timestamps/drafts, scoped deletion, stale edits after deletion, foreign keys, and file close/reopen after both update and deletion. Type checking, zero-warning lint, and iOS/Android/web bundle exports pass.
+Twelve component tests cover Cancel without mutation, automatic completion, invalid/empty values, zero load, bodyweight semantics, copied-set confirmation, manual undo, and save failure/retry. Six real SQLite tests cover update rollback, preservation of timestamps/drafts, scoped deletion, stale edits after deletion, foreign keys, and file close/reopen after both update and deletion. Type checking, zero-warning lint, and iOS/Android/web bundle exports pass.
 
-A 390px browser journey using Expo's SQLite worker passed create/finish, edit cancellation, edited-set validation, save, cancellation of deletion, and confirmed deletion, with no runtime errors in that journey. Browser reload testing separately encountered `Invalid VFS state` from Expo SQLite's web worker initialization; browser reload persistence is not claimed. No dependency patch or database reset was applied. Verify persistence on the intended iOS/Android runtimes before merging.
+A 390px browser journey before the automatic-completion feedback change passed create/finish, edit cancellation, edited-set validation, save, cancellation of deletion, and confirmed deletion using Expo's SQLite worker, with no runtime errors in that journey. The subsequent completion behavior is covered by component tests and awaits device review. Browser reload testing separately encountered `Invalid VFS state` from Expo SQLite's web worker initialization; browser reload persistence is not claimed. No dependency patch or database reset was applied. Verify persistence on the intended iOS/Android runtimes before merging.

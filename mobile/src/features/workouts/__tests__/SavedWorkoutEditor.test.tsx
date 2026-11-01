@@ -20,14 +20,14 @@ it('cancels without saving or mutating the original workout', async () => {
   expect(initial.exercises[0].sets[0].reps).toBe('10');
 });
 
-it('prevents silent loss of an edited set and saves its reconfirmed values', async () => {
+it('blocks missing measurements and automatically completes corrected values before saving', async () => {
   const save = jest.fn().mockResolvedValue(undefined);
   await render(<SavedWorkoutEditor initial={initial} locations={locations} theme={getTheme('dark')} save={save} cancel={() => undefined} />);
-  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12');
+  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '');
   await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
   expect(save).not.toHaveBeenCalled();
   expect(screen.getByRole('alert')).toHaveTextContent(/Mark each set done/);
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done' }));
+  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12');
   await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
   expect(save.mock.calls[0][0].exercises[0].sets[0]).toMatchObject({ reps: '12', completed: true });
 });

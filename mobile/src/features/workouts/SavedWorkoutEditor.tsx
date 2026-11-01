@@ -27,7 +27,7 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
       update={next => setDraft(value => ({ ...value, exercises: value.exercises.map(item => item.id === next.id ? next : item) }))}
       remove={() => setDraft(value => ({ ...value, exercises: value.exercises.filter(item => item.id !== exercise.id) }))} />)}
     <Button theme={theme} label="+ Add exercise" disabled={busy} onPress={() => setDraft(value => ({ ...value, exercises: [...value.exercises, newExercise()] }))} />
-    <Text style={[styles.subtitle, { color: theme.muted }]}>After changing a set, mark it done again. Complete or remove every set before saving your changes.</Text>
+    <Text style={[styles.subtitle, { color: theme.muted }]}>Valid load and reps automatically complete a set; bodyweight sets need reps only. Copied sets stay incomplete until edited or marked done. Complete or remove every set before saving.</Text>
     {!!error && <Text accessibilityRole="alert" style={{ color: theme.accent }}>{error}</Text>}
     <Button theme={theme} primary label={busy ? 'Saving changes…' : 'Save changes'} disabled={busy} onPress={async () => {
       if (saving.current) return;

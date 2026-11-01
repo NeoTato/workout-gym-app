@@ -4,8 +4,8 @@ import type { ExerciseDraft } from '../../../domain/workout';
 import { getTheme } from '../../../ui/theme';
 import { ExerciseEditor } from '../ExerciseEditor';
 
-function Editor() {
-  const [exercise, update] = useState<ExerciseDraft>({ id: 'exercise', name: 'Press', equipment: '', bodyweight: false, unit: 'lb', convention: 'total', sets: [{ id: 'set-1', weight: '35', reps: '10', completed: false }] });
+function Editor({ weight = '35', reps = '10', bodyweight = false } = {}) {
+  const [exercise, update] = useState<ExerciseDraft>({ id: 'exercise', name: 'Press', equipment: '', bodyweight, unit: 'lb', convention: 'total', sets: [{ id: 'set-1', weight, reps, completed: false }] });
   let count = exercise.sets.length;
   return <ExerciseEditor exercise={exercise} index={0} theme={getTheme('light')} disabled={false} update={update} remove={() => undefined} newId={() => `set-${++count}`} />;
 }
@@ -19,12 +19,46 @@ describe('Exercise logging', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Remove set 5' }));
     expect(screen.queryByLabelText('Exercise 1 set 5 reps')).toBeNull();
   });
-  it('requires reconfirmation after editing a completed set', async () => {
+  it('automatically completes valid edits and clears completion for missing or invalid values', async () => {
     await render(<Editor />);
     await fireEvent.press(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done' }));
     await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12');
-    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeOnTheScreen();
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
+    for (const reps of ['', '0', '-1', '1.5', 'Infinity', '9007199254740992']) {
+      await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), reps);
+      expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
+      await fireEvent.press(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done' }));
+      expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeOnTheScreen();
+    }
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12');
+    for (const weight of ['', '-2', 'Infinity', 'abc']) {
+      await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 load (lb)'), weight);
+      expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
+    }
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 load (lb)'), '0');
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done' }));
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeEnabled();
     await fireEvent.press(screen.getByRole('button', { name: 'Tracking: Bodyweight reps' }));
     expect(screen.queryByLabelText('Exercise 1 set 1 load (lb)')).toBeNull();
+  });
+  it('requires both fields for loaded sets but only reps for bodyweight', async () => {
+    await render(<Editor weight="" reps="" />);
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done' })).toBeDisabled();
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '10');
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 load (lb)'), '35.5');
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: '+ Add set' }));
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 2 done', checked: false })).toBeEnabled();
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 2 reps'), '8');
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 2 done', checked: true })).toBeOnTheScreen();
+  });
+  it('automatically completes bodyweight reps without a load', async () => {
+    await render(<Editor weight="" reps="" bodyweight />);
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '15');
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '');
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
   });
 });
