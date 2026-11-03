@@ -8,6 +8,7 @@ export type ExerciseDraft = {
 export type WorkoutDraft = {
   id: string; startedAt: string; activityDate: string; timezone: string;
   endedAt?: string;
+  setupComplete?: boolean;
   timing?: { startDate: string; startTime: string; endDate: string; endTime: string };
   locationId: string; sessionType: string; exercises: ExerciseDraft[];
 };

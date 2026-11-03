@@ -119,9 +119,9 @@ test('a draft and completed sets survive closing and reopening the real SQLite f
   let connection;
   try {
     connection = connect(file); let store = makeStore(connection); await store.initialize();
-    await store.saveDraft(draft()); connection.db.close();
+    await store.saveDraft({ ...draft(), setupComplete: true }); connection.db.close();
     connection = connect(file); store = makeStore(connection); await store.initialize();
-    assert.deepEqual(await store.getDraft(), draft());
+    assert.deepEqual(await store.getDraft(), { ...draft(), setupComplete: true });
     await store.finish(draft()); await store.finish(draft());
     connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize();
     const history = await store.listWorkouts(); assert.equal(history.length, 1);

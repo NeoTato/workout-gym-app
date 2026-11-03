@@ -18,10 +18,15 @@ const locations = [{ id: 'home', name: 'Home', kind: 'home' as const }];
 it('cancels without saving or mutating the original workout', async () => {
   const save = jest.fn(), cancel = jest.fn();
   await render(<SavedWorkoutEditor initial={initial} locations={locations} theme={getTheme('light')} save={save} cancel={cancel} />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit section: Exercises' }));
   await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12');
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit section: Session details' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Change date and time' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Start date: 2026-11-01' }));
   await fireEvent(screen.getByTestId('system-picker'), 'valueChange', {}, new Date('2026-10-31T09:00:00Z'));
   await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit section: Exercises' }));
+  expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('12');
   await fireEvent.press(screen.getByRole('button', { name: 'Cancel changes' }));
   expect(save).not.toHaveBeenCalled(); expect(cancel).toHaveBeenCalledTimes(1);
   expect(initial.exercises[0].sets[0].reps).toBe('10');
@@ -31,10 +36,12 @@ it('cancels without saving or mutating the original workout', async () => {
 it('blocks missing measurements and automatically completes corrected values before saving', async () => {
   const save = jest.fn().mockResolvedValue(undefined);
   await render(<SavedWorkoutEditor initial={initial} locations={locations} theme={getTheme('dark')} save={save} cancel={() => undefined} />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit section: Exercises' }));
   await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '');
   await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
   expect(save).not.toHaveBeenCalled();
   expect(screen.getByRole('alert')).toHaveTextContent(/Mark each set done/);
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit section: Exercises' }));
   await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12');
   await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
   expect(save.mock.calls[0][0].exercises[0].sets[0]).toMatchObject({ reps: '12', completed: true });
@@ -45,6 +52,7 @@ it('retains edits and allows retry after a failed save', async () => {
   await render(<SavedWorkoutEditor initial={initial} locations={locations} theme={getTheme('light')} save={save} cancel={() => undefined} />);
   await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
   expect(screen.getByRole('alert')).toHaveTextContent(/Your original workout is unchanged/);
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit section: Exercises' }));
   expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('10');
   await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
   expect(save).toHaveBeenCalledTimes(2);

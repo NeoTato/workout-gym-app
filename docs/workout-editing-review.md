@@ -43,3 +43,13 @@ A 390px browser journey before the automatic-completion feedback change passed c
 `@react-native-community/datetimepicker` 9.2.1 was installed with `npx expo install` for SDK 58. It has no new runtime dependency tree; its moderate audit entry is inherited from the existing Expo tooling chain. Audit now reports 45 low/moderate entries (1 low, 44 moderate), zero high/critical. No force-upgrade or audit suppression was applied. Web uses browser date/time controls with character typing/paste blocked; mobile uses native calendar/clock UI. Physical-device visual checks remain pending.
 
 Picker verification: 16 component tests pass, including calendar confirmation, clock confirmation, iPhone Cancel, Android dismissal, same-day end-date movement, and workout Cancel. Browser smoke check confirms two date controls, two time controls, blocked arbitrary character typing, and no runtime errors. iOS/Android/web exports, TypeScript, lint, and Expo version compatibility pass. Native picker rendering still needs physical-device review.
+
+## Separate setup and logging screens
+
+New workouts begin with session setup: location, session type, and collapsed date/time controls. Continue validates location and timing, records setup completion in the existing draft checkpoint, and opens exercise logging. Logging shows only a compact type/location/date summary, Edit details, and exercise/set controls. Switching screens resets scroll position without losing entries. Home and resume return configured drafts directly to logging; unfinished setup returns to setup. Older drafts with a selected location remain compatible without a migration.
+
+Saved-workout editing separates Session details and Exercises. Both sections share one in-memory edit, with Save/Cancel available in either. No new dependency or server restart is needed for this UI change.
+
+Review: start a new workout, expand/cancel date selection, choose location/type, Continue, enter several sets, Edit details, change the type, return to logging, and verify all set values. Go Home and Resume: configured drafts must open logging directly. Reopen Expo Go and repeat. Edit a saved workout, switch sections and Save/Cancel, checking both details and sets.
+
+Verification: 19 component tests cover setup-first navigation, required location, collapsed time controls, retention across screen changes, direct resume, and saved-edit section changes. Eight SQLite/domain tests include setup-completion checkpoint persistence on file reopen. A real browser SQLite journey passed setup, logging, return to details retaining sets, Home/resume directly to logging, finish, saved-edit sections and Save without runtime errors. Native/device review remains pending.

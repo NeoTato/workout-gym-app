@@ -31,13 +31,13 @@ export default function WorkoutDetailsRoute() {
       .catch(() => { if (active) setError('Unable to load this workout. Return Home and try again.'); });
     return () => { active = false; };
   }, [id]);
-  if (edit) return <Screen theme={theme}><SavedWorkoutEditor initial={edit} locations={locations} theme={theme}
+  if (edit) return <SavedWorkoutEditor initial={edit} locations={locations} theme={theme}
     cancel={() => setEdit(null)} save={async draft => {
       const store = await openStore(); await store.updateWorkout(draft);
       setEdit(null); setWorkout(null);
       try { setWorkout(await store.getWorkout(id)); }
       catch { setError('Changes saved. Return Home to reopen this workout.'); }
-    }} /></Screen>;
+    }} />;
   return <Screen theme={theme}>
     <Button theme={theme} label="← Home" onPress={() => router.replace('/')} />
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>{workout?.sessionType ?? 'Workout details'}</Text>
