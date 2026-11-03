@@ -10,6 +10,8 @@ Open [design-preview.html](design-preview.html) directly in a browser. Run `node
 
 ## Native app blueprint
 
+Before the next native UI change, open [the interactive UI-overhaul preview](ui-overhaul-preview.html) in a browser. It compares the proposed action-color hierarchy on setup, logging, and saved-workout screens, with light/dark appearance and fictional sample data. Run `node verify-ui-overhaul.mjs` for its Chrome interaction/responsive checks. This preview does not modify the Expo app.
+
 - [Requirements and behavior](docs/requirements.md)
 - [Architecture and decision rationale](docs/architecture.md)
 - [Data model and export contracts](docs/data-model.md)
