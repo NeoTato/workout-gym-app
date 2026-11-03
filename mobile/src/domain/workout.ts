@@ -7,6 +7,8 @@ export type ExerciseDraft = {
 };
 export type WorkoutDraft = {
   id: string; startedAt: string; activityDate: string; timezone: string;
+  endedAt?: string;
+  timing?: { startDate: string; startTime: string; endDate: string; endTime: string };
   locationId: string; sessionType: string; exercises: ExerciseDraft[];
 };
 export type CompletedExercise = Omit<ExerciseDraft, 'sets'> & {
@@ -15,6 +17,7 @@ export type CompletedExercise = Omit<ExerciseDraft, 'sets'> & {
 export type Location = { id: string; name: string; kind: 'gym' | 'home' };
 export type SavedWorkout = {
   id: string; activityDate: string; sessionType: string; locationName: string;
+  timezone: string;
   startedAt: string; endedAt: string; exercises: CompletedExercise[];
 };
 export const sessionTypes = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Core', 'Custom'];

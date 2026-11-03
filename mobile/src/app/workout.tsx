@@ -5,6 +5,7 @@ import { Alert, Text, View, useColorScheme } from 'react-native';
 
 import { sessionTypes } from '../domain/workout';
 import { ExerciseEditor } from '../features/workouts/ExerciseEditor';
+import { WorkoutTimeEditor } from '../features/workouts/WorkoutTimeEditor';
 import { newExercise, useWorkoutDraft } from '../features/workouts/useWorkoutDraft';
 import { Button, Choice, Field, Screen, styles } from '../ui/controls';
 import { fonts, getTheme } from '../ui/theme';
@@ -21,8 +22,9 @@ export default function WorkoutRoute() {
     {!!error && <Text accessibilityRole="alert" style={{ color: theme.accent }}>{error}</Text>}
     {status === 'Not saved' && <Button theme={theme} label="Retry save" onPress={() => update(value => ({ ...value }))} />}
     {draft && <>
+      <WorkoutTimeEditor draft={draft} theme={theme} disabled={busy} update={timing => update(value => ({ ...value, timing }))} />
       <View style={[styles.card, { backgroundColor: theme.surface }]}>
-        <Text style={{ color: theme.muted, fontFamily: fonts.medium }}>{draft.activityDate} · Do as much as fits today.</Text>
+        <Text style={{ color: theme.muted, fontFamily: fonts.medium }}>{draft.timing?.startDate ?? draft.activityDate} · Do as much as fits your session.</Text>
         <Choice theme={theme} label="Where are you working out?" value={draft.locationId} disabled={busy}
           options={locations.map(location => ({ value: location.id, label: location.name }))}
           onChange={locationId => update(value => ({ ...value, locationId }))} />

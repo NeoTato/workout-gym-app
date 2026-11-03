@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Text, View, useColorScheme } from 'react-native';
 import type { Location, SavedWorkout, WorkoutDraft } from '../../domain/workout';
+import { timeFields } from '../../domain/workoutTime';
 import { SavedWorkoutEditor } from '../../features/workouts/SavedWorkoutEditor';
 import { openStore } from '../../storage/openStore';
 import { Button, Screen, styles } from '../../ui/controls';
@@ -45,6 +46,10 @@ export default function WorkoutDetailsRoute() {
     {workout && <>
       {!confirmDelete && <Button theme={theme} label="Edit workout" disabled={busy} onPress={beginEdit} />}
       <Text style={[styles.subtitle, { color: theme.muted }]}>{workout.activityDate} · {workout.locationName}</Text>
+      <Text style={[styles.subtitle, { color: theme.muted }]}>
+        {timeFields(workout.startedAt, workout.timezone).date} {timeFields(workout.startedAt, workout.timezone).time}
+        {' → '}{timeFields(workout.endedAt, workout.timezone).date} {timeFields(workout.endedAt, workout.timezone).time} ({workout.timezone})
+      </Text>
       <Text style={{ color: theme.accent, fontFamily: fonts.bold }}>✓ Saved on this phone</Text>
       {workout.exercises.map(exercise => <View key={exercise.id} style={[styles.card, { backgroundColor: theme.surface }]}>
         <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 18 }}>{exercise.name}</Text>

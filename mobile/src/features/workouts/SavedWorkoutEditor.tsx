@@ -6,6 +6,7 @@ import { Button, Choice, styles } from '../../ui/controls';
 import type { AppTheme } from '../../ui/theme';
 import { ExerciseEditor } from './ExerciseEditor';
 import { newExercise } from './useWorkoutDraft';
+import { WorkoutTimeEditor } from './WorkoutTimeEditor';
 
 export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: {
   initial: WorkoutDraft; locations: Location[]; theme: AppTheme;
@@ -16,7 +17,8 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
   const saving = useRef(false);
   return <>
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Edit workout</Text>
-    <Text style={[styles.subtitle, { color: theme.muted }]}>Changes are saved only when you tap Save changes. The original date and times stay the same.</Text>
+    <Text style={[styles.subtitle, { color: theme.muted }]}>Changes are saved only when you tap Save changes.</Text>
+    <WorkoutTimeEditor draft={draft} theme={theme} disabled={busy} update={timing => setDraft(value => ({ ...value, timing }))} />
     <Choice theme={theme} label="Workout location" value={draft.locationId} disabled={busy}
       options={locations.map(location => ({ value: location.id, label: location.name }))}
       onChange={locationId => setDraft(value => ({ ...value, locationId }))} />
