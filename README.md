@@ -6,17 +6,17 @@ A personal iOS/Android workout tracker for flexible gym and home sessions, equip
 
 The repository contains an interactive Coral Daylight HTML design preview with fictional data and an Expo SDK 58 app in `mobile/`. The native app supports gym/Home selection, editable exercise/set entry, local draft recovery, and saved-workout history using SQLite. Completed workouts support explicit editing and confirmed deletion; see the [device review checklist](docs/workout-editing-review.md). Routines, reporting, and exports remain planned. The approved prototype is the visual reference for the full app; no fictional workout history is seeded into the native database.
 
-Open [design-preview.html](design-preview.html) directly in a browser. Run `node verify-preview.mjs` to verify preview interactions and capture screenshots; this requires Node with built-in WebSocket support and Chrome at the Windows path configured in that script. No dependencies are currently installed.
+Open [design preview](previews/coral-daylight/design-preview.html) directly in a browser. Run `node scripts/verify-preview.mjs` to verify preview interactions and capture screenshots; this requires Node with built-in WebSocket support and Chrome at the Windows path configured in that script. No dependencies are currently installed.
 
 ## Native app blueprint
 
-Before the next native UI change, open [the interactive UI-overhaul preview](ui-overhaul-preview.html) in a browser. It compares the proposed action-color hierarchy on setup, logging, and saved-workout screens, with light/dark appearance and fictional sample data. Run `node verify-ui-overhaul.mjs` for its Chrome interaction/responsive checks. This preview does not modify the Expo app.
+Before the next native UI change, open [the interactive UI-overhaul preview](previews/ui-overhaul/ui-overhaul-preview.html) in a browser. It compares the proposed action-color hierarchy on setup, logging, and saved-workout screens, with light/dark appearance and fictional sample data. Run `node scripts/verify-ui-overhaul.mjs` for its Chrome interaction/responsive checks. This preview does not modify the Expo app.
 
 - [Requirements and behavior](docs/requirements.md)
 - [Architecture and decision rationale](docs/architecture.md)
 - [Data model and export contracts](docs/data-model.md)
 - [Implementation milestones and acceptance checks](docs/implementation-plan.md)
-- [Preview design notes](DESIGN-NOTES.md)
+- [Preview design notes](docs/design-notes.md)
 
 ## Run the mobile foundation
 
@@ -35,3 +35,15 @@ From `mobile/`: `npm run lint`, `npm run typecheck`, `npm test`, `npm run test:s
 The app uses React 19.3.0 and React Native 0.88.1; exact resolved versions are in `mobile/package-lock.json`. [Review guide](docs/pr-review-guide.md) explains your first PR. Dependencies and build output stay out of Git; the preview's generated screenshots are retained as design artifacts.
 
 Preview and review images are organized in [`screenshots/`](screenshots/). Verification scripts save regenerated screenshots there.
+
+## Repository layout
+
+```text
+assets/                       Shared preview fonts and icon metadata
+docs/                         Requirements, architecture, and design notes
+mobile/                       Expo iOS/Android application
+previews/coral-daylight/       Original interactive design preview
+previews/ui-overhaul/          Proposed UI overhaul preview
+screenshots/                  Preview and app review images
+scripts/                      Browser verification scripts
+```

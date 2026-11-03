@@ -1,6 +1,6 @@
 # Coral Daylight preview
 
-Open `design-preview.html` in a browser. This is the three-screen design prototype; it does not store workouts.
+Open [the design preview](../previews/coral-daylight/design-preview.html) in a browser. This is the three-screen design prototype; it does not store workouts.
 
 The Home screen includes a Monday-first monthly calendar. Completed dates have a peach fill and check mark; today's date has a coral border. Previous/next controls navigate real calendar months. Selecting any date opens an accessible detail dialog with all completed sessions, locations, durations, exercises, and per-set weights/reps, or an explicit empty state. Escape and Close return focus to the selected day. Counts distinguish active days from individual sessions. Calendar dates use local date components rather than UTC conversion. The fictional October 2026 dataset has 11 active days and 12 sessions, including gym and home sessions on October 28; today's marker is fixed to October 31 to match the preview's other sample content.
 
@@ -10,6 +10,6 @@ The supplied `coral_daylight_DESIGN.md` informs the visual system: #FF6B50 coral
 
 Accessibility adaptations: supporting copy uses #69696F rather than #8E8E93 in light mode. Small coral text uses #B43F2A; coral fills carry dark #35201C text for contrast. Controls have at least 48px touch targets and visible focus indicators. Dark-mode tokens are an extension of the light-only reference to preserve the agreed device-theme behavior. No additional brand colors are introduced.
 
-The font and SVG icons are bundled locally, so opening the prototype does not require an external asset service. Recursive is distributed under the SIL Open Font License in `assets/recursive-OFL.txt`. Solar icons are by 480 Design, sourced through Iconify; attribution and license details are recorded in `assets/solar-attribution.json`.
+The font and SVG icons are bundled locally, so opening the prototype does not require an external asset service. Recursive is distributed under the SIL Open Font License in `../assets/recursive-OFL.txt`. Solar icons are by 480 Design, sourced through Iconify; attribution and license details are recorded in `../assets/solar-attribution.json`.
 
-Run `node verify-preview.mjs` to check the preview using a separate headless Chrome profile. It checks the font and icons, set completion and undo, routine selection, gym separation, dark mode, manual theme override, browser errors, and horizontal overflow at 320/768/1024/1440px, and captures desktop, dark, and mobile screenshots. Chrome's executable path is currently configured for this Windows environment.
+Run `node scripts/verify-preview.mjs` to check the preview using a separate headless Chrome profile. It checks the font and icons, set completion and undo, routine selection, gym separation, dark mode, manual theme override, browser errors, and horizontal overflow at 320/768/1024/1440px, and captures desktop, dark, and mobile screenshots. Chrome's executable path is currently configured for this Windows environment.

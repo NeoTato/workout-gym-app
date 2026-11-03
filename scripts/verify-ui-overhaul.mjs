@@ -2,12 +2,15 @@
 import {spawn} from 'node:child_process';
 import {mkdir, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
-import {pathToFileURL} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
+
+const workspaceRoot = fileURLToPath(new URL('../', import.meta.url));
+const fromRoot = (...parts) => resolve(workspaceRoot, ...parts);
 
 const browser = spawn('C:/Program Files/Google/Chrome/Application/chrome.exe', [
   '--headless', '--disable-gpu', '--no-first-run', '--remote-debugging-port=0',
-  `--user-data-dir=${resolve('.preview-browser/ui-overhaul-check')}`, 'about:blank',
+  `--user-data-dir=${fromRoot('.preview-browser/ui-overhaul-check')}`, 'about:blank',
 ], {windowsHide:true, stdio:['ignore','ignore','pipe']});
 let socket;
 try {
@@ -60,14 +63,14 @@ try {
   const choose=async(selector,keys)=>{await click(selector);for(const name of keys)await key(name);await key('Tab');};
   const screenshot=async name=>{
     const {data}=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});
-    await mkdir(resolve('screenshots'),{recursive:true});
-    await writeFile(resolve('screenshots',name),Buffer.from(data,'base64'));
+    await mkdir(fromRoot('screenshots'),{recursive:true});
+    await writeFile(fromRoot('screenshots',name),Buffer.from(data,'base64'));
   };
   await command('Page.enable');await command('Runtime.enable');await command('Log.enable');
   await command('Emulation.setDeviceMetricsOverride',{width:1440,height:1600,deviceScaleFactor:1,mobile:false});
   await command('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'light'}]});
 
-  await command('Page.navigate',{url:pathToFileURL(resolve('ui-overhaul-preview.html')).href});
+  await command('Page.navigate',{url:pathToFileURL(fromRoot('previews/ui-overhaul/ui-overhaul-preview.html')).href});
   await evaluate("new Promise(resolve=>{if(document.readyState==='complete')resolve();else addEventListener('load',resolve,{once:true})}).then(()=>document.fonts.ready).then(()=>true)");
   assert.equal(await evaluate("document.fonts.check('700 30px Recursive')"),true);
   assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
