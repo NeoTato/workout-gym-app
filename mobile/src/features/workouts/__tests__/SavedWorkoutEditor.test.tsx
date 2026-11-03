@@ -4,6 +4,10 @@ import { getTheme } from '../../../ui/theme';
 import { SavedWorkoutEditor } from '../SavedWorkoutEditor';
 
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'new-id' }));
+jest.mock('@react-native-community/datetimepicker', () => {
+  const { View } = jest.requireActual('react-native');
+  return { __esModule: true, default: (props: object) => <View {...props} testID="system-picker" /> };
+});
 const initial: WorkoutDraft = {
   id: 'saved', startedAt: '2026-11-01T01:00:00Z', activityDate: '2026-11-01', timezone: 'Asia/Manila',
   locationId: 'home', sessionType: 'Push', exercises: [{ id: 'exercise', name: 'Press', equipment: 'Dumbbells',
@@ -15,7 +19,9 @@ it('cancels without saving or mutating the original workout', async () => {
   const save = jest.fn(), cancel = jest.fn();
   await render(<SavedWorkoutEditor initial={initial} locations={locations} theme={getTheme('light')} save={save} cancel={cancel} />);
   await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12');
-  await fireEvent.changeText(screen.getByLabelText('Start date'), '2026-10-31');
+  await fireEvent.press(screen.getByRole('button', { name: 'Start date: 2026-11-01' }));
+  await fireEvent(screen.getByTestId('system-picker'), 'valueChange', {}, new Date('2026-10-31T09:00:00Z'));
+  await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Cancel changes' }));
   expect(save).not.toHaveBeenCalled(); expect(cancel).toHaveBeenCalledTimes(1);
   expect(initial.exercises[0].sets[0].reps).toBe('10');
