@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createWorkoutStore } from '../src/storage/workoutStore.ts';
+import { workoutTimes } from '../src/domain/workoutTime.ts';
 
 function connect(file) {
   const db = new DatabaseSync(file);
@@ -34,15 +35,93 @@ function draft(id = 'workout-1') {
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
 
+test('time conversion uses the recorded timezone and rejects nonexistent daylight-saving times', () => {
+  const entry = draft(); entry.timezone = 'America/New_York';
+  entry.timing = { startDate: '2026-03-08', startTime: '01:30', endDate: '2026-03-08', endTime: '03:30' };
+  const times = workoutTimes(entry, '2026-11-01T02:00:00Z');
+  assert.equal(Date.parse(times.endedAt) - Date.parse(times.startedAt), 3600000);
+  assert.throws(() => workoutTimes({ ...entry, timing: { ...entry.timing, startTime: '02:30' } }, '2026-11-01T02:00:00Z'), /valid/);
+});
+
+test('backdated logging and time corrections persist, while invalid timing preserves history', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    const entry = draft();
+    entry.timing = { startDate: '2026-10-31', startTime: '18:00', endDate: '2026-10-31', endTime: '19:00' };
+    await store.finish(entry);
+    const saved = await store.getWorkout(entry.id);
+    assert.equal(saved.activityDate, '2026-10-31');
+    assert.equal(saved.startedAt, '2026-10-31T10:00:00.000Z');
+    assert.equal(saved.endedAt, '2026-10-31T11:00:00.000Z');
+    const edit = await store.getWorkoutEdit(entry.id);
+    assert.equal(edit.endedAt, saved.endedAt);
+    edit.timing = { startDate: '2026-10-30', startTime: '23:30', endDate: '2026-10-31', endTime: '00:30' };
+    await store.updateWorkout(edit);
+    const corrected = await store.getWorkout(entry.id);
+    assert.equal(corrected.activityDate, '2026-10-30');
+    assert.equal(Date.parse(corrected.endedAt) - Date.parse(corrected.startedAt), 3600000);
+    for (const timing of [
+      { ...edit.timing, startDate: '2026-02-30' },
+      { ...edit.timing, startTime: '25:00' },
+      { ...edit.timing, endDate: '2026-10-29' },
+      { ...edit.timing, endDate: '2026-11-02' },
+    ]) {
+      await assert.rejects(store.updateWorkout({ ...edit, timing }), /Enter/);
+      assert.deepEqual(await store.getWorkout(entry.id), corrected);
+    }
+  } finally { connection.db.close(); }
+});
+
+test('edits are explicit, preserve history metadata and drafts, and roll back on failure', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize(); await store.finish(draft());
+    const original = await store.getWorkout('workout-1');
+    await store.saveDraft(draft('ongoing'));
+    const edit = await store.getWorkoutEdit('workout-1');
+    edit.sessionType = 'Upper'; edit.exercises[0].sets[0].weight = '45';
+    assert.deepEqual(await store.getWorkout('workout-1'), original);
+    await store.updateWorkout(edit);
+    const saved = await store.getWorkout('workout-1');
+    assert.equal(saved.sessionType, 'Upper'); assert.equal(saved.exercises[0].sets[0].weight, 45);
+    assert.equal(saved.startedAt, original.startedAt); assert.equal(saved.endedAt, original.endedAt);
+    assert.equal(saved.activityDate, original.activityDate);
+    assert.deepEqual(await store.getDraft(), draft('ongoing'));
+    edit.exercises[0].sets[0].weight = '55'; connection.failSets();
+    await assert.rejects(store.updateWorkout(edit), /Injected/);
+    assert.deepEqual(await store.getWorkout('workout-1'), saved);
+    assert.deepEqual(connection.db.prepare('PRAGMA foreign_key_check').all(), []);
+  } finally { connection.db.close(); }
+});
+
+test('delete affects only one workout and stale edits cannot recreate it', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    await store.finish(draft()); await store.finish(draft('other')); await store.saveDraft(draft('ongoing'));
+    const edit = await store.getWorkoutEdit('workout-1');
+    edit.exercises[0].sets[0].reps = '0';
+    await assert.rejects(store.updateWorkout(edit), /reps/);
+    assert.equal((await store.getWorkout('workout-1')).exercises[0].sets[0].reps, 10);
+    edit.exercises[0].sets[0].reps = '12';
+    await store.deleteWorkout('workout-1'); await store.deleteWorkout('workout-1');
+    await assert.rejects(store.updateWorkout(edit), /found/);
+    assert.deepEqual((await store.listWorkouts()).map(w => w.id), ['other']);
+    assert.equal(connection.db.prepare('SELECT count(*) AS count FROM sets').get().count, 1);
+    assert.deepEqual(await store.getDraft(), draft('ongoing'));
+  } finally { connection.db.close(); }
+});
+
 test('a draft and completed sets survive closing and reopening the real SQLite file', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'workout-storage-'));
   const file = join(directory, 'history.db');
   let connection;
   try {
     connection = connect(file); let store = makeStore(connection); await store.initialize();
-    await store.saveDraft(draft()); connection.db.close();
+    await store.saveDraft({ ...draft(), setupComplete: true }); connection.db.close();
     connection = connect(file); store = makeStore(connection); await store.initialize();
-    assert.deepEqual(await store.getDraft(), draft());
+    assert.deepEqual(await store.getDraft(), { ...draft(), setupComplete: true });
     await store.finish(draft()); await store.finish(draft());
     connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize();
     const history = await store.listWorkouts(); assert.equal(history.length, 1);
@@ -51,6 +130,16 @@ test('a draft and completed sets survive closing and reopening the real SQLite f
     assert.deepEqual(saved.exercises[0].sets.map(set => ({ ...set })), [{ id: 'workout-1-set-1', weight: 35.5, reps: 10 }]);
     assert.equal(await store.getDraft(), null);
     await store.saveDraft(draft()); assert.equal(await store.getDraft(), null, 'late autosave cannot resurrect a finished draft');
+    const edit = await store.getWorkoutEdit(saved.id);
+    edit.exercises[0].sets[0].reps = '12';
+    edit.timing = { startDate: '2026-10-31', startTime: '09:00', endDate: '2026-10-31', endTime: '10:00' };
+    await store.updateWorkout(edit);
+    connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize();
+    assert.equal((await store.getWorkout(saved.id)).exercises[0].sets[0].reps, 12, 'edits persist after reopening the file');
+    assert.equal((await store.getWorkout(saved.id)).activityDate, '2026-10-31', 'corrected date persists after reopening');
+    await store.deleteWorkout(saved.id);
+    connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize();
+    assert.equal((await store.listWorkouts()).length, 0, 'deletion persists after reopening the file');
   } finally { connection?.db.close(); rmSync(directory, { recursive: true, force: true }); }
 });
 
