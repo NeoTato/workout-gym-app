@@ -98,6 +98,27 @@ try {
   await click('#delete-workout');await key('Escape');assert.equal(await evaluate('document.querySelector("#confirm-dialog").open'),false);
   await click('#add-gym');await evaluate('document.querySelector("#gym-name").value="New gym"');await click('#gym-form button[type="submit"]');
   assert.equal(await evaluate('document.querySelector("[data-gym]").textContent'),'New gym');
+  await click('#add-exercise');
+  assert.equal(await evaluate('document.querySelector("#exercise-dialog").open'),true);
+  await evaluate('(()=>{const input=document.querySelector("#new-exercise-name");input.value="  DUMBBELL  ";input.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  assert.equal(await evaluate('document.querySelectorAll("#exercise-suggestions button").length'),1);
+  await click('#exercise-suggestions button');await click('#exercise-form button[type="submit"]');
+  assert.equal(await evaluate('document.querySelector("#exercise-dialog").open'),false);
+  assert.equal(await evaluate('document.querySelector("[data-added-exercise] strong").textContent'),'Incline dumbbell press');
+  await evaluate('(()=>{const input=document.querySelector("#exercise-name");input.value="Zottman curl";input.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  await click('#finish');await click('#add-exercise');
+  assert.equal(await evaluate('Array.from(document.querySelector("#exercise-library").options).some(o=>o.value==="Zottman curl")'),true);
+  await screenshot('ui-overhaul-exercise-suggestions.png');
+  await click('#exercise-cancel');
+  await evaluate('(()=>{const input=document.querySelector("#exercise-name");input.value="  zOTTMAN   CURL ";input.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  await click('#finish');
+  assert.equal(await evaluate('Array.from(document.querySelector("#exercise-library").options).filter(o=>o.value.toLowerCase()==="zottman curl").length'),1);
+  await click('#add-exercise');
+  await evaluate('(()=>{const input=document.querySelector("#new-exercise-name");input.value="Unlogged new exercise";input.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  assert.equal(await evaluate('document.querySelector("#no-exercise-matches").hidden'),false);
+  await click('#exercise-form button[type="submit"]');
+  assert.equal(await evaluate('Array.from(document.querySelector("#exercise-library").options).some(o=>o.value==="Unlogged new exercise")'),false);
+
   for(const width of [390,320]){
     await command('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:true});
     for(const screen of ['setup','logging','review']){await click('[data-screen="'+screen+'"]');assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'No overflow at '+width+' / '+screen);}
@@ -105,7 +126,7 @@ try {
   await command('Emulation.setDeviceMetricsOverride',{width:390,height:1000,deviceScaleFactor:1,mobile:true});
   await click('[data-screen="logging"]');await evaluate('document.querySelector("[data-panel=logging] .phone-content").scrollTop=0;document.querySelector("#toast").hidden=true;scrollTo(0,0)');await screenshot('ui-overhaul-mobile.png');
   assert.deepEqual(errors,[]);
-  console.log('PASS: desktop/light/dark/320px/390px layouts, color comparison, distinct action colors, automatic completion, copied sets, removal confirmation/cancellation, finish, modal Escape, and gym selection.');
+  console.log('PASS: desktop/light/dark/320px/390px layouts, color comparison, distinct action colors, automatic completion, copied sets, removal confirmation/cancellation, finish, modal Escape, gym selection, exercise-name search/reuse, new-name learning on Finish, and case/space deduplication.');
 } finally {
   if(socket?.readyState===WebSocket.OPEN)socket.close();browser.kill();
 }

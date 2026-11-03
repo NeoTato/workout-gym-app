@@ -50,4 +50,6 @@ Use native file selection/sharing. Present backup contents and replacement conse
 
 Seed readable exercise names from the screenshots as editable library entries, with no weights, dates, gym assignments, or fabricated historical records. Do not ship the prototype's fictional sessions in the personal database. Let the user assign measurement mode, equipment, and muscle tags when first using an exercise.
 
+When naming an exercise, offer searchable suggestions from previously logged exercises, while allowing a new name. Suggestions must persist across sessions and app restarts, match regardless of capitalization, and avoid duplicates caused only by surrounding/repeated whitespace. Selecting a name reuses its exercise identity; equipment variations remain specific to the chosen gym. Include suggestions in both new workout logging and saved-workout exercise editing. A name merely typed into an unfinished/discarded entry is not presented as previously logged history.
+
 First-version acceptance: log a shortened workout at a chosen gym, restart the app, finish and reopen it in the calendar; verify the same data feeds progress, type counts, streaks, JSON round-trip, and CSV. Repeat with Home, a second gym, core/duration/cardio measurements, and two sessions on one day. See the implementation plan for staged checks.

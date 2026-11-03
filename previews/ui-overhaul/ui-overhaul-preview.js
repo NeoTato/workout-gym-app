@@ -2,6 +2,34 @@
   const $ = selector => document.querySelector(selector);
   const $$ = selector => [...document.querySelectorAll(selector)];
   let toastTimer, pendingRemoval;
+  // Fictional previous workouts for this visual preview, not the app's library.
+  const exerciseNames = ['Incline dumbbell press', 'Cable fly', 'Lat pulldown', 'Leg press', 'Crunches'];
+  const cleanName = name => name.trim().replace(/\s+/g, ' ');
+  function rememberExercise(name) {
+    const clean = cleanName(name);
+    const existing = exerciseNames.find(item => item.toLowerCase() === clean.toLowerCase());
+    if (existing) return existing;
+    exerciseNames.push(clean);
+    refreshExerciseLibrary();
+    return clean;
+  }
+  function refreshExerciseLibrary() {
+    $('#exercise-library').replaceChildren(...exerciseNames.slice().sort((a, b) => a.localeCompare(b)).map(name => {
+      const option = document.createElement('option'); option.value = name; return option;
+    }));
+    renderExerciseSuggestions();
+  }
+  function renderExerciseSuggestions() {
+    const query = cleanName($('#new-exercise-name').value).toLowerCase();
+    const matches = exerciseNames.filter(name => name.toLowerCase().includes(query)).sort((a, b) => a.localeCompare(b));
+    $('#no-exercise-matches').hidden = matches.length > 0;
+    $('#exercise-suggestions').replaceChildren(...matches.map(name => {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'exercise-suggestion';
+      button.textContent = name;
+      button.addEventListener('click', () => { $('#new-exercise-name').value = name; renderExerciseSuggestions(); $('#exercise-form button[type="submit"]').focus(); });
+      return button;
+    }));
+  }
   function notify(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 3500); }
   function navigate(screen) {
     $('.screens').dataset.active = screen;
@@ -53,7 +81,23 @@
   });
   $('#fly-toggle').addEventListener('click', () => { const open = $('#fly-details').hidden; $('#fly-details').hidden = !open; $('#fly-toggle').setAttribute('aria-expanded', String(open)); });
   $('#remove-fly').addEventListener('click', () => { $('.compact-exercise').hidden = true; notify('Optional exercise removed from the preview.'); });
-  $('#add-exercise').addEventListener('click', () => { $('.compact-exercise').hidden = false; $('#fly-details').hidden = false; $('#fly-toggle').setAttribute('aria-expanded', 'true'); notify('Exercise added to this preview.'); });
+  $('#add-exercise').addEventListener('click', () => {
+    $('#new-exercise-name').value = ''; renderExerciseSuggestions(); $('#exercise-dialog').showModal(); $('#new-exercise-name').focus();
+  });
+  $('#new-exercise-name').addEventListener('input', renderExerciseSuggestions);
+  $('#exercise-cancel').addEventListener('click', () => $('#exercise-dialog').close());
+  $('#exercise-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const typed = cleanName($('#new-exercise-name').value); if (!typed) return;
+    const name = exerciseNames.find(item => item.toLowerCase() === typed.toLowerCase()) ?? typed;
+    const card = document.createElement('article'); card.className = 'card compact-exercise'; card.dataset.addedExercise = '';
+    const heading = document.createElement('strong'); heading.textContent = name;
+    const help = document.createElement('p'); help.className = 'small muted'; help.textContent = 'No sets logged yet';
+    const remove = document.createElement('button'); remove.className = 'text-button negative'; remove.textContent = 'Remove exercise';
+    remove.addEventListener('click', () => card.remove());
+    card.append(heading, help, remove); $('#add-exercise').before(card);
+    $('#exercise-dialog').close(); card.scrollIntoView({ block: 'nearest' }); notify('Exercise added.');
+  });
   $('#remove-exercise').addEventListener('click', () => confirm('Remove this exercise?', 'All its sets will be removed from this preview workout.', () => { $('#press-card').hidden = true; notify('Exercise removed from preview. Reload the HTML to reset.'); }));
   $('#discard').addEventListener('click', () => confirm('Discard this workout?', 'This clears the preview’s exercise sets. Your real app data is untouched.', () => { $('#sets').replaceChildren(); updateCount(); navigate('setup'); notify('Preview workout discarded. Reload to reset the sample.'); }, 'Discard workout'));
   $('#delete-workout').addEventListener('click', () => confirm('Delete this workout?', 'This action is permanent in the app. Here it only demonstrates the confirmation design.', () => { notify('Workout deleted in this preview only.'); navigate('setup'); }, 'Delete workout'));
@@ -63,6 +107,8 @@
   $('#finish').addEventListener('click', () => {
     const rows = $$('#sets [data-set]').filter(row => row.querySelector('.set-check').getAttribute('aria-checked') === 'true');
     if (!rows.length || $('#press-card').hidden) { notify('Complete at least one set before finishing.'); return; }
+    if (!cleanName($('#exercise-name').value)) { notify('Name the exercise before finishing.'); return; }
+    $('#exercise-name').value = rememberExercise($('#exercise-name').value);
     $('#saved-sets').textContent = rows.length; $('#saved-name').textContent = $('#exercise-name').value;
     $('#saved-values').replaceChildren(...rows.map((row, index) => { const line = document.createElement('p'); const label = document.createElement('span'); label.textContent = `Set ${index + 1}`; const value = document.createElement('strong'); const inputs = row.querySelectorAll('input'); value.textContent = `${inputs[0].value} ${$('#load-unit').value} × ${inputs[1].value}`; line.append(label, value); return line; }));
     navigate('review'); notify('Workout saved in this preview.');
@@ -70,4 +116,5 @@
   $('#add-gym').addEventListener('click', () => { $('#gym-dialog').showModal(); $('#gym-name').focus(); });
   $('#gym-cancel').addEventListener('click', () => $('#gym-dialog').close());
   $('#gym-form').addEventListener('submit', event => { event.preventDefault(); const name = $('#gym-name').value.trim(); if (!name) return; const button = $('.location-options .choice'); button.dataset.location = name; button.querySelector('span:nth-child(2)').firstChild.textContent = name; button.click(); $('#gym-dialog').close(); notify('Gym added to this preview.'); });
+  refreshExerciseLibrary();
 })();
