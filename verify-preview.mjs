@@ -1,6 +1,6 @@
 // Dependency-free browser checks for the local design prototype.
 import {spawn} from 'node:child_process';
-import {writeFile} from 'node:fs/promises';
+import {mkdir, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
@@ -60,7 +60,8 @@ try {
   const choose=async(selector,keys)=>{await click(selector);for(const name of keys)await key(name);await key('Tab');};
   const screenshot=async name=>{
     const {data}=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});
-    await writeFile(name,Buffer.from(data,'base64'));
+    await mkdir(resolve('screenshots'),{recursive:true});
+    await writeFile(resolve('screenshots',name),Buffer.from(data,'base64'));
   };
   await command('Page.enable');await command('Runtime.enable');await command('Log.enable');
   await command('Emulation.setDeviceMetricsOverride',{width:1440,height:1600,deviceScaleFactor:1,mobile:false});

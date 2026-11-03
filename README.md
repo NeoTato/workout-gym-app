@@ -33,3 +33,5 @@ Open the QR code with Expo Go for SDK 58 on a physical phone connected to the sa
 From `mobile/`: `npm run lint`, `npm run typecheck`, `npm test`, `npm run test:storage`, `npx expo install --check`, and `npm run build`. Build exports JavaScript bundles for iOS, Android, and web; it does not produce signed native install files. `npm audit --audit-level=high` is a separate merge-readiness check; SDK 58 resolves the original high-severity blockers while low/moderate findings remain. See [dependency review](docs/dependency-review.md). [PR 2 review instructions](docs/workout-saving-review.md) cover native draft/history persistence and remaining scope.
 
 The app uses React 19.3.0 and React Native 0.88.1; exact resolved versions are in `mobile/package-lock.json`. [Review guide](docs/pr-review-guide.md) explains your first PR. Dependencies and build output stay out of Git; the preview's generated screenshots are retained as design artifacts.
+
+Preview and review images are organized in [`screenshots/`](screenshots/). Verification scripts save regenerated screenshots there.

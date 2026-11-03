@@ -23,6 +23,6 @@ Keep readable text and explicit labels/icons alongside color. Check light and da
 
 ## Verification
 
-`node verify-ui-overhaul.mjs` uses the existing dependency-free Chrome DevTools test approach. Checks cover light/dark, distinct semantic action colors, the comparison toggle, completion validity, copied-set behavior, confirmation and cancellation, Finish, Escape closing dialogs, gym selection, and no horizontal overflow at 320px/390px. Screenshots: `ui-overhaul-desktop.png`, `ui-overhaul-dark.png`, `ui-overhaul-mobile.png`.
+`node verify-ui-overhaul.mjs` uses the existing dependency-free Chrome DevTools test approach. Checks cover light/dark, distinct semantic action colors, the comparison toggle, completion validity, copied-set behavior, confirmation and cancellation, Finish, Escape closing dialogs, gym selection, and no horizontal overflow at 320px/390px. Screenshots: [desktop](../screenshots/ui-overhaul-desktop.png), [dark](../screenshots/ui-overhaul-dark.png), [mobile](../screenshots/ui-overhaul-mobile.png).
 
 Native implementation is pending user review. Preserve the merged app's SQLite/draft behavior, explicit saved-workout Save/Cancel, and timezone-aware validation when transferring an approved design.
