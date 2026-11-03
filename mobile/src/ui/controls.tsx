@@ -10,10 +10,10 @@ export function Screen({ theme, children }: { theme: AppTheme; children: ReactNo
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
-export function Button({ theme, label, onPress, primary = false, disabled = false }: {
-  theme: AppTheme; label: string; onPress: () => void; primary?: boolean; disabled?: boolean;
+export function Button({ theme, label, accessibilityLabel, onPress, primary = false, disabled = false }: {
+  theme: AppTheme; label: string; accessibilityLabel?: string; onPress: () => void; primary?: boolean; disabled?: boolean;
 }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
     style={({ pressed }) => [styles.button, { backgroundColor: primary ? theme.primary : theme.accentSoft, opacity: disabled ? 0.5 : pressed ? 0.8 : 1 }]}>
     <Text style={{ fontFamily: fonts.bold, color: primary ? '#35201C' : theme.accent, textAlign: 'center' }}>{label}</Text>
   </Pressable>;

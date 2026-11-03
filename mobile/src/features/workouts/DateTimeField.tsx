@@ -12,6 +12,10 @@ export type DateTimeFieldProps = {
 export function DateTimeField({ label, mode, date, time, maximumDate, theme, disabled, onChange }: DateTimeFieldProps) {
   const [candidate, setCandidate] = useState<Date | null>(null);
   const scheme = useColorScheme();
+  const selected = new Date(`${date}T${time}:00Z`);
+  const displayValue = Number.isFinite(selected.getTime()) ? new Intl.DateTimeFormat('en', mode === 'date'
+    ? { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }
+    : { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' }).format(selected) : mode === 'date' ? date : time;
   const close = () => setCandidate(null);
   function apply(value: Date) {
     const iso = value.toISOString();
@@ -31,7 +35,7 @@ export function DateTimeField({ label, mode, date, time, maximumDate, theme, dis
     }} />;
   return <View style={{ gap: 8 }}>
     <Text style={{ color: theme.muted }}>{label}</Text>
-    <Button theme={theme} label={`${label}: ${mode === 'date' ? date : time}`} disabled={disabled} onPress={() => {
+    <Button theme={theme} label={`${displayValue}  ▾`} accessibilityLabel={`${label}: ${mode === 'date' ? date : time}`} disabled={disabled} onPress={() => {
       const value = new Date(`${date}T${time}:00Z`);
       setCandidate(Number.isFinite(value.getTime()) ? value : new Date());
     }} />

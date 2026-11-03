@@ -12,7 +12,7 @@ export function WorkoutTimeEditor({ draft, theme, disabled, update }: {
   const maximumDate = timeFields(new Date().toISOString(), draft.timezone).date;
   return <View style={[styles.card, { backgroundColor: theme.surface }]}>
     <Text accessibilityRole="header" style={{ color: theme.text }}>Workout date and time</Text>
-    <Text style={[styles.subtitle, { color: theme.muted }]}>Use the date you trained, even when logging later. Times are in {draft.timezone} (24-hour). An overnight session can end on the next date.</Text>
+    <Text style={[styles.subtitle, { color: theme.muted }]}>Use the date you trained, even when logging later. Times are in {draft.timezone}. An overnight session can end on the next date.</Text>
     {!draft.endedAt && !draft.timing && <Text style={{ color: theme.muted }}>End time follows Finish workout unless you edit these fields.</Text>}
     <DateTimeField theme={theme} label="Start date" mode="date" date={timing.startDate} time={timing.startTime} maximumDate={maximumDate} disabled={disabled}
       onChange={startDate => update({ ...timing, startDate, endDate: timing.endDate === timing.startDate ? startDate : timing.endDate })} />
