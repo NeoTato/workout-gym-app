@@ -57,8 +57,8 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
     {!!error && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{error}</Text>}
     {!!setupError && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{setupError}</Text>}
     {status === 'Not saved' && <Button theme={theme} label="Retry save" onPress={() => update(value => ({ ...value }))} />}
-    {pickerOpen && <ExercisePicker theme={theme} {...library} cancel={() => setPickerOpen(false)} add={(name, option) => {
-      const exercise = { ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false };
+    {pickerOpen && <ExercisePicker theme={theme} {...library} cancel={() => setPickerOpen(false)} add={(name, option, category) => {
+      const exercise = { ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, category };
       requestScroll(exercise.id);
       update(value => ({ ...value, exercises: [...value.exercises, exercise] })); setAddedId(exercise.id); setPickerOpen(false);
     }} />}

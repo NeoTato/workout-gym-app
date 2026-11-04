@@ -7,6 +7,7 @@ import { fonts, type AppTheme } from '../../ui/theme';
 import type { LoggedExercise } from '../../domain/exerciseLibrary';
 import { ExerciseNameField } from './ExerciseNameField';
 import { SetRow } from './SetRow';
+import { ExerciseCategoryField } from './ExerciseCategoryField';
 
 export function ExerciseEditor({ exercise, index, theme, disabled, update, remove, newId, library = [], initiallyExpanded = index === 0 }: {
   exercise: ExerciseDraft; index: number; theme: AppTheme; disabled: boolean;
@@ -42,6 +43,7 @@ export function ExerciseEditor({ exercise, index, theme, disabled, update, remov
     {expanded && <>
     {setup && <>
     <ExerciseNameField exercise={exercise} index={index} theme={theme} disabled={disabled} items={library} update={update} />
+    <ExerciseCategoryField value={exercise.category ?? ''} theme={theme} disabled={disabled} onChange={category => update({ ...exercise, category })} />
     <Field theme={theme} label={`Exercise ${index + 1} equipment label`} caption="Equipment / setup" value={exercise.equipment} placeholder="e.g. Dumbbells or chest machine 1" editable={!disabled}
       onChangeText={equipment => update({ ...exercise, equipment })} />
     <Choice theme={theme} label="Tracking" value={exercise.bodyweight ? 'bodyweight' : 'loaded'} disabled={disabled}

@@ -58,3 +58,17 @@ it('retains edits and allows retry after a failed save', async () => {
   await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
   expect(save).toHaveBeenCalledTimes(2);
 });
+
+it('assigns a category without clearing performed sets and only persists it on Save changes', async () => {
+  const save = jest.fn().mockResolvedValue(undefined);
+  await render(<SavedWorkoutEditor initial={initial} locations={locations} theme={getTheme('light')} save={save} cancel={jest.fn()} />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit section: Exercises' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Category: Uncategorized' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Exercise category: Push' }));
+  expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
+  expect(save).not.toHaveBeenCalled();
+  expect(initial.exercises[0].category).toBeUndefined();
+  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  expect(save.mock.calls[0][0].exercises[0].category).toBe('Push');
+});

@@ -36,6 +36,31 @@ function draft(id = 'workout-1') {
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
 
+test('exercise categories persist, can be reassigned or cleared, and roll back with failed workout edits', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    const entry = draft('categorized'); entry.exercises[0].category = 'Push';
+    await store.finish(entry);
+    assert.equal((await store.listLoggedExercises())[0].category, 'Push');
+    const edit = await store.getWorkoutEdit(entry.id);
+    assert.equal(edit.exercises[0].category, 'Push');
+    edit.exercises[0].category = 'Core';
+    await store.updateWorkout(edit);
+    assert.equal((await store.listLoggedExercises())[0].category, 'Core');
+    const uncategorized = await store.getWorkoutEdit(entry.id); uncategorized.exercises[0].category = '';
+    await store.updateWorkout(uncategorized);
+    assert.equal((await store.listLoggedExercises())[0].category, '');
+    const invalid = await store.getWorkoutEdit(entry.id); invalid.exercises[0].category = 'unknown';
+    await assert.rejects(store.updateWorkout(invalid), /category/);
+    const failed = await store.getWorkoutEdit(entry.id); failed.exercises[0].category = 'Pull';
+    connection.failSets();
+    await assert.rejects(store.updateWorkout(failed), /Injected/);
+    assert.equal((await store.listLoggedExercises())[0].category, '');
+    assert.equal((await store.getWorkout(entry.id)).sessionType, 'Push');
+  } finally { connection.db.close(); }
+});
+
 test('version-one locations migrate without losing gyms or draft checkpoints', async () => {
   const connection = connect(':memory:');
   try {
@@ -44,9 +69,23 @@ test('version-one locations migrate without losing gyms or draft checkpoints', a
     const pending = draft(); pending.locationId = 'legacy';
     connection.db.prepare('INSERT INTO draft_checkpoint VALUES (1,?,?)').run(pending.id, JSON.stringify(pending));
     const store = makeStore(connection); await store.initialize(); await store.initialize();
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 2);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 3);
     assert.equal((await store.listLocations()).find(item => item.id === 'legacy').archived, 0);
     assert.deepEqual(await store.getDraft(), pending);
+  } finally { connection.db.close(); }
+});
+
+test('version-two exercise names migrate as uncategorized and retain their identity', async () => {
+  const connection = connect(':memory:');
+  try {
+    connection.db.exec(schema);
+    connection.db.exec('ALTER TABLE locations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0; PRAGMA user_version=2;');
+    connection.db.prepare('INSERT INTO exercises VALUES (?,?,?)').run('legacy-press', "Press 'n lift", 'load_reps');
+    const store = makeStore(connection); await store.initialize(); await store.initialize();
+    const entry = draft('legacy-history'); await store.finish(entry);
+    assert.equal((await store.listLoggedExercises())[0].id, 'legacy-press');
+    assert.equal((await store.listLoggedExercises())[0].category, '');
+    assert.equal((await store.getWorkout(entry.id)).exercises[0].sets[0].weight, 35.5);
   } finally { connection.db.close(); }
 });
 
@@ -180,11 +219,13 @@ test('a draft and completed sets survive closing and reopening the real SQLite f
     await store.saveDraft({ ...draft(), setupComplete: true }); connection.db.close();
     connection = connect(file); store = makeStore(connection); await store.initialize();
     assert.deepEqual(await store.getDraft(), { ...draft(), setupComplete: true });
-    await store.finish(draft()); await store.finish(draft());
+    const categorized = draft(); categorized.exercises[0].category = 'Push';
+    await store.finish(categorized); await store.finish(categorized);
     connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize();
     const history = await store.listWorkouts(); assert.equal(history.length, 1);
     const saved = await store.getWorkout(history[0].id);
     assert.equal((await store.listLoggedExercises())[0].id, saved.exercises[0].catalogId, 'saved suggestions preserve catalog identity after reopening');
+    assert.equal((await store.listLoggedExercises())[0].category, 'Push', 'categories persist after reopening the database');
     assert.equal(saved.exercises[0].name, "Press 'n lift");
     assert.deepEqual(saved.exercises[0].sets.map(set => ({ ...set })), [{ id: 'workout-1-set-1', weight: 35.5, reps: 10 }]);
     assert.equal(await store.getDraft(), null);

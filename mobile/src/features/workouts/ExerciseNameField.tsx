@@ -20,7 +20,7 @@ export function ExerciseNameField({ exercise, index, theme, disabled, items, upd
       {matches.map(item => <Button key={item.id} theme={theme} disabled={disabled}
         label={`${item.name} · ${item.bodyweight ? 'Bodyweight' : 'Load + reps'}`} accessibilityLabel={`Use ${item.name}, ${item.bodyweight ? 'bodyweight' : 'load and reps'}`}
         onPress={() => {
-          update({ ...exercise, catalogId: item.id, name: item.name, bodyweight: item.bodyweight,
+          update({ ...exercise, catalogId: item.id, name: item.name, bodyweight: item.bodyweight, category: item.category ?? '',
             sets: exercise.bodyweight === item.bodyweight ? exercise.sets : exercise.sets.map(set => ({ ...set, completed: false })) });
           setSuggesting(false);
         }} />)}

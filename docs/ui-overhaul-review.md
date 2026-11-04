@@ -12,14 +12,14 @@ Primary Continue/Finish/Save actions sit in a footer, separate from scrolling co
 
 Suggestions come from completed workouts in SQLite, not the HTML preview. Search ignores capitalization and repeated/surrounding whitespace. Users may select a known exercise or create a new name. A known selection preserves its catalog identity and loaded/bodyweight mode; it does not copy another gym's equipment or invent weights/reps. Existing exercise setup fields also offer suggestions when correcting a saved workout.
 
-The store reuses canonical names for new completed entries while preserving loaded/bodyweight distinctions and gym-specific equipment identities. Names in unfinished drafts or unreferenced catalog records are not presented as previously logged workouts. The exercise catalog uses the existing tables. Location removal adds a transactional schema version 2 migration: an archived flag defaults to active for all existing locations. No database reset is needed.
+The store reuses canonical names for new completed entries while preserving loaded/bodyweight distinctions and gym-specific equipment identities. Names in unfinished drafts or unreferenced catalog records are not presented as previously logged workouts. The exercise catalog uses the existing tables. Location removal adds a transactional version 2 migration; exercise categories add version 3. Existing locations default to active and existing exercises default to Uncategorized. No database reset is needed.
 
 Suggestion loading has explicit loading/error/retry states. A failed suggestion query still permits manual name entry. The picker bounds the visible suggestion list and invites a more specific search. Save/Cancel, draft recovery, transaction rollback, time correction, and deletion behavior remain covered by existing tests.
 
 ## Validation
 
-- 30 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
-- 11 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
+- 33 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
+- 13 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
 - The native UI's browser runtime passed a real SQLite journey: create gym, add exercises, log compact rows, bodyweight, copied sets, collapse/expand, Home/resume, finish excluding incomplete sets, reuse persistent suggestions in the next workout, saved-edit suggestions, and preservation of an unrelated active draft. Light/dark and 320px/390px horizontal layouts were checked.
 - TypeScript, zero-warning lint, Expo dependency compatibility, and iOS/Android/web JavaScript exports pass. Exports do not prove native visual/keyboard behavior; physical-device review remains pending.
 
@@ -56,3 +56,11 @@ Opening a draft shows no success message. After an edit reaches SQLite, Draft sa
 ## Scroll to added exercises
 
 Adding an exercise closes the picker, expands the new card, and scrolls toward its header after layout. This applies to both draft logging and saved-workout editing. Scrolling is requested only for a new addition; typing, resizing, collapsing cards, and cancelling the picker do not repeatedly pull the user down. Device check: add several exercises with enough sets to exceed one screen, then add one more and verify its header and first set are reachable without manually scrolling.
+
+## Exercise categories
+
+The picker has horizontal All, Push, Pull, Legs, Core, Cardio, Mobility, Other and Uncategorized filters. Name search combines with the active filter. The Category control assigns one category to a new or selected exercise; Setup offers the same control for corrections. Selecting or typing an exact existing name retains its category unless explicitly changed. Existing exercises stay Uncategorized until assigned.
+
+Categories are exercise-library metadata shared across gyms, distinct from the workout session type. Draft changes autosave locally; library categories are committed only when finishing a workout or saving a completed-workout edit. Cancel does not commit category edits. Changing a category keeps performed sets and equipment identities intact. Legacy drafts without a category do not clear a stored category. Version 1 and 2 database upgrades, reassignment/clearing, invalid input, transactional rollback, and real-file durability are covered. The browser journey also verified assigning Push/Core and filtering the saved picker library.
+
+Device review: add a new exercise with a category, finish it with a valid set, reopen the app, filter and search for it, change its category under Setup, and verify clearing to Uncategorized. Check the scrollable picker with the keyboard and larger text. No dependency change or database reset is required.
