@@ -148,6 +148,7 @@ test('a draft and completed sets survive closing and reopening the real SQLite f
     connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize();
     const history = await store.listWorkouts(); assert.equal(history.length, 1);
     const saved = await store.getWorkout(history[0].id);
+    assert.equal((await store.listLoggedExercises())[0].id, saved.exercises[0].catalogId, 'saved suggestions preserve catalog identity after reopening');
     assert.equal(saved.exercises[0].name, "Press 'n lift");
     assert.deepEqual(saved.exercises[0].sets.map(set => ({ ...set })), [{ id: 'workout-1-set-1', weight: 35.5, reps: 10 }]);
     assert.equal(await store.getDraft(), null);

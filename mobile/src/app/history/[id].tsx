@@ -39,9 +39,9 @@ export default function WorkoutDetailsRoute() {
       catch { setError('Changes saved. Return Home to reopen this workout.'); }
     }} />;
   return <Screen theme={theme}>
-    <Button theme={theme} label="← Home" onPress={() => router.replace('/')} />
+    <Button theme={theme} variant="link" label="← Home" onPress={() => router.replace('/')} />
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>{workout?.sessionType ?? 'Workout details'}</Text>
-    {!!error && <Text accessibilityRole="alert" style={{ color: theme.accent }}>{error}</Text>}
+    {!!error && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{error}</Text>}
     {!workout && !error && <Text style={{ color: theme.muted }}>Loading workout…</Text>}
     {workout && <>
       {!confirmDelete && <Button theme={theme} label="Edit workout" disabled={busy} onPress={beginEdit} />}
@@ -50,8 +50,8 @@ export default function WorkoutDetailsRoute() {
         {timeFields(workout.startedAt, workout.timezone).date} {timeFields(workout.startedAt, workout.timezone).time}
         {' → '}{timeFields(workout.endedAt, workout.timezone).date} {timeFields(workout.endedAt, workout.timezone).time} ({workout.timezone})
       </Text>
-      <Text style={{ color: theme.accent, fontFamily: fonts.bold }}>✓ Saved on this phone</Text>
-      {workout.exercises.map(exercise => <View key={exercise.id} style={[styles.card, { backgroundColor: theme.surface }]}>
+      <Text style={{ color: theme.success, fontFamily: fonts.bold }}>✓ Saved on this phone</Text>
+      {workout.exercises.map(exercise => <View key={exercise.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 18 }}>{exercise.name}</Text>
         <Text style={{ color: theme.muted }}>{exercise.equipment}</Text>
         {!exercise.bodyweight && <Text style={{ color: theme.muted }}>{exercise.unit === 'lb' ? 'lbs' : exercise.unit} · {exercise.convention.replace('_', ' ')}</Text>}
@@ -59,18 +59,18 @@ export default function WorkoutDetailsRoute() {
           Set {index + 1}: {exercise.bodyweight ? 'Bodyweight' : `${set.weight} ${exercise.unit === 'lb' ? 'lbs' : exercise.unit}`} × {set.reps} reps
         </Text>)}
       </View>)}
-      {confirmDelete ? <View style={[styles.card, { backgroundColor: theme.surface }]}>
+      {confirmDelete ? <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold }}>Delete this workout?</Text>
         <Text style={[styles.subtitle, { color: theme.muted }]}>This permanently removes this workout and all its sets from this phone. This cannot be undone.</Text>
         <Button theme={theme} label="Keep workout" disabled={busy} onPress={() => setConfirmDelete(false)} />
-        <Button theme={theme} label={busy ? 'Deleting…' : 'Permanently delete workout'} disabled={busy} onPress={async () => {
+        <Button theme={theme} variant="destructive" label={busy ? 'Deleting…' : 'Permanently delete workout'} disabled={busy} onPress={async () => {
           if (action.current) return;
           action.current = true; setBusy(true); setError('');
           try { await (await openStore()).deleteWorkout(id); router.replace('/'); }
           catch { setError('Unable to delete this workout. Try again.'); }
           finally { action.current = false; setBusy(false); }
         }} />
-      </View> : <Button theme={theme} label="Delete workout" disabled={busy} onPress={() => setConfirmDelete(true)} />}
+      </View> : <Button theme={theme} variant="danger" label="Delete workout" disabled={busy} onPress={() => setConfirmDelete(true)} />}
     </>}
   </Screen>;
 }

@@ -43,7 +43,7 @@ export function DateTimeField({ label, mode, date, time, maximumDate, theme, dis
       <View style={{ flex: 1, justifyContent: 'center', padding: 16, backgroundColor: '#00000066' }}>
         <ScrollView accessibilityViewIsModal
           style={{ flexGrow: 0, flexShrink: 1, width: '100%', maxWidth: 440, maxHeight: '100%', alignSelf: 'center' }}
-          contentContainerStyle={[styles.card, { backgroundColor: theme.surface }]}>
+          contentContainerStyle={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>{label}</Text>
           {picker}
           <Button theme={theme} label="Cancel" onPress={close} />

@@ -24,7 +24,7 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
         </Text>
 
         {onStart && <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />}
-        {!workouts.length && <View style={[styles.card, { backgroundColor: theme.surface }]}>
+        {!workouts.length && <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={[styles.badge, { backgroundColor: theme.accentSoft }]}>
             <Text style={[styles.badgeLabel, { color: theme.accent }]}>A FRESH START</Text>
           </View>
@@ -36,10 +36,10 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
           </Text>
         </View>}
         {workouts.map(workout => <Pressable key={workout.id} accessibilityRole="button" accessibilityLabel={`Open ${workout.sessionType} workout on ${workout.activityDate}`}
-          onPress={() => onOpen?.(workout.id)} style={[styles.card, { backgroundColor: theme.surface }]}>
+          onPress={() => onOpen?.(workout.id)} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.cardTitle, { color: theme.text }]}>{workout.sessionType}</Text>
           <Text style={[styles.body, { color: theme.muted }]}>{workout.activityDate} · {workout.locationName}</Text>
-          <Text style={[styles.body, { color: theme.accent }]}>View completed sets →</Text>
+          <Text style={[styles.body, { color: theme.muted }]}>View completed sets →</Text>
         </Pressable>)}
       </ScrollView>
     </SafeAreaView>
@@ -54,10 +54,10 @@ const styles = StyleSheet.create({
   body: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 22 },
   card: {
     marginTop: 12,
-    padding: 24,
+    padding: 20,
     borderRadius: 20,
-    gap: 16,
-    boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+    gap: 12,
+    borderWidth: 1,
   },
   badge: { alignSelf: 'flex-start', borderRadius: 9999, paddingHorizontal: 12, paddingVertical: 8 },
   badgeLabel: { fontFamily: fonts.bold, fontSize: 10, letterSpacing: 1.2 },

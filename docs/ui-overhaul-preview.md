@@ -27,6 +27,8 @@ Keep readable text and explicit labels/icons alongside color. Check light and da
 
 Native implementation is pending user review. Preserve the merged app's SQLite/draft behavior, explicit saved-workout Save/Cancel, and timezone-aware validation when transferring an approved design.
 
+The approved logging direction is now implemented on the PR 4 branch; see the [native review checklist](ui-overhaul-review.md). Activity/history/summary/streak screens below remain HTML-only prototypes.
+
 ## Exercise name reuse
 
 Add exercise opens a search field with suggestions from fictional previously logged exercises. Search ignores capitalization and surrounding/repeated spaces; users can select an existing name or enter a new one. Existing exercise-name editing also has a browser suggestion dropdown.

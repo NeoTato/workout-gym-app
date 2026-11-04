@@ -24,7 +24,7 @@ export function useWorkoutDraft() {
       let saved = await db.getDraft();
       if (!saved) {
         const date = new Date();
-        saved = { id: randomUUID(), setupComplete: false, startedAt: date.toISOString(), activityDate: localDate(date), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locationId: '', sessionType: 'Custom', exercises: [newExercise()] };
+        saved = { id: randomUUID(), setupComplete: false, startedAt: date.toISOString(), activityDate: localDate(date), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locationId: '', sessionType: 'Custom', exercises: [] };
         saved = await db.beginDraft(saved);
       }
       const choices = await db.listLocations();

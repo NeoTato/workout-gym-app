@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
 import WorkoutRoute from '../../../app/workout';
 import type { WorkoutDraft } from '../../../domain/workout';
-import { useWorkoutDraft } from '../useWorkoutDraft';
+import { newExercise, useWorkoutDraft } from '../useWorkoutDraft';
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
+jest.mock('../useExerciseLibrary', () => ({ useExerciseLibrary: () => ({ items: [], loading: false, error: '', retry: jest.fn() }) }));
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'new-id' }));
 jest.mock('../useWorkoutDraft', () => ({ useWorkoutDraft: jest.fn(), newExercise: jest.fn() }));
 jest.mock('@react-native-community/datetimepicker', () => ({ __esModule: true, default: () => null }));
@@ -20,6 +21,8 @@ beforeEach(() => {
     locationId: '', sessionType: 'Push', exercises: [{ id: 'exercise', name: 'Press', equipment: '', bodyweight: false,
       unit: 'lb', convention: 'total', sets: [{ id: 'set', weight: '35', reps: '10', completed: true }] }] };
   jest.mocked(useWorkoutDraft).mockImplementation(useTestDraft);
+  jest.mocked(newExercise).mockReturnValue({ id: 'added', name: '', equipment: '', bodyweight: false, unit: 'lb', convention: 'total',
+    sets: [{ id: 'new-set', weight: '', reps: '', completed: false }] });
 });
 
 it('starts with setup, keeps dates collapsed, and requires a location before logging', async () => {
@@ -52,4 +55,18 @@ it('opens resumed and legacy configured drafts directly in exercise logging', as
   await render(<WorkoutRoute />);
   expect(screen.getByRole('button', { name: 'Finish workout' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Continue to exercises' })).toBeNull();
+});
+
+it('adds a named exercise through the picker without inventing previous set values', async () => {
+  seed.locationId = 'home'; seed.setupComplete = true; seed.exercises = [];
+  await render(<WorkoutRoute />);
+  await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
+  const picker = within(screen.getByTestId('exercise-picker'));
+  await fireEvent.changeText(picker.getByLabelText('Search exercise names'), 'New press');
+  await fireEvent.press(picker.getByRole('button', { name: '+ Add exercise' }));
+  expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('');
+  expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
+  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 load (lb)'), '35');
+  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '10');
+  expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
 });

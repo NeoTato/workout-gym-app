@@ -71,7 +71,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
     listLocations: () => queue(() => db.getAllAsync<Location>('SELECT * FROM locations ORDER BY kind DESC,name')),
     listLoggedExercises: () => queue(async (): Promise<LoggedExercise[]> => {
       const rows = await db.getAllAsync<{ id: string; name: string; measurement_mode: string }>(
-        'SELECT e.id,e.name,e.measurement_mode FROM exercises e WHERE EXISTS (SELECT 1 FROM session_exercises se JOIN sessions s ON s.id=se.session_id WHERE se.exercise_id=e.id AND s.status=?) ORDER BY e.name COLLATE NOCASE,e.id', 'completed');
+        'SELECT DISTINCT e.id,e.name,e.measurement_mode FROM exercises e JOIN session_exercises se ON se.exercise_id=e.id JOIN sessions s ON s.id=se.session_id WHERE s.status=? ORDER BY e.name COLLATE NOCASE,e.id', 'completed');
       const seen = new Set<string>();
       return rows.flatMap(row => {
         const key = `${row.measurement_mode}:${exerciseNameKey(row.name)}`;
