@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createWorkoutStore } from '../src/storage/workoutStore.ts';
 import { workoutTimes } from '../src/domain/workoutTime.ts';
+import { schema } from '../src/storage/schema.ts';
 
 function connect(file) {
   const db = new DatabaseSync(file);
@@ -34,6 +35,41 @@ function draft(id = 'workout-1') {
 }
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
+
+test('version-one locations migrate without losing gyms or draft checkpoints', async () => {
+  const connection = connect(':memory:');
+  try {
+    connection.db.exec(schema);
+    connection.db.prepare('INSERT INTO locations VALUES (?,?,?)').run('legacy', 'Legacy gym', 'gym');
+    const pending = draft(); pending.locationId = 'legacy';
+    connection.db.prepare('INSERT INTO draft_checkpoint VALUES (1,?,?)').run(pending.id, JSON.stringify(pending));
+    const store = makeStore(connection); await store.initialize(); await store.initialize();
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 2);
+    assert.equal((await store.listLocations()).find(item => item.id === 'legacy').archived, 0);
+    assert.deepEqual(await store.getDraft(), pending);
+  } finally { connection.db.close(); }
+});
+
+test('removing a gym preserves history and drafts, and adding it again restores its identity', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    const gym = await store.addGym('Old gym');
+    const entry = draft('gym-history'); entry.locationId = gym.id;
+    await store.finish(entry);
+    const pending = draft('pending'); pending.locationId = gym.id; await store.saveDraft(pending);
+    await store.removeLocation(gym.id);
+    assert.equal((await store.listLocations()).find(item => item.id === gym.id).archived, 1);
+    assert.equal((await store.getWorkout(entry.id)).locationName, 'Old gym');
+    assert.deepEqual(await store.getDraft(), pending);
+    const edit = await store.getWorkoutEdit(entry.id); await store.updateWorkout(edit);
+    await assert.rejects(store.removeLocation('home'), /Home/);
+    const restored = await store.addGym('OLD GYM'); assert.equal(restored.id, gym.id);
+    assert.equal((await store.listLocations()).find(item => item.id === gym.id).archived, 0);
+    await store.initialize();
+    assert.equal((await store.listWorkouts()).length, 1);
+  } finally { connection.db.close(); }
+});
 
 test('logged exercise suggestions reuse names without mixing gym equipment or unfinished drafts', async () => {
   const connection = connect(':memory:');

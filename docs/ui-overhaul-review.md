@@ -12,14 +12,14 @@ Primary Continue/Finish/Save actions sit in a footer, separate from scrolling co
 
 Suggestions come from completed workouts in SQLite, not the HTML preview. Search ignores capitalization and repeated/surrounding whitespace. Users may select a known exercise or create a new name. A known selection preserves its catalog identity and loaded/bodyweight mode; it does not copy another gym's equipment or invent weights/reps. Existing exercise setup fields also offer suggestions when correcting a saved workout.
 
-The store reuses canonical names for new completed entries while preserving loaded/bodyweight distinctions and gym-specific equipment identities. Names in unfinished drafts or unreferenced catalog records are not presented as previously logged workouts. The catalog uses the existing schema; optional catalog IDs in draft/read models need no database migration or reset.
+The store reuses canonical names for new completed entries while preserving loaded/bodyweight distinctions and gym-specific equipment identities. Names in unfinished drafts or unreferenced catalog records are not presented as previously logged workouts. The exercise catalog uses the existing tables. Location removal adds a transactional schema version 2 migration: an archived flag defaults to active for all existing locations. No database reset is needed.
 
 Suggestion loading has explicit loading/error/retry states. A failed suggestion query still permits manual name entry. The picker bounds the visible suggestion list and invites a more specific search. Save/Cancel, draft recovery, transaction rollback, time correction, and deletion behavior remain covered by existing tests.
 
 ## Validation
 
-- 26 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
-- 9 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
+- 28 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
+- 11 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
 - The native UI's browser runtime passed a real SQLite journey: create gym, add exercises, log compact rows, bodyweight, copied sets, collapse/expand, Home/resume, finish excluding incomplete sets, reuse persistent suggestions in the next workout, saved-edit suggestions, and preservation of an unrelated active draft. Light/dark and 320px/390px horizontal layouts were checked.
 - TypeScript, zero-warning lint, Expo dependency compatibility, and iOS/Android/web JavaScript exports pass. Exports do not prove native visual/keyboard behavior; physical-device review remains pending.
 
@@ -42,3 +42,9 @@ HTML previews and repository organization are included as the design reference. 
 ## SDK compatibility alignment
 
 The repository's required `expo install --check` began recommending updated SDK 58 packages on November 4. A separate commit aligns Expo 58.0.23, Constants 58.0.15, Linking 58.0.16, Router 58.0.30, safe-area-context 5.11.1, and the development-only Jest preset 58.0.14. React and React Native stay at their existing versions. The lockfile was regenerated rather than edited by hand. Compatibility now passes; all tests and exports are rerun after alignment. Audit reports 39 low/moderate findings (1 low, 38 moderate), zero high/critical. No audit force-fix or check suppression was used.
+
+## Location removal
+
+In workout setup, Manage locations reveals a red Remove action for each active gym. Confirmation explains that history is retained. Home cannot be removed. Removing the selected gym clears that draft selection and requires another choice; existing drafts are otherwise preserved. Removed gyms are hidden from new choices, but remain visible with a removed label when already referenced by a draft or saved workout. Adding the same name (case-insensitive) restores its original identity and equipment associations. Old workouts remain editable.
+
+Device check: remove an unselected gym, cancel and confirm removal of the selected gym, reopen the app, verify old history, and add the same gym again. Automated coverage includes confirmation, protected Home, removed-choice filtering, historical editing, identity restoration, and version-one migration.

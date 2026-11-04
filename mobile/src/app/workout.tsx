@@ -22,7 +22,7 @@ export default function WorkoutRoute() {
   </Screen>;
 }
 
-function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, finish, discard }: ReturnType<typeof useWorkoutDraft> & { draft: WorkoutDraft }) {
+function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, removeLocation, finish, discard }: ReturnType<typeof useWorkoutDraft> & { draft: WorkoutDraft }) {
   const theme = getTheme(useColorScheme());
   const [step, setStep] = useState<'details' | 'exercises'>(() => (draft.setupComplete ?? Boolean(draft.locationId)) ? 'exercises' : 'details');
   const library = useExerciseLibrary();
@@ -63,6 +63,7 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, fi
       {step === 'details' ? <>
         <WorkoutSessionDetails draft={draft} locations={locations} theme={theme} busy={busy || addingGym}
           update={change => { setSetupError(''); update(change); }}
+          removeLocation={async id => { setAddingGym(true); try { await removeLocation(id); } finally { setAddingGym(false); } }}
           addGym={async name => { setAddingGym(true); try { await addGym(name); } finally { setAddingGym(false); } }} />
 
       </> : <>

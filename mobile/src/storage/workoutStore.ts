@@ -64,11 +64,18 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       await db.execAsync('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;');
       await db.transaction(async tx => {
         const version = (await tx.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))?.user_version ?? 0;
-        if (version > 1) throw new Error('This database was created by a newer app. Update the app to open it.');
+        if (version > 2) throw new Error('This database was created by a newer app. Update the app to open it.');
         if (version === 0) await tx.execAsync(schema);
+        if (version < 2) await tx.execAsync('ALTER TABLE locations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)); PRAGMA user_version=2;');
       });
     }),
     listLocations: () => queue(() => db.getAllAsync<Location>('SELECT * FROM locations ORDER BY kind DESC,name')),
+    removeLocation: (locationId: string) => queue(async () => {
+      const location = await db.getFirstAsync<Location>('SELECT * FROM locations WHERE id=?', locationId);
+      if (!location) throw new Error('This location could not be found.');
+      if (location.kind === 'home') throw new Error('Home is a built-in location and cannot be removed.');
+      await db.runAsync('UPDATE locations SET archived=1 WHERE id=?', locationId);
+    }),
     listLoggedExercises: () => queue(async (): Promise<LoggedExercise[]> => {
       const rows = await db.getAllAsync<{ id: string; name: string; measurement_mode: string }>(
         'SELECT DISTINCT e.id,e.name,e.measurement_mode FROM exercises e JOIN session_exercises se ON se.exercise_id=e.id JOIN sessions s ON s.id=se.session_id WHERE s.status=? ORDER BY e.name COLLATE NOCASE,e.id', 'completed');
@@ -84,7 +91,10 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       const clean = name.trim();
       if (!clean || clean.toLowerCase() === 'home') throw new Error('Enter a gym name other than Home.');
       const existing = await db.getFirstAsync<Location>('SELECT * FROM locations WHERE name=? COLLATE NOCASE AND kind=?', clean, 'gym');
-      if (existing) return existing;
+      if (existing) {
+        await db.runAsync('UPDATE locations SET archived=0 WHERE id=?', existing.id);
+        return { ...existing, archived: 0 };
+      }
       const gym: Location = { id: id(), name: clean, kind: 'gym' };
       await db.runAsync('INSERT INTO locations(id,name,kind) VALUES (?,?,?)', gym.id, gym.name, gym.kind);
       return gym;

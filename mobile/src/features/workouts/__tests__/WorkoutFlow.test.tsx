@@ -14,7 +14,7 @@ let seed: WorkoutDraft;
 function useTestDraft() {
   const [draft, setDraft] = useState(seed);
   return { draft, locations: [{ id: 'home', name: 'Home', kind: 'home' as const }], status: 'Saved on this phone', error: '',
-    busy: false, update: setDraft, addGym: jest.fn(), finish: jest.fn(), discard: jest.fn() };
+    busy: false, update: setDraft, addGym: jest.fn(), removeLocation: jest.fn(), finish: jest.fn(), discard: jest.fn() };
 }
 beforeEach(() => {
   seed = { id: 'session', setupComplete: false, startedAt: '2026-11-01T01:00:00Z', activityDate: '2026-11-01', timezone: 'Asia/Manila',

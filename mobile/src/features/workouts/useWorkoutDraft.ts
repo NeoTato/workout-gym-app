@@ -52,6 +52,12 @@ export function useWorkoutDraft() {
     catch (failure) { setError(failure instanceof Error && /choose|enter|name|mark/i.test(failure.message) ? failure.message : 'Unable to finish. Your draft is still here. Try again.'); }
     finally { busyRef.current = false; if (alive.current) setBusy(false); }
   }
+  async function removeLocation(locationId: string) {
+    if (!store.current || busyRef.current) return;
+    await store.current.removeLocation(locationId);
+    setLocations(await store.current.listLocations());
+    update(value => value.locationId === locationId ? { ...value, locationId: '', setupComplete: false } : value);
+  }
   async function discard() {
     if (!store.current || !current.current || busyRef.current) return false;
     busyRef.current = true; setBusy(true);
@@ -59,5 +65,5 @@ export function useWorkoutDraft() {
     catch { setError('Unable to discard. Your draft is still here.'); return false; }
     finally { busyRef.current = false; if (alive.current) setBusy(false); }
   }
-  return { draft, locations, status, error, busy, update, addGym, finish, discard };
+  return { draft, locations, status, error, busy, update, addGym, removeLocation, finish, discard };
 }

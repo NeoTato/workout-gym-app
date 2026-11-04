@@ -18,7 +18,7 @@ export type WorkoutDraft = {
 export type CompletedExercise = Omit<ExerciseDraft, 'sets'> & {
   sets: { id: string; weight: number | null; reps: number }[];
 };
-export type Location = { id: string; name: string; kind: 'gym' | 'home' };
+export type Location = { id: string; name: string; kind: 'gym' | 'home'; archived?: number };
 export type SavedWorkout = {
   id: string; activityDate: string; sessionType: string; locationName: string;
   timezone: string;
