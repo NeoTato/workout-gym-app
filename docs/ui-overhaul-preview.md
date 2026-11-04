@@ -36,3 +36,15 @@ Finishing the preview's editable exercise remembers its name for subsequent sele
 Native acceptance: query the persisted exercise catalog populated by completed workouts; suggestions must survive app restarts and be available in both new logging and saved-workout editing. Reuse the exercise identity when selected, allow new names, and retain gym-specific equipment identities and progression. Do not seed the actual app with this preview's fictional names/history. Verify reuse after finishing, restart persistence, filtering, new-name entry, case/space duplicates, and separation of equipment across gyms.
 
 Preview verification covers case-insensitive filtering, selection, remembering a newly completed exercise, deduplication, and excluding unlogged names. Screenshot: [exercise suggestions](../screenshots/ui-overhaul-exercise-suggestions.png).
+
+## History, summaries, and consistency
+
+Open the [activity preview](../previews/ui-overhaul/activity-preview.html). It shares fonts, semantic colors, cards, and navigation styling with the workout-flow preview. A link in each preview connects the two.
+
+- History: monthly calendar, today ring, completed-day markers, multiple-session indicators, gym/Home filters, and recent sessions. Tap a date or session to open a centered day sheet showing every matching workout, its duration/location, exercises, and sets. Empty dates/months have an explicit state.
+- Summary: Week/Month/Year with period navigation, unique active days, workout-session counts, recorded time, activity bars, Push/Pull/Legs and other type counts, gym/Home sessions, and muscle groups from logged exercises. Current periods say “so far”; empty periods show zero activity without inventing comparisons.
+- Consistency: current and longest weekly streaks, this week's active-day goal, recent achieved weeks, and a goal-change dialog. The current unmet week remains in progress; rest days are allowed. Goal changes apply next Monday and do not rewrite the current week.
+
+All three views derive from one fictional sample through November 4, 2026. November contains 3 sessions on 2 dates: Upper on Nov 2, Push plus Core on Nov 4. Five earlier weeks each meet a 3-day goal. This deliberately tests the distinction between sessions, active days, and weekly streaks. Data and goal edits are temporary and reset on reload.
+
+Run `node scripts/verify-activity-preview.mjs`. Chrome checks cover shared totals, type/location conservation, calendar/day details, empty days/periods, focus restoration, period navigation, weekly streak behavior, next-week-only target changes, light/dark themes, and 320px/390px layouts. Images are saved in `screenshots/activity-preview-*.png`. This is a visual prototype; native calendar/reporting/streak functionality is still planned separately from the merged logger.

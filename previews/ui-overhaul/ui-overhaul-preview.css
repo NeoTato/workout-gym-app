@@ -13,3 +13,4 @@
 .back-link{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:8px;background:transparent;border-radius:8px;margin-left:-8px;color:var(--muted);font-size:12px;font-weight:500}.back-link:hover{background:var(--soft)}[data-style=current] .back-link{background:transparent;color:var(--muted);border-radius:8px}.back-link svg{flex-shrink:0}
 
 #fly-details{display:grid;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}#fly-details>.text-button{justify-self:start}
+.activity-preview-link{font-size:11px;color:var(--coral-ink);text-decoration:none;min-height:32px;display:flex;align-items:center}.activity-preview-link:hover{text-decoration:underline}
