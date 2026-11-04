@@ -18,7 +18,7 @@ Suggestion loading has explicit loading/error/retry states. A failed suggestion 
 
 ## Validation
 
-- 29 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
+- 30 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
 - 11 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
 - The native UI's browser runtime passed a real SQLite journey: create gym, add exercises, log compact rows, bodyweight, copied sets, collapse/expand, Home/resume, finish excluding incomplete sets, reuse persistent suggestions in the next workout, saved-edit suggestions, and preservation of an unrelated active draft. Light/dark and 320px/390px horizontal layouts were checked.
 - TypeScript, zero-warning lint, Expo dependency compatibility, and iOS/Android/web JavaScript exports pass. Exports do not prove native visual/keyboard behavior; physical-device review remains pending.
@@ -52,3 +52,7 @@ Device check: remove an unselected gym, cancel and confirm removal of the select
 ## Quiet draft save feedback
 
 Opening a draft shows no success message. After an edit reaches SQLite, Draft saved appears briefly for 2.5 seconds, then clears. A new edit cancels the previous success timer. Failed saves remain visible with Retry save until a retry succeeds; they never expire on a timer. Timer callbacks are cleared when leaving the workout. Check this in both setup and exercise logging.
+
+## Scroll to added exercises
+
+Adding an exercise closes the picker, expands the new card, and scrolls toward its header after layout. This applies to both draft logging and saved-workout editing. Scrolling is requested only for a new addition; typing, resizing, collapsing cards, and cancelling the picker do not repeatedly pull the user down. Device check: add several exercises with enough sets to exceed one screen, then add one more and verify its header and first set are reachable without manually scrolling.

@@ -1,10 +1,11 @@
 import { randomUUID } from 'expo-crypto';
 import { useRef, useState } from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { type Location, type WorkoutDraft } from '../../domain/workout';
 import { Button, Choice, Screen, styles } from '../../ui/controls';
 import type { AppTheme } from '../../ui/theme';
 import { ExerciseEditor } from './ExerciseEditor';
+import { useExerciseScroll } from './useExerciseScroll';
 import { newExercise } from './useWorkoutDraft';
 import { ExercisePicker } from './ExercisePicker';
 import { useExerciseLibrary } from './useExerciseLibrary';
@@ -19,6 +20,7 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const saving = useRef(false);
   const library = useExerciseLibrary();
+  const { scrollRef, requestScroll, onExerciseLayout } = useExerciseScroll();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [addedId, setAddedId] = useState<string>();
   const footer = <>
@@ -34,9 +36,10 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
     }} />
     <Button theme={theme} label="Cancel changes" disabled={busy} onPress={cancel} />
   </>;
-  return <Screen theme={theme} key={section} footer={footer}>
+  return <Screen theme={theme} key={section} footer={footer} scrollRef={scrollRef}>
     {pickerOpen && <ExercisePicker theme={theme} {...library} cancel={() => setPickerOpen(false)} add={(name, option) => {
       const exercise = { ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false };
+      requestScroll(exercise.id);
       setDraft(value => ({ ...value, exercises: [...value.exercises, exercise] })); setAddedId(exercise.id); setPickerOpen(false);
     }} />}
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Edit workout</Text>
@@ -45,9 +48,9 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
       options={[{ value: 'details', label: 'Session details' }, { value: 'exercises', label: 'Exercises' }]} onChange={setSection} />
     {section === 'details' ? <WorkoutSessionDetails draft={draft} locations={locations} theme={theme} busy={busy} update={setDraft} /> : <>
     <WorkoutSessionSummary draft={draft} locations={locations} theme={theme} />
-    {draft.exercises.map((exercise, index) => <ExerciseEditor library={library.items} initiallyExpanded={index === 0 || exercise.id === addedId} key={exercise.id} theme={theme} exercise={exercise} index={index} disabled={busy} newId={randomUUID}
+    {draft.exercises.map((exercise, index) => <View key={exercise.id} testID={`exercise-card-${exercise.id}`} onLayout={event => onExerciseLayout(exercise.id, event)}><ExerciseEditor library={library.items} initiallyExpanded={index === 0 || exercise.id === addedId} theme={theme} exercise={exercise} index={index} disabled={busy} newId={randomUUID}
       update={next => setDraft(value => ({ ...value, exercises: value.exercises.map(item => item.id === next.id ? next : item) }))}
-      remove={() => setDraft(value => ({ ...value, exercises: value.exercises.filter(item => item.id !== exercise.id) }))} />)}
+      remove={() => setDraft(value => ({ ...value, exercises: value.exercises.filter(item => item.id !== exercise.id) }))} /></View>)}
     <Button theme={theme} variant="add" label="+ Add exercise" disabled={busy} onPress={() => setPickerOpen(true)} />
     <Text style={[styles.subtitle, { color: theme.muted }]}>Valid load and reps automatically complete a set; bodyweight sets need reps only. Copied sets stay incomplete until edited or marked done. Complete or remove every set before saving.</Text>
     </>}

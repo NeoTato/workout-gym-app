@@ -1,12 +1,12 @@
-import type { ReactNode } from 'react';
+import type { ComponentRef, ReactNode, Ref } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { fonts, type AppTheme } from './theme';
 
-export function Screen({ theme, children, footer }: { theme: AppTheme; children: ReactNode; footer?: ReactNode }) {
+export function Screen({ theme, children, footer, scrollRef }: { theme: AppTheme; children: ReactNode; footer?: ReactNode; scrollRef?: Ref<ComponentRef<typeof ScrollView>> }) {
   return <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.page}>{children}</ScrollView>
+      <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.page}>{children}</ScrollView>
       {footer && <View style={{ borderTopWidth: 1, borderTopColor: theme.border, backgroundColor: theme.background }}>
         <View style={styles.footer}>{footer}</View>
       </View>}

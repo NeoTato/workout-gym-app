@@ -7,6 +7,7 @@ import { workoutTimes } from '../domain/workoutTime';
 import { ExercisePicker } from '../features/workouts/ExercisePicker';
 import { useExerciseLibrary } from '../features/workouts/useExerciseLibrary';
 import { ExerciseEditor } from '../features/workouts/ExerciseEditor';
+import { useExerciseScroll } from '../features/workouts/useExerciseScroll';
 import { WorkoutSessionDetails, WorkoutSessionSummary } from '../features/workouts/WorkoutSessionDetails';
 import { newExercise, useWorkoutDraft } from '../features/workouts/useWorkoutDraft';
 import { Button, Screen, styles } from '../ui/controls';
@@ -26,6 +27,7 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
   const theme = getTheme(useColorScheme());
   const [step, setStep] = useState<'details' | 'exercises'>(() => (draft.setupComplete ?? Boolean(draft.locationId)) ? 'exercises' : 'details');
   const library = useExerciseLibrary();
+  const { scrollRef, requestScroll, onExerciseLayout } = useExerciseScroll();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [addedId, setAddedId] = useState<string>();
   const [setupError, setSetupError] = useState(''), [addingGym, setAddingGym] = useState(false);
@@ -49,7 +51,7 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
       }} />
     </>}
   </>;
-  return <Screen theme={theme} key={step} footer={footer}>
+  return <Screen theme={theme} key={step} footer={footer} scrollRef={scrollRef}>
     <Button theme={theme} variant="link" label="‹ Home" accessibilityLabel="Home - keep draft" disabled={busy || addingGym} onPress={() => router.replace('/')} />
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>{step === 'details' ? 'Set up workout' : 'Your workout'}</Text>
     {!!error && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{error}</Text>}
@@ -57,6 +59,7 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
     {status === 'Not saved' && <Button theme={theme} label="Retry save" onPress={() => update(value => ({ ...value }))} />}
     {pickerOpen && <ExercisePicker theme={theme} {...library} cancel={() => setPickerOpen(false)} add={(name, option) => {
       const exercise = { ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false };
+      requestScroll(exercise.id);
       update(value => ({ ...value, exercises: [...value.exercises, exercise] })); setAddedId(exercise.id); setPickerOpen(false);
     }} />}
     {draft && step && <>
@@ -71,9 +74,9 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
           <View style={{ flex: 1 }}><WorkoutSessionSummary draft={draft} locations={locations} theme={theme} /></View>
           <Button theme={theme} variant="link" label="Edit details" disabled={busy} onPress={() => { setSetupError(''); setStep('details'); }} />
         </View>
-      {draft.exercises.map((exercise, index) => <ExerciseEditor library={library.items} initiallyExpanded={index === 0 || exercise.id === addedId} key={exercise.id} exercise={exercise} index={index} theme={theme} disabled={busy} newId={randomUUID}
+      {draft.exercises.map((exercise, index) => <View key={exercise.id} testID={`exercise-card-${exercise.id}`} onLayout={event => onExerciseLayout(exercise.id, event)}><ExerciseEditor library={library.items} initiallyExpanded={index === 0 || exercise.id === addedId} exercise={exercise} index={index} theme={theme} disabled={busy} newId={randomUUID}
         update={next => update(value => ({ ...value, exercises: value.exercises.map(item => item.id === next.id ? next : item) }))}
-        remove={() => update(value => ({ ...value, exercises: value.exercises.filter(item => item.id !== exercise.id) }))} />)}
+        remove={() => update(value => ({ ...value, exercises: value.exercises.filter(item => item.id !== exercise.id) }))} /></View>)}
       {!draft.exercises.length && <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text style={{ color: theme.text }}>Add your first exercise</Text><Text style={[styles.subtitle, { color: theme.muted }]}>Choose a familiar exercise or start with a new one.</Text>
       </View>}
