@@ -35,6 +35,28 @@ function draft(id = 'workout-1') {
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
 
+test('logged exercise suggestions reuse names without mixing gym equipment or unfinished drafts', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    assert.deepEqual(await store.listLoggedExercises(), []);
+    await store.saveDraft(draft('unfinished'));
+    assert.deepEqual(await store.listLoggedExercises(), []);
+    const first = draft('first'); first.exercises[0].name = "  Press   'n lift  "; await store.finish(first);
+    const gym = await store.addGym('Gym A');
+    const second = draft('second'); second.locationId = gym.id; second.exercises[0].name = "press 'n LIFT"; await store.finish(second);
+    const suggestions = await store.listLoggedExercises();
+    assert.equal(suggestions.length, 1); assert.equal(suggestions[0].name, "Press 'n lift"); assert.equal(suggestions[0].bodyweight, false);
+    assert.equal(connection.db.prepare('SELECT count(*) AS count FROM exercises').get().count, 1);
+    assert.equal(connection.db.prepare('SELECT count(*) AS count FROM equipment_variations').get().count, 2);
+    const bodyweight = draft('bodyweight'); bodyweight.exercises[0].bodyweight = true; await store.finish(bodyweight);
+    assert.equal((await store.listLoggedExercises()).length, 2, 'bodyweight and loaded tracking remain distinct');
+    await store.deleteWorkout('first'); await store.deleteWorkout('second');
+    assert.equal((await store.listLoggedExercises()).length, 1, 'unreferenced catalog entries are not presented as logged history');
+    assert.deepEqual(await store.getDraft(), draft('unfinished'));
+  } finally { connection.db.close(); }
+});
+
 test('time conversion uses the recorded timezone and rejects nonexistent daylight-saving times', () => {
   const entry = draft(); entry.timezone = 'America/New_York';
   entry.timing = { startDate: '2026-03-08', startTime: '01:30', endDate: '2026-03-08', endTime: '03:30' };

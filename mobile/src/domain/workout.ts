@@ -1,7 +1,10 @@
+import { cleanExerciseName } from './exerciseLibrary.ts';
+
 export type LoadUnit = 'lb' | 'kg' | 'plates';
 export type Convention = 'total' | 'per_hand' | 'per_side';
 export type SetDraft = { id: string; weight: string; reps: string; completed: boolean };
 export type ExerciseDraft = {
+  catalogId?: string;
   id: string; name: string; equipment: string; bodyweight: boolean;
   unit: LoadUnit; convention: Convention; sets: SetDraft[];
 };
@@ -50,7 +53,7 @@ export function completedExercises(draft: WorkoutDraft): CompletedExercise[] {
     if (!['lb', 'kg', 'plates'].includes(exercise.unit) || !['total', 'per_hand', 'per_side'].includes(exercise.convention)) {
       throw new Error('Choose a valid unit and load convention.');
     }
-    result.push({ ...exercise, name: exercise.name.trim(), equipment: exercise.equipment.trim(), sets: sets.map(set => {
+    result.push({ ...exercise, name: cleanExerciseName(exercise.name), equipment: exercise.equipment.trim(), sets: sets.map(set => {
       if (!validReps(set.reps)) {
         throw new Error(`${exercise.name}: enter a positive whole number of reps for each completed set.`);
       }
