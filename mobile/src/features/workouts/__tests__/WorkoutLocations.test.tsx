@@ -14,13 +14,17 @@ it('hides removed choices and requires confirmation before removing a gym', asyn
   try {
     await render(<WorkoutSessionDetails draft={draft} locations={locations} theme={getTheme('light')} busy={false} update={jest.fn()} removeLocation={removeLocation} />);
     expect(screen.queryByRole('button', { name: 'Workout location: Old gym' })).toBeNull();
+    expect(screen.queryByTestId('location-manager')).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: 'Manage locations' }));
+    expect(screen.getByTestId('location-manager')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Remove Home' })).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: 'Remove Gym A' }));
     expect(removeLocation).not.toHaveBeenCalled();
     const actions = alert.mock.calls[0][2]!;
     await actions.find(action => action.text === 'Remove')!.onPress!();
     expect(removeLocation).toHaveBeenCalledWith('gym');
+    await fireEvent.press(screen.getByRole('button', { name: 'Close locations' }));
+    expect(screen.queryByTestId('location-manager')).toBeNull();
   } finally { alert.mockRestore(); }
 });
 
