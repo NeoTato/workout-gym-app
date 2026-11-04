@@ -21,11 +21,11 @@ Suggestion loading has explicit loading/error/retry states. A failed suggestion 
 - 26 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
 - 9 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
 - The native UI's browser runtime passed a real SQLite journey: create gym, add exercises, log compact rows, bodyweight, copied sets, collapse/expand, Home/resume, finish excluding incomplete sets, reuse persistent suggestions in the next workout, saved-edit suggestions, and preservation of an unrelated active draft. Light/dark and 320px/390px horizontal layouts were checked.
-- TypeScript, zero-warning lint, and iOS/Android/web JavaScript exports are required before merge. Exports do not prove native visual/keyboard behavior; physical-device review remains pending.
+- TypeScript, zero-warning lint, Expo dependency compatibility, and iOS/Android/web JavaScript exports pass. Exports do not prove native visual/keyboard behavior; physical-device review remains pending.
 
 ## iPhone / Android review checklist
 
-1. Reload the current project. This UI update adds no dependencies; no install or native rebuild is needed.
+1. SDK 58 compatibility packages were aligned during final validation. Dependencies are installed in the shared workspace; stop the old Expo server with Ctrl+C, then run `npm start -- --clear` from `mobile` and reopen the project. A fresh checkout needs `npm ci` first. No new native module or SDK-major upgrade was added.
 2. Open an existing saved workout and an existing draft. Confirm original data, dates/times, units and locations remain intact.
 3. Start a workout, select Home/gym/type, and Continue. Add exercise opens the picker. A fresh database has no fictional suggestions. Type a new name and add it.
 4. Open Setup to choose equipment/mode/unit/convention, then Done setup. Enter values, add at least five sets, and check auto completion and copied-set incompletion. Try zero load, invalid/empty values, and bodyweight reps.
@@ -38,3 +38,7 @@ Suggestion loading has explicit loading/error/retry states. A failed suggestion 
 ## Scope
 
 HTML previews and repository organization are included as the design reference. Calendar/history browsing, summaries, goals/streaks, previous-session performance references, exports, and cloud sync are not implemented by this PR. The native Home still shows the existing saved-workout list; activity screens remain HTML prototypes for later work. The earlier intermittent Expo web-worker reload error is not patched here; database durability is covered by real-file tests and still needs native reopen testing.
+
+## SDK compatibility alignment
+
+The repository's required `expo install --check` began recommending updated SDK 58 packages on November 4. A separate commit aligns Expo 58.0.23, Constants 58.0.15, Linking 58.0.16, Router 58.0.30, safe-area-context 5.11.1, and the development-only Jest preset 58.0.14. React and React Native stay at their existing versions. The lockfile was regenerated rather than edited by hand. Compatibility now passes; all tests and exports are rerun after alignment. Audit reports 39 low/moderate findings (1 low, 38 moderate), zero high/critical. No audit force-fix or check suppression was used.
