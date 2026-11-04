@@ -18,7 +18,7 @@ Suggestion loading has explicit loading/error/retry states. A failed suggestion 
 
 ## Validation
 
-- 28 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
+- 29 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
 - 11 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
 - The native UI's browser runtime passed a real SQLite journey: create gym, add exercises, log compact rows, bodyweight, copied sets, collapse/expand, Home/resume, finish excluding incomplete sets, reuse persistent suggestions in the next workout, saved-edit suggestions, and preservation of an unrelated active draft. Light/dark and 320px/390px horizontal layouts were checked.
 - TypeScript, zero-warning lint, Expo dependency compatibility, and iOS/Android/web JavaScript exports pass. Exports do not prove native visual/keyboard behavior; physical-device review remains pending.
@@ -48,3 +48,7 @@ The repository's required `expo install --check` began recommending updated SDK 
 In workout setup, Manage locations sits directly below the location choices and opens a centered popup with a scrollable gym list, red Remove actions, and a Close locations button. Confirmation explains that history is retained. Home cannot be removed. Removing the selected gym clears that draft selection and requires another choice; existing drafts are otherwise preserved. Removed gyms are hidden from new choices, but remain visible with a removed label when already referenced by a draft or saved workout. Adding the same name (case-insensitive) restores its original identity and equipment associations. Old workouts remain editable.
 
 Device check: remove an unselected gym, cancel and confirm removal of the selected gym, reopen the app, verify old history, and add the same gym again. Automated coverage includes confirmation, protected Home, removed-choice filtering, historical editing, identity restoration, and version-one migration.
+
+## Quiet draft save feedback
+
+Opening a draft shows no success message. After an edit reaches SQLite, Draft saved appears briefly for 2.5 seconds, then clears. A new edit cancels the previous success timer. Failed saves remain visible with Retry save until a retry succeeds; they never expire on a timer. Timer callbacks are cleared when leaving the workout. Check this in both setup and exercise logging.

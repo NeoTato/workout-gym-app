@@ -15,6 +15,7 @@ export function useWorkoutDraft() {
   const [status, setStatus] = useState('Loading your workout…');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busyRef = useRef(false), revision = useRef(0), alive = useRef(true);
   useEffect(() => {
     let active = true;
@@ -28,16 +29,22 @@ export function useWorkoutDraft() {
         saved = await db.beginDraft(saved);
       }
       const choices = await db.listLocations();
-      if (active) { current.current = saved; setDraft(saved); setLocations(choices); setStatus('Saved on this phone'); }
+      if (active) { current.current = saved; setDraft(saved); setLocations(choices); setStatus(''); }
     })().catch(() => { if (active) { setError('Unable to open your workout. Return Home and try again. Your data has not been reset.'); setStatus('Unable to load'); } });
-    return () => { active = false; alive.current = false; };
+    return () => { active = false; alive.current = false; if (savedTimer.current) clearTimeout(savedTimer.current); };
   }, []);
   function update(change: (value: WorkoutDraft) => WorkoutDraft) {
     if (!current.current || !store.current || busyRef.current) return;
+    if (savedTimer.current) clearTimeout(savedTimer.current);
     const next = change(current.current), version = ++revision.current;
     current.current = next; setDraft(next); setStatus('Saving…'); setError('');
     store.current.saveDraft(next).then(() => {
-      if (alive.current && version === revision.current) setStatus('Saved on this phone');
+      if (alive.current && version === revision.current) {
+        setStatus('Draft saved');
+        savedTimer.current = setTimeout(() => {
+          if (alive.current && version === revision.current) setStatus('');
+        }, 2500);
+      }
     }).catch(() => { if (alive.current && version === revision.current) { setStatus('Not saved'); setError('Unable to save this edit. Keep the app open and tap Retry save.'); } });
   }
   async function addGym(name: string) {

@@ -31,7 +31,7 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
   const [setupError, setSetupError] = useState(''), [addingGym, setAddingGym] = useState(false);
   const footer = <>
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-      <Text accessibilityLiveRegion="polite" style={{ color: status === 'Not saved' ? theme.danger : status.startsWith('Saved') ? theme.success : theme.muted, flex: 1, fontSize: 12 }}>{status}</Text>
+      <Text accessibilityLiveRegion="polite" style={{ color: status === 'Not saved' ? theme.danger : status === 'Draft saved' ? theme.success : theme.muted, flex: 1, fontSize: 12 }}>{status === 'Not saved' ? 'Couldn’t save' : status}</Text>
       <Button theme={theme} variant="danger" label="Discard workout" disabled={busy || addingGym} onPress={() => Alert.alert('Discard this workout?', 'This removes the unfinished draft from this phone.', [
         { text: 'Keep workout', style: 'cancel' }, { text: 'Discard', style: 'destructive', onPress: async () => { if (await discard()) router.replace('/'); } },
       ])} />
