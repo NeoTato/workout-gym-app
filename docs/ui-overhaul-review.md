@@ -18,7 +18,7 @@ Suggestion loading has explicit loading/error/retry states. A failed suggestion 
 
 ## Validation
 
-- 39 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
+- 41 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
 - 15 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
 - The native UI's browser runtime passed a real SQLite journey: create gym, add exercises, log compact rows, bodyweight, copied sets, collapse/expand, Home/resume, finish excluding incomplete sets, reuse persistent suggestions in the next workout, saved-edit suggestions, and preservation of an unrelated active draft. Light/dark and 320px/390px horizontal layouts were checked.
 - TypeScript, zero-warning lint, Expo dependency compatibility, and iOS/Android/web JavaScript exports pass. Exports do not prove native visual/keyboard behavior; physical-device review remains pending.
@@ -80,3 +80,7 @@ Push offers Chest, Triceps, and Shoulders; Pull offers Back and Biceps. Both all
 Collapsed completed-exercise cards now show category, subcategory, and set count beneath the exercise name, with the same information in the accessibility label. Sets still expand independently. Classification is current exercise-library metadata shared across gyms; it remains distinct from the workout session type. Finish/Save commits changes, while Cancel leaves stored classification unchanged.
 
 Schema version 4 adds a constrained subcategory column. Existing names and categories survive with subcategories initially unassigned. Parent/child combinations are validated both before saving and in SQLite. Regression coverage includes parent changes, filter/search, completed labels, migration from version 3, real-file reopen, and rollback. The browser journey verified assigning Chest, filtering by Chest in a later workout, and the completed collapsed label. Device check: assign each Push/Pull group, finish, reopen, filter, change the parent, and verify old history and saved sets remain correct.
+
+## New-exercise filter defaults
+
+When entering a new exercise name, the active category and subcategory filters now become its initial assignment. For example, Push then Triceps carries Push/Triceps through Add exercise into Setup. Explicit assignment controls override these defaults, and selecting an existing exercise preserves its saved classification. Replacing a saved selection with a new name uses current filter defaults. Regression tests reproduce filter-first entry and verify the resulting Setup controls. No data migration or dependency change is needed.

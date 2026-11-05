@@ -4,6 +4,29 @@ import { getTheme } from '../../../ui/theme';
 
 const items = [{ id: 'press', name: 'Dumbbell press', bodyweight: false }, { id: 'crunch', name: 'Crunches', bodyweight: true }];
 
+it('assigns the selected Push and Triceps filters to a new exercise without extra setup', async () => {
+  const add = jest.fn();
+  await render(<ExercisePicker theme={getTheme('light')} items={[]} loading={false} error="" retry={jest.fn()} cancel={jest.fn()} add={add} />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter exercises: Push' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter subcategory: Triceps' }));
+  await fireEvent.changeText(screen.getByLabelText('Search exercise names'), 'Cable extension');
+  expect(screen.getByRole('button', { name: 'Category: Push' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Subcategory: Triceps' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
+  expect(add).toHaveBeenCalledWith('Cable extension', undefined, 'Push', 'Triceps');
+});
+
+it('uses current filters after replacing a saved exercise selection with a new name', async () => {
+  const add = jest.fn();
+  await render(<ExercisePicker theme={getTheme('light')} items={[{ ...items[0], category: 'Push', subcategory: 'Chest' }]} loading={false} error="" retry={jest.fn()} cancel={jest.fn()} add={add} />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Use Dumbbell press, load and reps' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter exercises: Push' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter subcategory: Triceps' }));
+  await fireEvent.changeText(screen.getByLabelText('Search exercise names'), 'New extension');
+  await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
+  expect(add).toHaveBeenCalledWith('New extension', undefined, 'Push', 'Triceps');
+});
+
 it('filters Push exercises by muscle group and assigns a compatible subcategory', async () => {
   const add = jest.fn();
   await render(<ExercisePicker theme={getTheme('light')} items={[
@@ -41,7 +64,7 @@ it('combines category filters with name search and allows assigning a new exerci
   expect(screen.getByRole('button', { name: 'Use Crunches, bodyweight' })).toBeOnTheScreen();
   await fireEvent.changeText(screen.getByLabelText('Search exercise names'), 'plank');
   expect(screen.queryByRole('button', { name: 'Use Crunches, bodyweight' })).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: 'Category: Uncategorized' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Category: Core' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Exercise category: Core' }));
   await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
   expect(add).toHaveBeenCalledWith('plank', undefined, 'Core', '');

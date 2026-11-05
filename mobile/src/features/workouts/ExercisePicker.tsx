@@ -19,8 +19,11 @@ export function ExercisePicker({ theme, items, loading, error, retry, cancel, ad
   const submitted = useRef(false);
   const matches = matchingExercises(items, name, filter, subFilter);
   const option = selected ?? matchingExercises(items, name).find(item => exerciseNameKey(item.name) === exerciseNameKey(name));
-  const assignedCategory = category ?? option?.category ?? '';
-  const assignedSubcategory = subcategory ?? (assignedCategory === option?.category ? option.subcategory ?? '' : '');
+  const assignedCategory = category ?? option?.category ?? (filter === 'All' ? '' : filter);
+  const defaultSubcategory = option
+    ? (assignedCategory === option.category ? option.subcategory ?? '' : '')
+    : (assignedCategory === filter && subFilter !== 'All' ? subFilter : '');
+  const assignedSubcategory = subcategory ?? defaultSubcategory;
   const filterGroups = filter === 'All' ? [] : subcategoriesFor(filter);
   return <Modal transparent animationType="fade" onRequestClose={cancel}>
     <SafeAreaView style={{ flex: 1, backgroundColor: '#00000066', justifyContent: 'center', padding: 16 }}>
@@ -30,10 +33,16 @@ export function ExercisePicker({ theme, items, loading, error, retry, cancel, ad
           <Text style={[styles.subtitle, { color: theme.muted }]}>Choose an exercise you’ve logged before, or enter a new name.</Text>
           <ScrollView keyboardShouldPersistTaps="handled" style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ gap: 12 }}>
           <Field theme={theme} label="Search exercise names" value={name} autoCorrect={false} maxLength={100}
-            placeholder="Search or add an exercise" onChangeText={value => { setName(value); setSelected(undefined); }} />
+            placeholder="Search or add an exercise" onChangeText={value => {
+              if (selected) { setCategory(undefined); setSubcategory(undefined); }
+              setName(value); setSelected(undefined);
+            }} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 8 }}>
             {(['All', ...exerciseCategories, ''] as const).map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`Filter exercises: ${value || 'Uncategorized'}`}
-              accessibilityState={{ selected: filter === value }} onPress={() => { setFilter(value); setSubFilter('All'); }}
+              accessibilityState={{ selected: filter === value }} onPress={() => {
+                if (category === undefined && !option) setSubcategory(undefined);
+                setFilter(value); setSubFilter('All');
+              }}
               style={[styles.choice, { borderColor: filter === value ? theme.primary : 'transparent', backgroundColor: filter === value ? theme.accentSoft : theme.soft }]}>
               <Text style={{ color: filter === value ? theme.accent : theme.muted, fontFamily: fonts.medium }}>{value || 'Uncategorized'}</Text>
             </Pressable>)}

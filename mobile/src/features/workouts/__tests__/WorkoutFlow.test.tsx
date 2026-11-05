@@ -62,10 +62,16 @@ it('adds a named exercise through the picker without inventing previous set valu
   await render(<WorkoutRoute />);
   await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
   const picker = within(screen.getByTestId('exercise-picker'));
+  await fireEvent.press(picker.getByRole('button', { name: 'Filter exercises: Push' }));
+  await fireEvent.press(picker.getByRole('button', { name: 'Filter subcategory: Triceps' }));
   await fireEvent.changeText(picker.getByLabelText('Search exercise names'), 'New press');
   await fireEvent.press(picker.getByRole('button', { name: '+ Add exercise' }));
   expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('');
   expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));
+  expect(screen.getByRole('button', { name: 'Category: Push' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Subcategory: Triceps' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Done setup' }));
   await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 load (lb)'), '35');
   await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '10');
   expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
