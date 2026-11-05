@@ -12,14 +12,14 @@ Primary Continue/Finish/Save actions sit in a footer, separate from scrolling co
 
 Suggestions come from completed workouts in SQLite, not the HTML preview. Search ignores capitalization and repeated/surrounding whitespace. Users may select a known exercise or create a new name. A known selection preserves its catalog identity and loaded/bodyweight mode; it does not copy another gym's equipment or invent weights/reps. Existing exercise setup fields also offer suggestions when correcting a saved workout.
 
-The store reuses canonical names for new completed entries while preserving loaded/bodyweight distinctions and gym-specific equipment identities. Names in unfinished drafts or unreferenced catalog records are not presented as previously logged workouts. The exercise catalog uses the existing tables. Location removal adds a transactional version 2 migration; exercise categories add version 3. Existing locations default to active and existing exercises default to Uncategorized. No database reset is needed.
+The store reuses canonical names for new completed entries while preserving loaded/bodyweight distinctions and gym-specific equipment identities. Names in unfinished drafts or unreferenced catalog records are not presented as previously logged workouts. The exercise catalog uses the existing tables. Location removal adds a transactional version 2 migration; exercise categories add version 3 and dependent subcategories add version 4. Existing locations default to active and existing exercises default to Uncategorized. No database reset is needed.
 
 Suggestion loading has explicit loading/error/retry states. A failed suggestion query still permits manual name entry. The picker bounds the visible suggestion list and invites a more specific search. Save/Cancel, draft recovery, transaction rollback, time correction, and deletion behavior remain covered by existing tests.
 
 ## Validation
 
-- 36 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
-- 13 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
+- 39 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
+- 15 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
 - The native UI's browser runtime passed a real SQLite journey: create gym, add exercises, log compact rows, bodyweight, copied sets, collapse/expand, Home/resume, finish excluding incomplete sets, reuse persistent suggestions in the next workout, saved-edit suggestions, and preservation of an unrelated active draft. Light/dark and 320px/390px horizontal layouts were checked.
 - TypeScript, zero-warning lint, Expo dependency compatibility, and iOS/Android/web JavaScript exports pass. Exports do not prove native visual/keyboard behavior; physical-device review remains pending.
 
@@ -72,3 +72,11 @@ Completed workouts initially show exercise names, set counts, and an expand indi
 ## Completed-workout date hierarchy
 
 The completed view removes the Saved on this phone indicator and places Edit workout beside the session title. A single metadata card shows the workout date once, a 24-hour time range with elapsed duration, then location and recorded timezone. The end date appears only for an overnight session; the end year appears when crossing years. Values are formatted in the recorded workout timezone rather than the viewing device timezone. Device check: compare a same-day, overnight, and backdated workout; confirm names and time ranges wrap correctly with larger text.
+
+## Push and Pull subcategories
+
+Push offers Chest, Triceps, and Shoulders; Pull offers Back and Biceps. Both allow Not assigned. The picker exposes subcategory filters after selecting Push/Pull, combines them with name search, and offers assignment beneath the category control. Setup supports the same edits. Selecting a saved name carries its category and subcategory; changing the parent clears incompatible subcategories. Other parent categories have no subcategory control.
+
+Collapsed completed-exercise cards now show category, subcategory, and set count beneath the exercise name, with the same information in the accessibility label. Sets still expand independently. Classification is current exercise-library metadata shared across gyms; it remains distinct from the workout session type. Finish/Save commits changes, while Cancel leaves stored classification unchanged.
+
+Schema version 4 adds a constrained subcategory column. Existing names and categories survive with subcategories initially unassigned. Parent/child combinations are validated both before saving and in SQLite. Regression coverage includes parent changes, filter/search, completed labels, migration from version 3, real-file reopen, and rollback. The browser journey verified assigning Chest, filtering by Chest in a later workout, and the completed collapsed label. Device check: assign each Push/Pull group, finish, reopen, filter, change the parent, and verify old history and saved sets remain correct.

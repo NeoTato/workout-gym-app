@@ -6,6 +6,13 @@ import { CompletedExerciseSummary } from '../CompletedExerciseSummary';
 const exercise: CompletedExercise = { id: 'press', name: 'Dumbbell press', equipment: 'Dumbbells', bodyweight: false,
   unit: 'lb', convention: 'per_hand', sets: [{ id: 'one', weight: 35, reps: 10 }, { id: 'two', weight: 40, reps: 8 }] };
 
+it('shows category and subcategory in the collapsed completed-workout card', async () => {
+  await render(<CompletedExerciseSummary exercise={{ ...exercise, category: 'Push', subcategory: 'Chest' }} theme={getTheme('light')} />);
+  expect(screen.getByText('Push · Chest · 2 sets')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Dumbbell press, Push · Chest, 2 sets', expanded: false })).toBeOnTheScreen();
+  expect(screen.queryByText(/Set 1:/)).toBeNull();
+});
+
 it('starts compact and independently expands and collapses each exercise without changing saved sets', async () => {
   const core: CompletedExercise = { ...exercise, id: 'core', name: 'Crunches', bodyweight: true, sets: [{ id: 'core-set', weight: null, reps: 15 }] };
   await render(<><CompletedExerciseSummary exercise={exercise} theme={getTheme('light')} /><CompletedExerciseSummary exercise={core} theme={getTheme('light')} /></>);

@@ -1,4 +1,4 @@
-import { cleanExerciseName, exerciseCategories, type ExerciseCategory } from './exerciseLibrary.ts';
+import { cleanExerciseName, exerciseCategories, subcategoriesFor, type ExerciseCategory, type ExerciseSubcategory } from './exerciseLibrary.ts';
 
 export type LoadUnit = 'lb' | 'kg' | 'plates';
 export type Convention = 'total' | 'per_hand' | 'per_side';
@@ -6,6 +6,7 @@ export type SetDraft = { id: string; weight: string; reps: string; completed: bo
 export type ExerciseDraft = {
   catalogId?: string;
   category?: ExerciseCategory;
+  subcategory?: ExerciseSubcategory;
   id: string; name: string; equipment: string; bodyweight: boolean;
   unit: LoadUnit; convention: Convention; sets: SetDraft[];
 };
@@ -53,6 +54,9 @@ export function completedExercises(draft: WorkoutDraft): CompletedExercise[] {
     if (!exercise.name.trim()) throw new Error('Name each exercise with completed sets.');
     if (exercise.category !== undefined && exercise.category !== '' && !exerciseCategories.includes(exercise.category)) {
       throw new Error('Choose a valid exercise category.');
+    }
+    if (exercise.subcategory !== undefined && exercise.subcategory !== '' && !subcategoriesFor(exercise.category ?? '').includes(exercise.subcategory)) {
+      throw new Error('Choose a subcategory that belongs to the exercise category.');
     }
     if (!['lb', 'kg', 'plates'].includes(exercise.unit) || !['total', 'per_hand', 'per_side'].includes(exercise.convention)) {
       throw new Error('Choose a valid unit and load convention.');

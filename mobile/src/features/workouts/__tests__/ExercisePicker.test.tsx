@@ -4,6 +4,35 @@ import { getTheme } from '../../../ui/theme';
 
 const items = [{ id: 'press', name: 'Dumbbell press', bodyweight: false }, { id: 'crunch', name: 'Crunches', bodyweight: true }];
 
+it('filters Push exercises by muscle group and assigns a compatible subcategory', async () => {
+  const add = jest.fn();
+  await render(<ExercisePicker theme={getTheme('light')} items={[
+    { ...items[0], category: 'Push', subcategory: 'Chest' },
+    { id: 'extension', name: 'Triceps extension', bodyweight: false, category: 'Push', subcategory: 'Triceps' },
+  ]} loading={false} error="" retry={jest.fn()} cancel={jest.fn()} add={add} />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter exercises: Push' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter subcategory: Chest' }));
+  expect(screen.queryByRole('button', { name: 'Use Triceps extension, load and reps' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Use Dumbbell press, load and reps' }));
+  expect(screen.getByRole('button', { name: 'Subcategory: Chest' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
+  expect(add).toHaveBeenCalledWith('Dumbbell press', expect.objectContaining({ id: 'press' }), 'Push', 'Chest');
+});
+
+it('clears the Push subcategory when changing to Pull and offers only Back and Biceps', async () => {
+  const add = jest.fn();
+  await render(<ExercisePicker theme={getTheme('light')} items={[{ ...items[0], category: 'Push', subcategory: 'Chest' }]} loading={false} error="" retry={jest.fn()} cancel={jest.fn()} add={add} />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Use Dumbbell press, load and reps' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Category: Push' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Exercise category: Pull' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Subcategory: Not assigned' }));
+  expect(screen.queryByRole('button', { name: 'Exercise subcategory: Chest' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Exercise subcategory: Back' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Exercise subcategory: Biceps' }));
+  await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
+  expect(add).toHaveBeenCalledWith('Dumbbell press', expect.objectContaining({ id: 'press' }), 'Pull', 'Biceps');
+});
+
 it('combines category filters with name search and allows assigning a new exercise category', async () => {
   const add = jest.fn();
   await render(<ExercisePicker theme={getTheme('light')} items={[{ ...items[0], category: 'Push' }, { ...items[1], category: 'Core' }]} loading={false} error="" retry={jest.fn()} cancel={jest.fn()} add={add} />);
@@ -15,7 +44,7 @@ it('combines category filters with name search and allows assigning a new exerci
   await fireEvent.press(screen.getByRole('button', { name: 'Category: Uncategorized' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Exercise category: Core' }));
   await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
-  expect(add).toHaveBeenCalledWith('plank', undefined, 'Core');
+  expect(add).toHaveBeenCalledWith('plank', undefined, 'Core', '');
 });
 
 it('searches previous exercises without case/spacing differences and preserves selected identity and mode', async () => {
@@ -26,7 +55,7 @@ it('searches previous exercises without case/spacing differences and preserves s
   expect(picker.queryByRole('button', { name: 'Use Dumbbell press, load and reps' })).toBeNull();
   await fireEvent.press(picker.getByRole('button', { name: 'Use Crunches, bodyweight' }));
   await fireEvent.press(picker.getByRole('button', { name: '+ Add exercise' }));
-  expect(add).toHaveBeenCalledWith('Crunches', items[1], '');
+  expect(add).toHaveBeenCalledWith('Crunches', items[1], '', '');
 });
 
 it('allows a clean new name during suggestion failure and blocks empty names', async () => {
@@ -36,7 +65,7 @@ it('allows a clean new name during suggestion failure and blocks empty names', a
   await fireEvent.press(screen.getByRole('button', { name: 'Retry suggestions' })); expect(retry).toHaveBeenCalledTimes(1);
   await fireEvent.changeText(screen.getByLabelText('Search exercise names'), '  Zottman   curl ');
   await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
-  expect(add).toHaveBeenCalledWith('Zottman curl', undefined, '');
+  expect(add).toHaveBeenCalledWith('Zottman curl', undefined, '', '');
 });
 
 it('cancels without adding an exercise', async () => {
@@ -56,5 +85,5 @@ it('retains the saved category for an exact name even when another filter is act
   await fireEvent.changeText(screen.getByLabelText('Search exercise names'), '  DUMBBELL press  ');
   expect(screen.getByRole('button', { name: 'Category: Push' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
-  expect(add).toHaveBeenCalledWith('Dumbbell press', expect.objectContaining({ id: 'press' }), 'Push');
+  expect(add).toHaveBeenCalledWith('Dumbbell press', expect.objectContaining({ id: 'press' }), 'Push', '');
 });

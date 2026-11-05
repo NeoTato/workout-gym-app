@@ -37,8 +37,8 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
     <Button theme={theme} label="Cancel changes" disabled={busy} onPress={cancel} />
   </>;
   return <Screen theme={theme} key={section} footer={footer} scrollRef={scrollRef}>
-    {pickerOpen && <ExercisePicker theme={theme} {...library} cancel={() => setPickerOpen(false)} add={(name, option, category) => {
-      const exercise = { ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, category };
+    {pickerOpen && <ExercisePicker theme={theme} {...library} cancel={() => setPickerOpen(false)} add={(name, option, category, subcategory) => {
+      const exercise = { ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, category, subcategory };
       requestScroll(exercise.id);
       setDraft(value => ({ ...value, exercises: [...value.exercises, exercise] })); setAddedId(exercise.id); setPickerOpen(false);
     }} />}

@@ -2,7 +2,7 @@ import { completedExercises } from '../domain/workout.ts';
 import type { CompletedExercise, Location, SavedWorkout, WorkoutDraft } from '../domain/workout.ts';
 import { schema } from './schema.ts';
 import { workoutTimes } from '../domain/workoutTime.ts';
-import { cleanExerciseName, exerciseNameKey, type ExerciseCategory, type LoggedExercise } from '../domain/exerciseLibrary.ts';
+import { cleanExerciseName, exerciseNameKey, type ExerciseCategory, type ExerciseSubcategory, type LoggedExercise } from '../domain/exerciseLibrary.ts';
 
 type Param = string | number | null;
 export interface SqlExecutor {
@@ -27,14 +27,17 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
   async function writeExercises(tx: SqlExecutor, sessionId: string, locationId: string, exercises: CompletedExercise[]) {
     for (const [position, exercise] of exercises.entries()) {
       const mode = exercise.bodyweight ? 'reps' : 'load_reps';
-      const choices = await tx.getAllAsync<{ id: string; name: string }>('SELECT id,name FROM exercises WHERE measurement_mode=? ORDER BY id', mode);
+      const choices = await tx.getAllAsync<{ id: string; name: string; category: ExerciseCategory; subcategory: ExerciseSubcategory }>('SELECT id,name,category,subcategory FROM exercises WHERE measurement_mode=? ORDER BY id', mode);
       const sameName = (item: { name: string }) => exerciseNameKey(item.name) === exerciseNameKey(exercise.name);
       let catalog = choices.find(item => item.id === exercise.catalogId && sameName(item)) ?? choices.find(sameName);
       if (!catalog) {
-        catalog = { id: id(), name: exercise.name };
-        await tx.runAsync('INSERT INTO exercises(id,name,measurement_mode,category) VALUES (?,?,?,?)', catalog.id, exercise.name, mode, exercise.category ?? '');
+        catalog = { id: id(), name: exercise.name, category: exercise.category ?? '', subcategory: exercise.subcategory ?? '' };
+        await tx.runAsync('INSERT INTO exercises(id,name,measurement_mode,category,subcategory) VALUES (?,?,?,?,?)', catalog.id, exercise.name, mode, catalog.category, catalog.subcategory);
       }
-      if (exercise.category !== undefined) await tx.runAsync('UPDATE exercises SET category=? WHERE id=?', exercise.category, catalog.id);
+      if (exercise.category !== undefined) {
+        const subcategory = exercise.subcategory ?? (exercise.category === catalog.category ? catalog.subcategory : '');
+        await tx.runAsync('UPDATE exercises SET category=?,subcategory=? WHERE id=?', exercise.category, subcategory, catalog.id);
+      }
       const equipmentName = exercise.equipment || cleanExerciseName(catalog.name);
       const convention = exercise.bodyweight ? 'total' : exercise.convention;
       const dimension = exercise.bodyweight ? 'bodyweight' : exercise.unit === 'plates' ? 'plates' : 'mass';
@@ -52,7 +55,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
   async function readWorkout(sessionId: string): Promise<SavedWorkout> {
     const session = await db.getFirstAsync<Omit<SavedWorkout, 'exercises'>>('SELECT id,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions WHERE id=?', sessionId);
     if (!session) throw new Error('This workout could not be found.');
-    const rows = await db.getAllAsync<{ id: string; catalogId: string; category: ExerciseCategory; name: string; equipment: string; bodyweight: number; unit: CompletedExercise['unit']; convention: CompletedExercise['convention'] }>('SELECT se.id,se.exercise_id AS catalogId,e.category,se.exercise_name_snapshot AS name,se.equipment_name_snapshot AS equipment,se.bodyweight,se.load_unit AS unit,se.load_convention AS convention FROM session_exercises se JOIN exercises e ON e.id=se.exercise_id WHERE se.session_id=? ORDER BY se.position', sessionId);
+    const rows = await db.getAllAsync<{ id: string; catalogId: string; category: ExerciseCategory; subcategory: ExerciseSubcategory; name: string; equipment: string; bodyweight: number; unit: CompletedExercise['unit']; convention: CompletedExercise['convention'] }>('SELECT se.id,se.exercise_id AS catalogId,e.category,e.subcategory,se.exercise_name_snapshot AS name,se.equipment_name_snapshot AS equipment,se.bodyweight,se.load_unit AS unit,se.load_convention AS convention FROM session_exercises se JOIN exercises e ON e.id=se.exercise_id WHERE se.session_id=? ORDER BY se.position', sessionId);
     const exercises: CompletedExercise[] = [];
     for (const exercise of rows) {
       const sets = await db.getAllAsync<CompletedExercise['sets'][number]>('SELECT id,load_value AS weight,reps FROM sets WHERE session_exercise_id=? ORDER BY position', exercise.id);
@@ -65,10 +68,11 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       await db.execAsync('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;');
       await db.transaction(async tx => {
         const version = (await tx.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))?.user_version ?? 0;
-        if (version > 3) throw new Error('This database was created by a newer app. Update the app to open it.');
+        if (version > 4) throw new Error('This database was created by a newer app. Update the app to open it.');
         if (version === 0) await tx.execAsync(schema);
         if (version < 2) await tx.execAsync('ALTER TABLE locations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)); PRAGMA user_version=2;');
         if (version < 3) await tx.execAsync("ALTER TABLE exercises ADD COLUMN category TEXT NOT NULL DEFAULT '' CHECK(category IN ('','Push','Pull','Legs','Core','Cardio','Mobility','Other')); PRAGMA user_version=3;");
+        if (version < 4) await tx.execAsync("ALTER TABLE exercises ADD COLUMN subcategory TEXT NOT NULL DEFAULT '' CHECK(subcategory='' OR (category='Push' AND subcategory IN ('Chest','Triceps','Shoulders')) OR (category='Pull' AND subcategory IN ('Back','Biceps'))); PRAGMA user_version=4;");
       });
     }),
     listLocations: () => queue(() => db.getAllAsync<Location>('SELECT * FROM locations ORDER BY kind DESC,name')),
@@ -79,14 +83,14 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       await db.runAsync('UPDATE locations SET archived=1 WHERE id=?', locationId);
     }),
     listLoggedExercises: () => queue(async (): Promise<LoggedExercise[]> => {
-      const rows = await db.getAllAsync<{ id: string; name: string; category: ExerciseCategory; measurement_mode: string }>(
-        'SELECT DISTINCT e.id,e.name,e.category,e.measurement_mode FROM exercises e JOIN session_exercises se ON se.exercise_id=e.id JOIN sessions s ON s.id=se.session_id WHERE s.status=? ORDER BY e.name COLLATE NOCASE,e.id', 'completed');
+      const rows = await db.getAllAsync<{ id: string; name: string; category: ExerciseCategory; subcategory: ExerciseSubcategory; measurement_mode: string }>(
+        'SELECT DISTINCT e.id,e.name,e.category,e.subcategory,e.measurement_mode FROM exercises e JOIN session_exercises se ON se.exercise_id=e.id JOIN sessions s ON s.id=se.session_id WHERE s.status=? ORDER BY e.name COLLATE NOCASE,e.id', 'completed');
       const seen = new Set<string>();
       return rows.flatMap(row => {
         const key = `${row.measurement_mode}:${exerciseNameKey(row.name)}`;
         if (seen.has(key)) return [];
         seen.add(key);
-        return [{ id: row.id, name: cleanExerciseName(row.name), bodyweight: row.measurement_mode === 'reps', category: row.category }];
+        return [{ id: row.id, name: cleanExerciseName(row.name), bodyweight: row.measurement_mode === 'reps', category: row.category, subcategory: row.subcategory }];
       });
     }),
     addGym: (name: string) => queue(async () => {

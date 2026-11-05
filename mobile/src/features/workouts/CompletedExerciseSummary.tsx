@@ -7,13 +7,14 @@ import { fonts, type AppTheme } from '../../ui/theme';
 export function CompletedExerciseSummary({ exercise, theme }: { exercise: CompletedExercise; theme: AppTheme }) {
   const [expanded, setExpanded] = useState(false);
   const count = `${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`;
+  const classification = [exercise.category, exercise.subcategory].filter(Boolean).join(' · ');
   return <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-    <Pressable accessibilityRole="button" accessibilityLabel={`${exercise.name}, ${count}`} accessibilityState={{ expanded }}
+    <Pressable accessibilityRole="button" accessibilityLabel={[exercise.name, classification, count].filter(Boolean).join(', ')} accessibilityState={{ expanded }}
       accessibilityHint={expanded ? 'Hide completed sets' : 'Show completed sets'} onPress={() => setExpanded(value => !value)}
       style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 18 }}>{exercise.name}</Text>
-        <Text style={{ color: theme.muted, fontSize: 12 }}>{count}</Text>
+        <Text style={{ color: theme.muted, fontSize: 12 }}>{[classification, count].filter(Boolean).join(' · ')}</Text>
       </View>
       <Text accessible={false} style={{ color: theme.muted, fontSize: 20 }}>{expanded ? '−' : '+'}</Text>
     </Pressable>

@@ -36,6 +36,26 @@ function draft(id = 'workout-1') {
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
 
+test('push and pull subcategories persist in suggestions and completed workouts and reject mismatched parents', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    const entry = draft('subcategorized'); entry.exercises[0].category = 'Push'; entry.exercises[0].subcategory = 'Chest';
+    await store.finish(entry);
+    assert.equal((await store.listLoggedExercises())[0].subcategory, 'Chest');
+    assert.equal((await store.getWorkout(entry.id)).exercises[0].subcategory, 'Chest');
+    const edit = await store.getWorkoutEdit(entry.id); edit.exercises[0].category = 'Pull'; edit.exercises[0].subcategory = 'Back';
+    await store.updateWorkout(edit);
+    assert.equal((await store.getWorkout(entry.id)).exercises[0].subcategory, 'Back');
+    const invalid = await store.getWorkoutEdit(entry.id); invalid.exercises[0].subcategory = 'Chest';
+    await assert.rejects(store.updateWorkout(invalid), /subcategory/);
+    assert.equal((await store.listLoggedExercises())[0].subcategory, 'Back');
+    const legacy = draft('legacy-category-change'); legacy.exercises[0].category = 'Core';
+    await store.finish(legacy);
+    assert.equal((await store.listLoggedExercises())[0].subcategory, '');
+  } finally { connection.db.close(); }
+});
+
 test('exercise categories persist, can be reassigned or cleared, and roll back with failed workout edits', async () => {
   const connection = connect(':memory:');
   try {
@@ -53,10 +73,11 @@ test('exercise categories persist, can be reassigned or cleared, and roll back w
     assert.equal((await store.listLoggedExercises())[0].category, '');
     const invalid = await store.getWorkoutEdit(entry.id); invalid.exercises[0].category = 'unknown';
     await assert.rejects(store.updateWorkout(invalid), /category/);
-    const failed = await store.getWorkoutEdit(entry.id); failed.exercises[0].category = 'Pull';
+    const failed = await store.getWorkoutEdit(entry.id); failed.exercises[0].category = 'Pull'; failed.exercises[0].subcategory = 'Back';
     connection.failSets();
     await assert.rejects(store.updateWorkout(failed), /Injected/);
     assert.equal((await store.listLoggedExercises())[0].category, '');
+    assert.equal((await store.listLoggedExercises())[0].subcategory, '');
     assert.equal((await store.getWorkout(entry.id)).sessionType, 'Push');
   } finally { connection.db.close(); }
 });
@@ -69,7 +90,7 @@ test('version-one locations migrate without losing gyms or draft checkpoints', a
     const pending = draft(); pending.locationId = 'legacy';
     connection.db.prepare('INSERT INTO draft_checkpoint VALUES (1,?,?)').run(pending.id, JSON.stringify(pending));
     const store = makeStore(connection); await store.initialize(); await store.initialize();
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 3);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 4);
     assert.equal((await store.listLocations()).find(item => item.id === 'legacy').archived, 0);
     assert.deepEqual(await store.getDraft(), pending);
   } finally { connection.db.close(); }
@@ -86,6 +107,19 @@ test('version-two exercise names migrate as uncategorized and retain their ident
     assert.equal((await store.listLoggedExercises())[0].id, 'legacy-press');
     assert.equal((await store.listLoggedExercises())[0].category, '');
     assert.equal((await store.getWorkout(entry.id)).exercises[0].sets[0].weight, 35.5);
+  } finally { connection.db.close(); }
+});
+
+test('version-three categories survive migration with unassigned subcategories', async () => {
+  const connection = connect(':memory:');
+  try {
+    connection.db.exec(schema);
+    connection.db.exec("ALTER TABLE locations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0; ALTER TABLE exercises ADD COLUMN category TEXT NOT NULL DEFAULT ''; PRAGMA user_version=3;");
+    connection.db.prepare('INSERT INTO exercises VALUES (?,?,?,?)').run('legacy-push', "Press 'n lift", 'load_reps', 'Push');
+    const store = makeStore(connection); await store.initialize(); await store.initialize();
+    await store.finish(draft('legacy-push-history'));
+    const exercise = (await store.listLoggedExercises())[0];
+    assert.equal(exercise.id, 'legacy-push'); assert.equal(exercise.category, 'Push'); assert.equal(exercise.subcategory, '');
   } finally { connection.db.close(); }
 });
 
@@ -219,13 +253,14 @@ test('a draft and completed sets survive closing and reopening the real SQLite f
     await store.saveDraft({ ...draft(), setupComplete: true }); connection.db.close();
     connection = connect(file); store = makeStore(connection); await store.initialize();
     assert.deepEqual(await store.getDraft(), { ...draft(), setupComplete: true });
-    const categorized = draft(); categorized.exercises[0].category = 'Push';
+    const categorized = draft(); categorized.exercises[0].category = 'Push'; categorized.exercises[0].subcategory = 'Chest';
     await store.finish(categorized); await store.finish(categorized);
     connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize();
     const history = await store.listWorkouts(); assert.equal(history.length, 1);
     const saved = await store.getWorkout(history[0].id);
     assert.equal((await store.listLoggedExercises())[0].id, saved.exercises[0].catalogId, 'saved suggestions preserve catalog identity after reopening');
     assert.equal((await store.listLoggedExercises())[0].category, 'Push', 'categories persist after reopening the database');
+    assert.equal((await store.getWorkout(saved.id)).exercises[0].subcategory, 'Chest', 'completed subcategories persist after reopening');
     assert.equal(saved.exercises[0].name, "Press 'n lift");
     assert.deepEqual(saved.exercises[0].sets.map(set => ({ ...set })), [{ id: 'workout-1-set-1', weight: 35.5, reps: 10 }]);
     assert.equal(await store.getDraft(), null);
