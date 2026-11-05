@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { useState } from 'react';
+import { Alert } from 'react-native';
 import type { ExerciseDraft } from '../../../domain/workout';
 import { getTheme } from '../../../ui/theme';
 import { ExerciseEditor } from '../ExerciseEditor';
@@ -39,6 +40,7 @@ describe('Exercise logging', () => {
     expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done' }));
     expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeEnabled();
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Tracking: Bodyweight reps' }));
     expect(screen.queryByLabelText('Exercise 1 set 1 load (lb)')).toBeNull();
   });
@@ -60,5 +62,30 @@ describe('Exercise logging', () => {
     expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
     await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '');
     expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
+  });
+  it('retains set values when collapsing an exercise or closing its setup', async () => {
+    await render(<Editor />);
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12');
+    await fireEvent.press(screen.getByRole('button', { name: 'Collapse exercise 1' }));
+    expect(screen.queryByLabelText('Exercise 1 set 1 reps')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Expand exercise 1' }));
+    expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('12');
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Done setup' }));
+    expect(screen.queryByRole('button', { name: 'Tracking: Bodyweight reps' })).toBeNull();
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
+  });
+  it('requires confirmation before removing completed work', async () => {
+    const alert = jest.spyOn(Alert, 'alert');
+    try {
+      await render(<Editor />);
+      await fireEvent.press(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Remove set 1' }));
+      expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('10');
+      const actions = alert.mock.calls[0][2]!;
+      expect(actions[0].style).toBe('cancel');
+      await act(() => actions[1].onPress?.());
+      expect(screen.queryByLabelText('Exercise 1 set 1 reps')).toBeNull();
+    } finally { alert.mockRestore(); }
   });
 });

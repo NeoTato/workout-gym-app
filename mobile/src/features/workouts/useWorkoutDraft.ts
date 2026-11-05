@@ -15,6 +15,7 @@ export function useWorkoutDraft() {
   const [status, setStatus] = useState('Loading your workout…');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busyRef = useRef(false), revision = useRef(0), alive = useRef(true);
   useEffect(() => {
     let active = true;
@@ -24,20 +25,26 @@ export function useWorkoutDraft() {
       let saved = await db.getDraft();
       if (!saved) {
         const date = new Date();
-        saved = { id: randomUUID(), setupComplete: false, startedAt: date.toISOString(), activityDate: localDate(date), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locationId: '', sessionType: 'Custom', exercises: [newExercise()] };
+        saved = { id: randomUUID(), setupComplete: false, startedAt: date.toISOString(), activityDate: localDate(date), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locationId: '', sessionType: 'Custom', exercises: [] };
         saved = await db.beginDraft(saved);
       }
       const choices = await db.listLocations();
-      if (active) { current.current = saved; setDraft(saved); setLocations(choices); setStatus('Saved on this phone'); }
+      if (active) { current.current = saved; setDraft(saved); setLocations(choices); setStatus(''); }
     })().catch(() => { if (active) { setError('Unable to open your workout. Return Home and try again. Your data has not been reset.'); setStatus('Unable to load'); } });
-    return () => { active = false; alive.current = false; };
+    return () => { active = false; alive.current = false; if (savedTimer.current) clearTimeout(savedTimer.current); };
   }, []);
   function update(change: (value: WorkoutDraft) => WorkoutDraft) {
     if (!current.current || !store.current || busyRef.current) return;
+    if (savedTimer.current) clearTimeout(savedTimer.current);
     const next = change(current.current), version = ++revision.current;
     current.current = next; setDraft(next); setStatus('Saving…'); setError('');
     store.current.saveDraft(next).then(() => {
-      if (alive.current && version === revision.current) setStatus('Saved on this phone');
+      if (alive.current && version === revision.current) {
+        setStatus('Draft saved');
+        savedTimer.current = setTimeout(() => {
+          if (alive.current && version === revision.current) setStatus('');
+        }, 2500);
+      }
     }).catch(() => { if (alive.current && version === revision.current) { setStatus('Not saved'); setError('Unable to save this edit. Keep the app open and tap Retry save.'); } });
   }
   async function addGym(name: string) {
@@ -52,6 +59,12 @@ export function useWorkoutDraft() {
     catch (failure) { setError(failure instanceof Error && /choose|enter|name|mark/i.test(failure.message) ? failure.message : 'Unable to finish. Your draft is still here. Try again.'); }
     finally { busyRef.current = false; if (alive.current) setBusy(false); }
   }
+  async function removeLocation(locationId: string) {
+    if (!store.current || busyRef.current) return;
+    await store.current.removeLocation(locationId);
+    setLocations(await store.current.listLocations());
+    update(value => value.locationId === locationId ? { ...value, locationId: '', setupComplete: false } : value);
+  }
   async function discard() {
     if (!store.current || !current.current || busyRef.current) return false;
     busyRef.current = true; setBusy(true);
@@ -59,5 +72,5 @@ export function useWorkoutDraft() {
     catch { setError('Unable to discard. Your draft is still here.'); return false; }
     finally { busyRef.current = false; if (alive.current) setBusy(false); }
   }
-  return { draft, locations, status, error, busy, update, addGym, finish, discard };
+  return { draft, locations, status, error, busy, update, addGym, removeLocation, finish, discard };
 }

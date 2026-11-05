@@ -39,7 +39,7 @@ Proposed layout: `src/app/` for routes, `src/features/` for the catalog/workout/
 
 Tabs: Home, Routines, History, Exercises. Home owns weekly progress, calendar, and links into summaries; History provides sessions, exercise progress, and Week/Month/Year summaries. Workout setup and active logging are stack screens; day details and settings/data tools are sheets or stack detail screens. Opening details retains the caller's date/period/scroll position. Settings is accessible from the Home header. Preserve the prototype's visual direction while using React Native controls and safe-area/keyboard handling rather than copying browser markup.
 
-Implement semantic light/dark tokens, 500/700 font weights, tabular numerals, 20px cards, coral fill, peach selection surfaces, and contrasting text as recorded in DESIGN-NOTES.md. Standard actions target at least 48 logical pixels; compact calendar cells may be narrower but maintain visible spacing and accessible date labels. Support text scaling, reduced motion, screen readers, visible selection indicators, and confirmation of destructive actions. Never encode completion only through color.
+Implement semantic light/dark tokens, 500/700 font weights, tabular numerals, 20px cards, coral fill, peach selection surfaces, and contrasting text as recorded in [design-notes.md](design-notes.md). Standard actions target at least 48 logical pixels; compact calendar cells may be narrower but maintain visible spacing and accessible date labels. Support text scaling, reduced motion, screen readers, visible selection indicators, and confirmation of destructive actions. Never encode completion only through color.
 
 ## Persistence and lifecycle
 

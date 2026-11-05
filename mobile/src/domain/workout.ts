@@ -1,7 +1,12 @@
+import { cleanExerciseName, exerciseCategories, subcategoriesFor, type ExerciseCategory, type ExerciseSubcategory } from './exerciseLibrary.ts';
+
 export type LoadUnit = 'lb' | 'kg' | 'plates';
 export type Convention = 'total' | 'per_hand' | 'per_side';
 export type SetDraft = { id: string; weight: string; reps: string; completed: boolean };
 export type ExerciseDraft = {
+  catalogId?: string;
+  category?: ExerciseCategory;
+  subcategory?: ExerciseSubcategory;
   id: string; name: string; equipment: string; bodyweight: boolean;
   unit: LoadUnit; convention: Convention; sets: SetDraft[];
 };
@@ -15,7 +20,7 @@ export type WorkoutDraft = {
 export type CompletedExercise = Omit<ExerciseDraft, 'sets'> & {
   sets: { id: string; weight: number | null; reps: number }[];
 };
-export type Location = { id: string; name: string; kind: 'gym' | 'home' };
+export type Location = { id: string; name: string; kind: 'gym' | 'home'; archived?: number };
 export type SavedWorkout = {
   id: string; activityDate: string; sessionType: string; locationName: string;
   timezone: string;
@@ -47,10 +52,16 @@ export function completedExercises(draft: WorkoutDraft): CompletedExercise[] {
     const sets = exercise.sets.filter(set => set.completed);
     if (!sets.length) continue;
     if (!exercise.name.trim()) throw new Error('Name each exercise with completed sets.');
+    if (exercise.category !== undefined && exercise.category !== '' && !exerciseCategories.includes(exercise.category)) {
+      throw new Error('Choose a valid exercise category.');
+    }
+    if (exercise.subcategory !== undefined && exercise.subcategory !== '' && !subcategoriesFor(exercise.category ?? '').includes(exercise.subcategory)) {
+      throw new Error('Choose a subcategory that belongs to the exercise category.');
+    }
     if (!['lb', 'kg', 'plates'].includes(exercise.unit) || !['total', 'per_hand', 'per_side'].includes(exercise.convention)) {
       throw new Error('Choose a valid unit and load convention.');
     }
-    result.push({ ...exercise, name: exercise.name.trim(), equipment: exercise.equipment.trim(), sets: sets.map(set => {
+    result.push({ ...exercise, name: cleanExerciseName(exercise.name), equipment: exercise.equipment.trim(), sets: sets.map(set => {
       if (!validReps(set.reps)) {
         throw new Error(`${exercise.name}: enter a positive whole number of reps for each completed set.`);
       }

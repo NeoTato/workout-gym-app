@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
 import WorkoutRoute from '../../../app/workout';
 import type { WorkoutDraft } from '../../../domain/workout';
-import { useWorkoutDraft } from '../useWorkoutDraft';
+import { newExercise, useWorkoutDraft } from '../useWorkoutDraft';
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
+jest.mock('../useExerciseLibrary', () => ({ useExerciseLibrary: () => ({ items: [], loading: false, error: '', retry: jest.fn() }) }));
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'new-id' }));
 jest.mock('../useWorkoutDraft', () => ({ useWorkoutDraft: jest.fn(), newExercise: jest.fn() }));
 jest.mock('@react-native-community/datetimepicker', () => ({ __esModule: true, default: () => null }));
@@ -13,13 +14,15 @@ let seed: WorkoutDraft;
 function useTestDraft() {
   const [draft, setDraft] = useState(seed);
   return { draft, locations: [{ id: 'home', name: 'Home', kind: 'home' as const }], status: 'Saved on this phone', error: '',
-    busy: false, update: setDraft, addGym: jest.fn(), finish: jest.fn(), discard: jest.fn() };
+    busy: false, update: setDraft, addGym: jest.fn(), removeLocation: jest.fn(), finish: jest.fn(), discard: jest.fn() };
 }
 beforeEach(() => {
   seed = { id: 'session', setupComplete: false, startedAt: '2026-11-01T01:00:00Z', activityDate: '2026-11-01', timezone: 'Asia/Manila',
     locationId: '', sessionType: 'Push', exercises: [{ id: 'exercise', name: 'Press', equipment: '', bodyweight: false,
       unit: 'lb', convention: 'total', sets: [{ id: 'set', weight: '35', reps: '10', completed: true }] }] };
   jest.mocked(useWorkoutDraft).mockImplementation(useTestDraft);
+  jest.mocked(newExercise).mockReturnValue({ id: 'added', name: '', equipment: '', bodyweight: false, unit: 'lb', convention: 'total',
+    sets: [{ id: 'new-set', weight: '', reps: '', completed: false }] });
 });
 
 it('starts with setup, keeps dates collapsed, and requires a location before logging', async () => {
@@ -52,4 +55,33 @@ it('opens resumed and legacy configured drafts directly in exercise logging', as
   await render(<WorkoutRoute />);
   expect(screen.getByRole('button', { name: 'Finish workout' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Continue to exercises' })).toBeNull();
+});
+
+it.each([
+  ['All', '', ''], ['Uncategorized', '', ''],
+  ['Push', '', 'Push'], ['Push', 'Chest', 'Push'], ['Push', 'Triceps', 'Push'], ['Push', 'Shoulders', 'Push'],
+  ['Pull', '', 'Pull'], ['Pull', 'Back', 'Pull'], ['Pull', 'Biceps', 'Pull'],
+  ['Legs', '', 'Legs'], ['Core', '', 'Core'], ['Cardio', '', 'Cardio'], ['Mobility', '', 'Mobility'], ['Other', '', 'Other'],
+])('adds a %s / %s exercise and preserves its classification in Setup', async (filter, subcategory, category) => {
+  seed.locationId = 'home'; seed.setupComplete = true; seed.exercises = [];
+  await render(<WorkoutRoute />);
+  await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
+  const picker = within(screen.getByTestId('exercise-picker'));
+  await fireEvent.press(picker.getByRole('button', { name: `Filter exercises: ${filter}` }));
+  if (subcategory) await fireEvent.press(picker.getByRole('button', { name: `Filter subcategory: ${subcategory}` }));
+  await fireEvent.changeText(picker.getByLabelText('Search exercise names'), 'New press');
+  await fireEvent.press(picker.getByRole('button', { name: '+ Add exercise' }));
+  expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('');
+  expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));
+  expect(screen.getByRole('button', { name: `Category: ${category || 'Uncategorized'}` })).toBeOnTheScreen();
+  if (category === 'Push' || category === 'Pull') {
+    expect(screen.getByRole('button', { name: `Subcategory: ${subcategory || 'Not assigned'}` })).toBeOnTheScreen();
+  } else {
+    expect(screen.queryByRole('button', { name: /^Subcategory:/ })).toBeNull();
+  }
+  await fireEvent.press(screen.getByRole('button', { name: 'Done setup' }));
+  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 load (lb)'), '35');
+  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '10');
+  expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
 });

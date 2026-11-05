@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-style="proposed">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Workout journal — UI direction preview</title>
+  <link rel="stylesheet" href="ui-overhaul-preview.css">
+  <script src="ui-overhaul-preview.js" defer></script>
+</head>
+<body>
+  <header class="preview-header">
+    <div><p class="eyebrow">WORKOUT JOURNAL / DESIGN STUDY 04</p><h1>Less noise.<br>More room to lift.</h1><p class="intro">A clearer role for every action. A little more breathing room.<br>HTML preview only · fictional workouts · no app data is changed.</p></div>
+    <div class="preview-controls">
+      <fieldset class="segmented"><legend>Visual direction</legend><button data-direction="current" aria-pressed="false">Current colors</button><button data-direction="proposed" aria-pressed="true">Proposed</button></fieldset>
+      <button class="theme-toggle" id="theme-toggle" aria-pressed="false">☾ Dark appearance</button>
+      <a class="activity-preview-link" href="activity-preview.html">History, summaries & consistency →</a>
+      <p class="control-note">“Current colors” compares the color hierarchy on this proposed layout; it is not a replica of the current app.</p>
+    </div>
+  </header>
+  <div class="design-key" aria-label="Proposed action colors">
+    <span><i class="swatch coral"></i>Primary action</span><span><i class="swatch green"></i>Add & completed</span><span><i class="swatch red"></i>Remove & delete</span><span><i class="swatch gray"></i>Back & edit</span>
+    <p>Labels and icons carry meaning too. Color is a guide.</p>
+  </div>
+  <nav class="screen-tabs" aria-label="Preview screens"><button data-screen="setup" aria-pressed="false">01 Setup</button><button data-screen="logging" aria-pressed="true">02 Log workout</button><button data-screen="review" aria-pressed="false">03 Saved</button></nav>
+  <main class="screens" data-active="logging">
+    <section class="screen-panel" data-panel="setup" aria-labelledby="setup-label">
+      <div class="panel-caption"><h2 id="setup-label">01 / A simple start</h2><p>Session details stay out of your workout.</p></div>
+      <div class="phone">
+        <div class="status-bar" aria-hidden="true"><span>9:41</span><span class="status-icons">▮▮▮  ◒  ▰</span></div>
+        <div class="phone-content">
+          <button class="back-link neutral" data-notice="Your draft stays saved when you go Home."><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg><span>Home</span></button>
+          <p class="eyebrow">MAKE IT YOUR SESSION</p><h3>Set up workout</h3><p class="muted">A full session or a quick one. Both count.</p>
+          <div class="card setup-card">
+            <div class="section-heading"><h4>Where are you training?</h4><span class="tiny-label">Location</span></div>
+            <div class="location-options" role="group" aria-label="Workout location"><button class="choice selected" aria-pressed="true" data-location="The neighborhood gym"><span class="choice-icon">⌂</span><span>The neighborhood gym<small>Your saved gym</small></span><span class="selected-mark">✓</span></button><button class="choice" aria-pressed="false" data-location="Home"><span class="choice-icon">⌑</span><span>Home<small>Your own space</small></span><span class="selected-mark">✓</span></button></div>
+            <button class="text-button positive" id="add-gym">＋ Add another gym</button>
+          </div>
+          <div class="card"><div class="section-heading"><h4>What’s the focus?</h4><span class="tiny-label">Session type</span></div><div class="type-chips" role="group" aria-label="Session type"><button data-type="Push" aria-pressed="false">Push</button><button data-type="Pull" aria-pressed="false">Pull</button><button data-type="Legs" aria-pressed="false">Legs</button><button data-type="Upper" aria-pressed="true">Upper</button><button data-type="Lower" aria-pressed="false">Lower</button><button data-type="Full Body" aria-pressed="false">Full body</button><button data-type="Core" aria-pressed="false">Core</button><button data-type="Custom" aria-pressed="false">Custom</button></div></div>
+          <div class="card date-card"><button class="disclosure" id="date-toggle" aria-expanded="false" aria-controls="date-fields"><span><span class="tiny-label">Workout date & time</span><strong id="setup-date-label">Yesterday, Nov 2</strong></span><span class="neutral-text">Edit <span aria-hidden="true">⌄</span></span></button><div id="date-fields" hidden><div class="field-grid"><label>Start date<input type="date" id="start-date" value="2026-11-02"></label><label>Start time<input type="time" value="18:30"></label><label>End date<input type="date" value="2026-11-02"></label><label>End time<input type="time" value="19:20"></label></div><p class="small muted">Asia/Manila · Change this when logging a past workout.</p></div></div>
+          <p class="quiet-note"><span aria-hidden="true">↳</span> You can edit these details during your workout.</p>
+        </div>
+        <div class="phone-footer"><button class="button primary" id="continue">Continue to exercises <span aria-hidden="true">→</span></button></div>
+      </div>
+    </section>
+
+    <section class="screen-panel" data-panel="logging" aria-labelledby="logging-label">
+      <div class="panel-caption"><h2 id="logging-label">02 / In your flow</h2><p>Compact sets. Clear actions. Less scrolling.</p></div>
+      <div class="phone featured">
+        <div class="status-bar" aria-hidden="true"><span>9:41</span><span class="status-icons">▮▮▮  ◒  ▰</span></div>
+        <div class="phone-content">
+          <div class="top-row"><button class="back-link neutral" data-notice="Draft kept. In the app, Home will show Resume workout."><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg><span>Home</span></button><span class="save-status"><i></i> Draft saved</span></div>
+          <div class="title-row"><h3>Your workout</h3><span class="session-tag" data-session>Upper</span></div>
+          <div class="session-summary"><p><span data-gym>The neighborhood gym</span><br><span class="muted" data-date>Nov 2 · 6:30 PM</span></p><button class="text-button neutral" id="edit-details">Edit details <span aria-hidden="true">↗</span></button></div>
+          <div class="progress-line"><span><strong id="done-count">2</strong> sets completed</span><span class="muted">At your pace</span></div>
+
+          <article class="card exercise-card" id="press-card">
+            <div class="exercise-heading"><span class="exercise-number">01</span><div><h4>Incline dumbbell press</h4><p class="small muted">Dumbbells · Chest</p></div><button class="icon-button neutral" aria-label="Edit incline dumbbell press setup" id="edit-exercise">⋯</button></div>
+            <div class="exercise-settings" id="exercise-settings" hidden><label>Exercise name<input id="exercise-name" list="exercise-library" autocomplete="off" value="Incline dumbbell press"></label><div class="field-grid"><label>Load unit<select id="load-unit"><option value="lbs">lbs</option><option value="kg">kg</option><option value="plates">plates</option></select></label><label>Load means<select><option>Per hand</option><option>Total</option><option>Per side</option></select></label></div><button class="text-button negative" id="remove-exercise">Remove exercise</button></div>
+            <div class="load-caption"><span id="load-description">lbs / per hand</span><span class="muted">Valid entries mark done</span></div>
+            <div class="set-head" aria-hidden="true"><span>SET</span><span>LOAD</span><span>REPS</span><span>DONE</span><span></span></div>
+            <div id="sets">
+              <div class="set-row complete" data-set><span class="set-number">1</span><input aria-label="Set 1 load" inputmode="decimal" value="35"><input aria-label="Set 1 reps" inputmode="numeric" value="10"><button class="set-check" role="checkbox" aria-label="Set 1 done" aria-checked="true">✓</button><button class="remove-set" aria-label="Remove set 1" title="Remove set">×</button></div>
+              <div class="set-row complete" data-set><span class="set-number">2</span><input aria-label="Set 2 load" inputmode="decimal" value="35"><input aria-label="Set 2 reps" inputmode="numeric" value="10"><button class="set-check" role="checkbox" aria-label="Set 2 done" aria-checked="true">✓</button><button class="remove-set" aria-label="Remove set 2" title="Remove set">×</button></div>
+              <div class="set-row" data-set><span class="set-number">3</span><input aria-label="Set 3 load" inputmode="decimal" value="35"><input aria-label="Set 3 reps" inputmode="numeric" placeholder="—"><button class="set-check" role="checkbox" aria-label="Set 3 done" aria-checked="false" disabled>✓</button><button class="remove-set" aria-label="Remove set 3" title="Remove set">×</button></div>
+            </div>
+            <button class="button set-action positive" id="add-set">＋ Add set</button>
+          </article>
+
+          <article class="card compact-exercise"><button class="disclosure" id="fly-toggle" aria-expanded="false" aria-controls="fly-details"><span class="exercise-heading"><span class="exercise-number">02</span><span><strong>Cable fly</strong><small class="muted">No sets logged yet</small></span></span><span aria-hidden="true">⌄</span></button><div id="fly-details" hidden><p class="small muted">An optional exercise can stay folded until you need it.</p><button class="button set-action positive" data-notice="Preview only: this exercise would use the same compact set rows.">＋ Add set</button><button class="text-button negative" id="remove-fly">Remove exercise</button></div></article>
+          <button class="button add-exercise positive" id="add-exercise">＋ Add exercise</button>
+          <p class="quiet-note">No required exercise or set count.<br>A shorter workout still counts.</p>
+        </div>
+        <div class="phone-footer logging-footer"><div class="footer-summary"><span class="save-status"><i></i> Saved on this phone</span><button class="text-button negative" id="discard">Discard</button></div><button class="button primary" id="finish">Finish workout <span aria-hidden="true">✓</span></button></div>
+      </div>
+    </section>
+
+    <section class="screen-panel" data-panel="review" aria-labelledby="review-label">
+      <div class="panel-caption"><h2 id="review-label">03 / A clear finish</h2><p>Celebrate the work. Keep destructive actions quiet.</p></div>
+      <div class="phone">
+        <div class="status-bar" aria-hidden="true"><span>9:41</span><span class="status-icons">▮▮▮  ◒  ▰</span></div>
+        <div class="phone-content">
+          <button class="back-link neutral" data-notice="In the app, this returns to your saved workout history."><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg><span>Home</span></button>
+          <p class="eyebrow success-text">WORKOUT SAVED</p><h3>Nice work.<br>You showed up.</h3><p class="muted">Every session is a step forward.</p>
+          <div class="card saved-session"><div class="title-row"><h4><span data-session>Upper</span> session</h4><span class="success-badge">✓ Completed</span></div><p data-gym>The neighborhood gym</p><p class="small muted">Nov 2, 2026 · 6:30–7:20 PM</p><div class="saved-metrics"><div><strong id="saved-sets">2</strong><span>completed sets</span></div><div><strong>50<span class="metric-unit"> min</span></strong><span>session time</span></div></div></div>
+          <div class="card saved-exercise"><h4 id="saved-name">Incline dumbbell press</h4><p class="small muted">Dumbbells · lbs per hand</p><div id="saved-values"><p><span>Set 1</span><strong>35 lbs × 10</strong></p><p><span>Set 2</span><strong>35 lbs × 10</strong></p></div></div>
+          <button class="button secondary neutral" id="edit-saved">Edit workout <span aria-hidden="true">↗</span></button>
+          <div class="danger-zone"><p class="small muted">Need to remove this entry?</p><button class="text-button negative" id="delete-workout">Delete workout</button></div>
+        </div>
+        <div class="phone-footer"><button class="button primary" id="back-home">Back to Home <span aria-hidden="true">→</span></button></div>
+      </div>
+    </section>
+  </main>
+  <section class="rationale"><div><p class="eyebrow">THE PROPOSED DIRECTION</p><h2>Meaningful color.<br>Fewer competing buttons.</h2></div><ul><li><strong>One primary action per screen.</strong> Coral leads you forward; secondary actions step back.</li><li><strong>Positive actions feel different.</strong> Green outlines invite adding. Green checks confirm completion.</li><li><strong>Destructive actions are explicit.</strong> Red text and clear labels, with confirmation before removing completed work.</li><li><strong>Sets become rows, not stacks of controls.</strong> Exercise settings tuck behind the menu. Optional exercises can fold away.</li></ul></section>
+  <footer class="preview-footer">Review the direction before implementation. No changes to the Expo app are included in this preview.</footer>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title"><p class="eyebrow danger-text">REMOVE WORKOUT DATA</p><h2 id="confirm-title">Remove this set?</h2><p id="confirm-copy">This set will be removed from the preview.</p><div class="dialog-actions"><button class="button secondary neutral" id="confirm-cancel">Keep it</button><button class="button destructive" id="confirm-remove">Remove</button></div></dialog>
+  <dialog id="gym-dialog" aria-labelledby="gym-title"><h2 id="gym-title">Add a gym</h2><form id="gym-form"><label>Gym name<input id="gym-name" required maxlength="60" autocomplete="off" placeholder="e.g. Downtown gym"></label><div class="dialog-actions"><button type="button" class="button secondary neutral" id="gym-cancel">Cancel</button><button class="button positive" type="submit">＋ Add gym</button></div></form></dialog>
+  <datalist id="exercise-library"></datalist>
+  <dialog id="exercise-dialog" aria-labelledby="exercise-dialog-title">
+    <h2 id="exercise-dialog-title">Add exercise</h2>
+    <p id="exercise-search-help">Choose an exercise you’ve logged before, or type a new name.</p>
+    <form id="exercise-form">
+      <label>Exercise name<input id="new-exercise-name" list="exercise-library" aria-describedby="exercise-search-help" placeholder="Search or add an exercise" autocomplete="off" required maxlength="100"></label>
+      <p class="suggestion-heading">Previously logged</p>
+      <div id="exercise-suggestions" role="group" aria-label="Previously logged exercises"></div>
+      <p class="small muted" id="no-exercise-matches" role="status" hidden>No matching exercises. You can add this as a new name.</p>
+      <div class="dialog-actions"><button type="button" class="button secondary neutral" id="exercise-cancel">Cancel</button><button type="submit" class="button positive">＋ Add exercise</button></div>
+    </form>
+  </dialog>
+</body>
+</html>

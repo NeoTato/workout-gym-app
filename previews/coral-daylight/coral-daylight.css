@@ -1,5 +1,5 @@
-@font-face{font-family:Recursive;src:url('assets/recursive.ttf') format('truetype');font-weight:500;font-display:swap}
-@font-face{font-family:Recursive;src:url('assets/recursive-bold.ttf') format('truetype');font-weight:700;font-display:swap}
+@font-face{font-family:Recursive;src:url('../../assets/recursive.ttf') format('truetype');font-weight:500;font-display:swap}
+@font-face{font-family:Recursive;src:url('../../assets/recursive-bold.ttf') format('truetype');font-weight:700;font-display:swap}
 :root{color-scheme:light;--primary:#ff6b50;--on-primary:#fff;--surface:#fff;--bg:#f8f8fb;--soft:#f0f0f3;--ink:#2c2c2e;--muted:#69696f;--caption:#8e8e93;--line:#e5e5ea;--tint:#ffebe8;--accent:#b43f2a;--on-fill:#35201c;--good:var(--accent);--done:var(--tint);--shadow:0 4px 20px rgba(0,0,0,.05);--cta-shadow:0 10px 20px -6px rgba(255,107,80,.25)}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--surface:#252528;--bg:#19191c;--soft:#303034;--ink:#f7f5f3;--muted:#b7b3b5;--caption:#969296;--line:#454247;--tint:#452c28;--accent:#ffab98;--on-fill:#35201c;--shadow:0 4px 20px rgba(0,0,0,.16)}}
 :root[data-theme=dark]{color-scheme:dark;--surface:#252528;--bg:#19191c;--soft:#303034;--ink:#f7f5f3;--muted:#b7b3b5;--caption:#969296;--line:#454247;--tint:#452c28;--accent:#ffab98;--on-fill:#35201c;--shadow:0 4px 20px rgba(0,0,0,.16)}

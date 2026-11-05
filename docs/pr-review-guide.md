@@ -2,7 +2,7 @@
 
 The first PR adds the mobile foundation in `mobile/`. It does not implement workout logging, SQLite, calendars, or summaries yet. Those are later PRs. The HTML prototype remains the full visual reference and its fictional history is not copied into the native app.
 
-Compiled web smoke-test screenshots: [light](../mobile-foundation-light.png) and [dark](../mobile-foundation-dark.png). These verify the compiled React Native web screen, not physical-device rendering.
+Compiled web smoke-test screenshots: [light](../screenshots/mobile-foundation-light.png) and [dark](../screenshots/mobile-foundation-dark.png). These verify the compiled React Native web screen, not physical-device rendering.
 
 ## Review in this order
 
