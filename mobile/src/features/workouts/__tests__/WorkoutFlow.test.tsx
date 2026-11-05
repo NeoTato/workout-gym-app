@@ -57,20 +57,29 @@ it('opens resumed and legacy configured drafts directly in exercise logging', as
   expect(screen.queryByRole('button', { name: 'Continue to exercises' })).toBeNull();
 });
 
-it('adds a named exercise through the picker without inventing previous set values', async () => {
+it.each([
+  ['All', '', ''], ['Uncategorized', '', ''],
+  ['Push', '', 'Push'], ['Push', 'Chest', 'Push'], ['Push', 'Triceps', 'Push'], ['Push', 'Shoulders', 'Push'],
+  ['Pull', '', 'Pull'], ['Pull', 'Back', 'Pull'], ['Pull', 'Biceps', 'Pull'],
+  ['Legs', '', 'Legs'], ['Core', '', 'Core'], ['Cardio', '', 'Cardio'], ['Mobility', '', 'Mobility'], ['Other', '', 'Other'],
+])('adds a %s / %s exercise and preserves its classification in Setup', async (filter, subcategory, category) => {
   seed.locationId = 'home'; seed.setupComplete = true; seed.exercises = [];
   await render(<WorkoutRoute />);
   await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
   const picker = within(screen.getByTestId('exercise-picker'));
-  await fireEvent.press(picker.getByRole('button', { name: 'Filter exercises: Push' }));
-  await fireEvent.press(picker.getByRole('button', { name: 'Filter subcategory: Triceps' }));
+  await fireEvent.press(picker.getByRole('button', { name: `Filter exercises: ${filter}` }));
+  if (subcategory) await fireEvent.press(picker.getByRole('button', { name: `Filter subcategory: ${subcategory}` }));
   await fireEvent.changeText(picker.getByLabelText('Search exercise names'), 'New press');
   await fireEvent.press(picker.getByRole('button', { name: '+ Add exercise' }));
   expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('');
   expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
   await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));
-  expect(screen.getByRole('button', { name: 'Category: Push' })).toBeOnTheScreen();
-  expect(screen.getByRole('button', { name: 'Subcategory: Triceps' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: `Category: ${category || 'Uncategorized'}` })).toBeOnTheScreen();
+  if (category === 'Push' || category === 'Pull') {
+    expect(screen.getByRole('button', { name: `Subcategory: ${subcategory || 'Not assigned'}` })).toBeOnTheScreen();
+  } else {
+    expect(screen.queryByRole('button', { name: /^Subcategory:/ })).toBeNull();
+  }
   await fireEvent.press(screen.getByRole('button', { name: 'Done setup' }));
   await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 load (lb)'), '35');
   await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '10');

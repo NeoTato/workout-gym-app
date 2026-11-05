@@ -18,8 +18,8 @@ Suggestion loading has explicit loading/error/retry states. A failed suggestion 
 
 ## Validation
 
-- 41 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
-- 15 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
+- 55 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
+- 16 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
 - The native UI's browser runtime passed a real SQLite journey: create gym, add exercises, log compact rows, bodyweight, copied sets, collapse/expand, Home/resume, finish excluding incomplete sets, reuse persistent suggestions in the next workout, saved-edit suggestions, and preservation of an unrelated active draft. Light/dark and 320px/390px horizontal layouts were checked.
 - TypeScript, zero-warning lint, Expo dependency compatibility, and iOS/Android/web JavaScript exports pass. Exports do not prove native visual/keyboard behavior; physical-device review remains pending.
 
@@ -84,3 +84,7 @@ Schema version 4 adds a constrained subcategory column. Existing names and categ
 ## New-exercise filter defaults
 
 When entering a new exercise name, the active category and subcategory filters now become its initial assignment. For example, Push then Triceps carries Push/Triceps through Add exercise into Setup. Explicit assignment controls override these defaults, and selecting an existing exercise preserves its saved classification. Replacing a saved selection with a new name uses current filter defaults. Regression tests reproduce filter-first entry and verify the resulting Setup controls. No data migration or dependency change is needed.
+
+## Classification coverage across all choices
+
+Integration coverage now checks 14 picker-to-Setup paths: All, Uncategorized, Push without a subgroup, Chest, Triceps, Shoulders, Pull without a subgroup, Back, Biceps, Legs, Core, Cardio, Mobility, and Other. Each path verifies empty initial measurements, expected category/subcategory in Setup, and normal set completion after entry. A separate regression switches through Push/Triceps, Pull/Biceps, Legs, All, and Core to ensure incompatible defaults clear. Real SQLite coverage saves every supported classification and reads it back from completed-workout details. No additional app behavior change was required after the filter-default fix.

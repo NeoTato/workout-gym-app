@@ -36,6 +36,27 @@ function draft(id = 'workout-1') {
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
 
+test('all supported categories and muscle groups persist into completed workout details', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    const cases = [
+      ['', ''], ['Push', ''], ['Push', 'Chest'], ['Push', 'Triceps'], ['Push', 'Shoulders'],
+      ['Pull', ''], ['Pull', 'Back'], ['Pull', 'Biceps'], ['Legs', ''], ['Core', ''],
+      ['Cardio', ''], ['Mobility', ''], ['Other', ''],
+    ];
+    for (const [index, [category, subcategory]] of cases.entries()) {
+      const entry = draft(`classification-${index}`);
+      entry.exercises[0].name = `Exercise ${index}`;
+      entry.exercises[0].category = category; entry.exercises[0].subcategory = subcategory;
+      await store.finish(entry);
+      const saved = (await store.getWorkout(entry.id)).exercises[0];
+      assert.equal(saved.category, category); assert.equal(saved.subcategory, subcategory);
+    }
+    assert.equal((await store.listLoggedExercises()).length, cases.length);
+  } finally { connection.db.close(); }
+});
+
 test('push and pull subcategories persist in suggestions and completed workouts and reject mismatched parents', async () => {
   const connection = connect(':memory:');
   try {

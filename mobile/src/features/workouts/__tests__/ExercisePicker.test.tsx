@@ -16,6 +16,25 @@ it('assigns the selected Push and Triceps filters to a new exercise without extr
   expect(add).toHaveBeenCalledWith('Cable extension', undefined, 'Push', 'Triceps');
 });
 
+it('clears old muscle-group defaults when switching filters for a new exercise', async () => {
+  const add = jest.fn();
+  await render(<ExercisePicker theme={getTheme('light')} items={[]} loading={false} error="" retry={jest.fn()} cancel={jest.fn()} add={add} />);
+  await fireEvent.changeText(screen.getByLabelText('Search exercise names'), 'New exercise');
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter exercises: Push' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter subcategory: Triceps' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter exercises: Pull' }));
+  expect(screen.getByRole('button', { name: 'Subcategory: Not assigned' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter subcategory: Biceps' }));
+  expect(screen.getByRole('button', { name: 'Subcategory: Biceps' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter exercises: Legs' }));
+  expect(screen.queryByRole('button', { name: /^Subcategory:/ })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter exercises: All' }));
+  expect(screen.getByRole('button', { name: 'Category: Uncategorized' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Filter exercises: Core' }));
+  await fireEvent.press(screen.getByRole('button', { name: '+ Add exercise' }));
+  expect(add).toHaveBeenCalledWith('New exercise', undefined, 'Core', '');
+});
+
 it('uses current filters after replacing a saved exercise selection with a new name', async () => {
   const add = jest.fn();
   await render(<ExercisePicker theme={getTheme('light')} items={[{ ...items[0], category: 'Push', subcategory: 'Chest' }]} loading={false} error="" retry={jest.fn()} cancel={jest.fn()} add={add} />);
