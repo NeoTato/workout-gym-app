@@ -26,6 +26,7 @@ export type SavedWorkout = {
   timezone: string;
   startedAt: string; endedAt: string; exercises: CompletedExercise[];
 };
+export type WorkoutListItem = Omit<SavedWorkout, 'exercises'> & { locationId: string; locationKind: Location['kind'] };
 export const sessionTypes = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full Body', 'Core', 'Custom'];
 
 export function localDate(date: Date): string {

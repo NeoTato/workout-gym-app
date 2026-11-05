@@ -39,6 +39,31 @@ function draft(id = 'workout-1') {
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
 
+test('day details include separate gym/Home sessions, preserve removed gyms, and refresh after backdating/deletion', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    const gym = await store.addGym('Calendar gym');
+    const first = draft('calendar-gym'); first.locationId = gym.id; await store.finish(first);
+    const second = draft('calendar-home'); second.sessionType = 'Core'; await store.finish(second);
+    await store.saveDraft(draft('not-completed'));
+    await store.removeLocation(gym.id);
+    assert.equal((await store.getDayWorkouts('2026-11-01', 'all')).length, 2);
+    assert.equal((await store.getDayWorkouts('2026-11-01', 'gym'))[0].id, first.id);
+    assert.equal((await store.getDayWorkouts('2026-11-01', 'home'))[0].id, second.id);
+    assert.equal((await store.listWorkouts()).find(item => item.id === first.id).locationKind, 'gym');
+    const edit = await store.getWorkoutEdit(first.id); edit.timing = { startDate: '2026-10-31', startTime: '09:00', endDate: '2026-10-31', endTime: '10:00' };
+    await store.updateWorkout(edit);
+    assert.equal((await store.getDayWorkouts('2026-11-01', 'all')).length, 1);
+    assert.equal((await store.getDayWorkouts('2026-10-31', 'all'))[0].id, first.id);
+    await store.deleteWorkout(second.id);
+    assert.deepEqual(await store.getDayWorkouts('2026-11-01', 'all'), []);
+    await assert.rejects(store.getDayWorkouts('2026-02-30', 'all'), /date/);
+    await assert.rejects(store.getDayWorkouts('2026-11-01', 'invalid'), /filter/);
+    assert.deepEqual(await store.getDraft(), draft('not-completed'));
+  } finally { connection.db.close(); }
+});
+
 test('version-four migration adds empty routine storage without changing saved workouts or active drafts', async () => {
   const connection = connect(':memory:');
   try {
