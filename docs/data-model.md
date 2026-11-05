@@ -1,6 +1,6 @@
 # Data model and portability contracts
 
-Status: target logical schema for the complete first version. The native app already uses SQLite, with schema version 5 on the routines review branch; the implemented subset is defined by mobile/src/storage/schema.ts and workoutStore.ts migrations. The requirements document defines user behavior; this document defines stored records and interchange rules.
+Status: target logical schema for the complete first version. The native app already uses SQLite, with schema version 5; the calendar branch adds read models without a migration; the implemented subset is defined by mobile/src/storage/schema.ts and workoutStore.ts migrations. The requirements document defines user behavior; this document defines stored records and interchange rules.
 
 ## Record conventions
 

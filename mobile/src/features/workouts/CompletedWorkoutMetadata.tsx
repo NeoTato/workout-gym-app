@@ -4,8 +4,8 @@ import { timeFields } from '../../domain/workoutTime';
 import { styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
 
-export function CompletedWorkoutMetadata({ workout, theme }: {
-  workout: Pick<SavedWorkout, 'startedAt' | 'endedAt' | 'timezone' | 'locationName'>; theme: AppTheme;
+export function CompletedWorkoutMetadata({ workout, theme, showDate = true }: {
+  workout: Pick<SavedWorkout, 'startedAt' | 'endedAt' | 'timezone' | 'locationName'>; theme: AppTheme; showDate?: boolean;
 }) {
   const start = timeFields(workout.startedAt, workout.timezone);
   const end = timeFields(workout.endedAt, workout.timezone);
@@ -18,7 +18,7 @@ export function CompletedWorkoutMetadata({ workout, theme }: {
   const hours = Math.floor(minutes / 60), remainder = minutes % 60;
   const duration = hours ? `${hours} hr${remainder ? ` ${remainder} min` : ''}` : minutes ? `${minutes} min` : '<1 min';
   return <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, gap: 8 }]}>
-    <Text style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 18 }}>{date}</Text>
+    {showDate && <Text style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 18 }}>{date}</Text>}
     <Text style={[styles.subtitle, { color: theme.text }]}>{start.time} – {endDate}{end.time} · {duration}</Text>
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4, justifyContent: 'space-between' }}>
       <Text style={{ color: theme.muted }}>{workout.locationName}</Text>
