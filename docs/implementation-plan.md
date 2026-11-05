@@ -1,6 +1,6 @@
 # Native implementation milestones
 
-Status: PRs 1-5 are merged. The PR 6 branch adds the calendar/day-details slice; see [calendar scope and phone checklist](calendar-review.md). Routines and previous-session references are covered by [their review checklist](routines-and-references-review.md). New-feature physical iOS/Android review remains pending. Remaining milestone bullets describe the complete target, including charts and reports that are not implemented yet.
+Status: PRs 1-6 are merged. PR 7 adds the weekly/monthly/annual reporting slice; see [summary scope and phone checklist](summary-review.md). Weekly targets/streaks follow separately. Routines, references, calendar, and saved-workout editing are implemented; new-feature physical iOS/Android review remains pending. Remaining milestone bullets describe the complete target, not claims that all behavior is implemented.
 
 Build in this order, keeping each slice usable and verified before adding the next. Keep prototype fixtures out of the personal database. Native app implementation is the next phase after review of this blueprint.
 

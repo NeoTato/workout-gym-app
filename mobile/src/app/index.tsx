@@ -29,6 +29,7 @@ export default function HomeRoute() {
   </Screen>;
   return <HomeScreen theme={theme} workouts={workouts} hasDraft={hasDraft} onStart={() => router.push('/workout')}
     refreshing={loading} error={error} onRetry={refresh}
+    onSummary={() => router.push('/summary')}
     onOpenDay={(date, filter) => router.push({ pathname: '/history/day', params: { date, filter } })}
     onOpen={id => router.push({ pathname: '/history/[id]', params: { id, returnToCalendar: '1' } })} />;
 }
