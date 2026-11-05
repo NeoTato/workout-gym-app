@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { WeekProgress } from '../consistency/WeekProgress';
 import { formatRecordedTime, periodBounds, shiftSummaryPeriod, summaryPeriodLabel, type PeriodSummary, type SummaryPeriod } from '../../domain/workoutSummary';
 import { Button, Choice, Screen, styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
@@ -8,6 +10,8 @@ export function WorkoutSummaryScreen({ kind, anchor, today, data, error, retry, 
   retry: () => void; back: () => void; changeKind: (kind: SummaryPeriod) => void; changeAnchor: (date: string) => void; theme: AppTheme;
 }) {
   const previous = shiftSummaryPeriod(kind, anchor, -1), next = shiftSummaryPeriod(kind, anchor, 1);
+  const [expandedWeeks, setExpandedWeeks] = useState('');
+  const periodKey = `${kind}:${anchor}`;
   const current = periodBounds(kind, anchor).start === periodBounds(kind, today).start;
   const card = [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }];
   const maxDays = Math.max(1, ...(data?.activity.map(item => item.activeDays) ?? []));
@@ -46,6 +50,16 @@ export function WorkoutSummaryScreen({ kind, anchor, today, data, error, retry, 
           <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ height: 8, borderRadius: 4, backgroundColor: theme.soft }}><View style={{ width: `${item.activeDays / maxDays * 100}%`, height: 8, borderRadius: 4, backgroundColor: theme.success }} /></View>
         </View>)}
       </View>
+      {data.consistency && <View style={card}>
+        <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold }}>Weekly consistency</Text>
+        {kind === 'week' ? <WeekProgress week={data.consistency.weeks[0]} theme={theme} /> : <>
+          <Text style={{ color: theme.text }}>{data.consistency.achievedWeeks} weekly {data.consistency.achievedWeeks === 1 ? 'goal' : 'goals'} met</Text>
+          {kind === 'year' && <Text style={{ color: theme.text }}>Longest streak in this year: {data.consistency.longestStreak} {data.consistency.longestStreak === 1 ? 'week' : 'weeks'}</Text>}
+          <Text style={{ color: theme.muted }}>Counts complete Monday-to-Sunday weeks touching this {kind}, including adjoining dates. Activity totals above count only dates within this {kind}.</Text>
+          {kind === 'month' && <><Button theme={theme} variant="link" label={expandedWeeks === periodKey ? 'Hide weekly goals' : 'Show weekly goals'} onPress={() => setExpandedWeeks(expandedWeeks === periodKey ? '' : periodKey)} />
+            {expandedWeeks === periodKey && data.consistency.weeks.map(week => <WeekProgress key={week.start} week={week} theme={theme} />)}</>}
+        </>}
+      </View>}
       <View style={card}><Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold }}>Workout types</Text>{data.typeCounts.filter(item => item.count > 0 || ['Push', 'Pull', 'Legs'].includes(item.name)).map(item => row(item.name, item.count))}</View>
       <View style={card}><Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold }}>Locations</Text>{row('Gym', data.locationCounts.gym)}{row('Home', data.locationCounts.home)}</View>
       <View style={card}><Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold }}>Exercise groups</Text>

@@ -1,6 +1,6 @@
 # Data model and portability contracts
 
-Status: target logical schema for the complete first version. The native app already uses SQLite, with schema version 5; calendar and summary reads require no new migration; the implemented subset is defined by mobile/src/storage/schema.ts and workoutStore.ts migrations. The requirements document defines user behavior; this document defines stored records and interchange rules.
+Status: target logical schema for the complete first version. The native app uses SQLite schema version 6, which adds effective-dated weekly_goals. Migration seeds a three-day target from the current Monday without changing workouts, routines, or drafts. Calendar and summary reads use existing session records. The implemented subset is defined by mobile/src/storage/schema.ts and workoutStore.ts migrations. The requirements document defines user behavior; this document defines stored records and interchange rules.
 
 ## Record conventions
 
