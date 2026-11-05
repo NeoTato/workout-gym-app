@@ -39,6 +39,66 @@ function draft(id = 'workout-1') {
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
 
+test('weekly targets schedule next Monday, replace/cancel pending edits, and preserve historical goals and drafts', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize(); await store.saveDraft(draft('goal-draft'));
+    let result = await store.getWeeklyConsistency('2026-11-01');
+    assert.equal(result.currentWeek.targetDays, 3); assert.equal(result.currentWeek.activeDays, 0);
+    await store.scheduleWeeklyGoal(2, '2026-11-01');
+    result = await store.getWeeklyConsistency('2026-11-01');
+    assert.equal(result.currentWeek.targetDays, 3); assert.equal(result.pendingGoal.effectiveWeekStart, '2026-11-02');
+    await store.scheduleWeeklyGoal(4, '2026-11-01'); assert.equal((await store.getWeeklyConsistency('2026-11-01')).pendingGoal.targetDays, 4);
+    await store.scheduleWeeklyGoal(3, '2026-11-01'); assert.equal((await store.getWeeklyConsistency('2026-11-01')).pendingGoal, null);
+    await store.scheduleWeeklyGoal(2, '2026-11-01'); await store.scheduleWeeklyGoal(5, '2026-11-05');
+    assert.equal((await store.getWeeklyConsistency('2026-11-05')).currentWeek.targetDays, 2);
+    assert.equal((await store.getWeeklyConsistency('2026-11-01')).currentWeek.targetDays, 3);
+    assert.equal(connection.db.prepare('SELECT count(*) AS count FROM weekly_goals').get().count, 3);
+    for (const invalid of [0, 8, 1.5, NaN, '3']) await assert.rejects(store.scheduleWeeklyGoal(invalid, '2026-11-05'), /target/i);
+    assert.deepEqual(await store.getDraft(), draft('goal-draft'));
+  } finally { connection.db.close(); }
+});
+
+test('version-five migration preserves workouts, routines and drafts, and goals survive reopening', async () => {
+  const folder = mkdtempSync(join(tmpdir(), 'workout-goals-')), file = join(folder, 'workouts.db');
+  let connection = connect(file);
+  try {
+    let store = makeStore(connection); await store.initialize(); await store.finish(draft('goal-source'));
+    await store.saveWorkoutAsRoutine('goal-source', 'Preserved routine'); await store.saveDraft(draft('goal-active'));
+    connection.db.exec('DROP TABLE weekly_goals; PRAGMA user_version=5;');
+    store = makeStore(connection); await store.initialize(); await store.initialize();
+    assert.equal((await store.getWorkout('goal-source')).exercises[0].sets[0].reps, 10);
+    assert.equal((await store.listRoutines())[0].name, 'Preserved routine');
+    await store.scheduleWeeklyGoal(2, '2026-11-01');
+    connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize();
+    assert.equal((await store.getWeeklyConsistency('2026-11-02')).currentWeek.targetDays, 2);
+    assert.deepEqual(await store.getDraft(), draft('goal-active'));
+  } finally { connection.db.close(); rmSync(folder, { recursive: true, force: true }); }
+});
+
+test('backdating and deleting completed workouts recalculates achieved weeks without counting drafts', async () => {
+  const connection = connect(':memory:');
+  try {
+    let now = '2026-11-01T02:00:00.000Z';
+    const store = createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => now);
+    await store.initialize(); await store.scheduleWeeklyGoal(2, '2026-11-01'); now = '2026-11-05T02:00:00.000Z';
+    for (const [index, date] of ['2026-11-02', '2026-11-03', '2026-11-03'].entries()) {
+      const item = draft(`streak-${index}`); item.timing = { startDate: date, startTime: '09:00', endDate: date, endTime: '10:00' }; await store.finish(item);
+    }
+    await store.saveDraft(draft('streak-draft'));
+    assert.equal((await store.getWeeklyConsistency('2026-11-05')).currentWeek.activeDays, 2);
+    assert.equal((await store.getWeeklyConsistency('2026-11-05')).currentStreak, 1);
+    const edit = await store.getWorkoutEdit('streak-0'); edit.timing = { startDate: '2026-10-31', startTime: '09:00', endDate: '2026-10-31', endTime: '10:00' }; await store.updateWorkout(edit);
+    assert.equal((await store.getWeeklyConsistency('2026-11-05')).currentStreak, 0);
+    assert.equal((await store.getPeriodSummary('month', '2026-11-05', '2026-11-05')).consistency.achievedWeeks, 0);
+    await store.deleteWorkout('streak-1');
+    assert.equal((await store.getWeeklyConsistency('2026-11-05')).currentWeek.activeDays, 1);
+    await store.deleteWorkout('streak-2');
+    assert.equal((await store.getWeeklyConsistency('2026-11-05')).currentWeek.activeDays, 0);
+    assert.deepEqual(await store.getDraft(), draft('streak-draft'));
+  } finally { connection.db.close(); }
+});
+
 test('period reports share completed-session counts, deduplicate groups, and recalculate after history edits', async () => {
   const connection = connect(':memory:');
   try {
@@ -95,12 +155,12 @@ test('version-four migration adds empty routine storage without changing saved w
   try {
     let store = makeStore(connection); await store.initialize();
     await store.finish(draft('pre-migration')); await store.saveDraft(draft('active-migration'));
-    connection.db.exec('DROP TABLE routine_slots; DROP TABLE routines; PRAGMA user_version=4;');
+    connection.db.exec('DROP TABLE weekly_goals; DROP TABLE routine_slots; DROP TABLE routines; PRAGMA user_version=4;');
     store = makeStore(connection); await store.initialize(); await store.initialize();
     assert.deepEqual(await store.listRoutines(), []);
     assert.equal((await store.getWorkout('pre-migration')).exercises[0].sets[0].reps, 10);
     assert.deepEqual(await store.getDraft(), draft('active-migration'));
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 5);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 6);
   } finally { connection.db.close(); }
 });
 
@@ -245,7 +305,7 @@ test('version-one locations migrate without losing gyms or draft checkpoints', a
     const pending = draft(); pending.locationId = 'legacy';
     connection.db.prepare('INSERT INTO draft_checkpoint VALUES (1,?,?)').run(pending.id, JSON.stringify(pending));
     const store = makeStore(connection); await store.initialize(); await store.initialize();
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 5);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 6);
     assert.equal((await store.listLocations()).find(item => item.id === 'legacy').archived, 0);
     assert.deepEqual(await store.getDraft(), pending);
   } finally { connection.db.close(); }
