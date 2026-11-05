@@ -8,11 +8,14 @@ import type { LoggedExercise } from '../../domain/exerciseLibrary';
 import { ExerciseNameField } from './ExerciseNameField';
 import { SetRow } from './SetRow';
 import { ExerciseCategoryField } from './ExerciseCategoryField';
+import type { ReferenceContext } from '../../domain/workoutReferences';
+import { PreviousExerciseSets } from './WorkoutReferences';
 
-export function ExerciseEditor({ exercise, index, theme, disabled, update, remove, newId, library = [], initiallyExpanded = index === 0 }: {
+export function ExerciseEditor({ exercise, index, theme, disabled, update, remove, newId, library = [], initiallyExpanded = index === 0, references }: {
   exercise: ExerciseDraft; index: number; theme: AppTheme; disabled: boolean;
   update: (exercise: ExerciseDraft) => void; remove: () => void; newId: () => string;
   library?: LoggedExercise[]; initiallyExpanded?: boolean;
+  references?: ReferenceContext | null;
 }) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
   const [setup, setSetup] = useState(!exercise.name);
@@ -61,6 +64,7 @@ export function ExerciseEditor({ exercise, index, theme, disabled, update, remov
     <Button theme={theme} label="Done setup" disabled={disabled} onPress={() => setSetup(false)} />
     </>}
     <Text style={{ color: theme.muted, fontSize: 12 }}>{exercise.bodyweight ? 'Bodyweight reps' : ((exercise.unit === 'lb' ? 'lbs' : exercise.unit) + ' / ' + exercise.convention.replace('_', ' '))}{exercise.equipment ? ' / ' + exercise.equipment : ''}</Text>
+    {references !== undefined && <PreviousExerciseSets context={references} exercise={exercise} theme={theme} />}
     {!largeText && exercise.sets.length > 0 && <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Text style={{ width: 22, color: theme.muted, fontSize: 10 }}>SET</Text>
       <View style={{ flex: 1, flexDirection: 'row', gap: 6 }}>

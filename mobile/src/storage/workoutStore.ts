@@ -1,6 +1,6 @@
 import { completedExercises } from '../domain/workout.ts';
-import type { CompletedExercise, ExerciseDraft, Location, SavedWorkout, WorkoutDraft } from '../domain/workout.ts';
-import type { PreviousExercise, ReferenceContext } from '../domain/workoutReferences.ts';
+import type { CompletedExercise, Location, SavedWorkout, WorkoutDraft } from '../domain/workout.ts';
+import type { PreviousExercise, ReferenceContext, ReferenceExercise } from '../domain/workoutReferences.ts';
 import { routineExercises, type Routine, type RoutineExercise } from '../domain/routine.ts';
 import { schema } from './schema.ts';
 import { workoutTimes } from '../domain/workoutTime.ts';
@@ -130,7 +130,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
        WHERE status='completed' AND location_id=? AND session_type_name_snapshot=? AND id<>?
        AND (activity_date<? OR (activity_date=? AND started_at<?)) ORDER BY activity_date DESC,started_at DESC,id DESC LIMIT 3`,
       context.locationId, sessionType, context.excludeSessionId, context.activityDate, context.activityDate, context.startedAt)),
-    getPreviousExercise: (context: ReferenceContext, exercise: ExerciseDraft) => queue(async (): Promise<PreviousExercise | null> => {
+    getPreviousExercise: (context: ReferenceContext, exercise: ReferenceExercise) => queue(async (): Promise<PreviousExercise | null> => {
       if (!context.locationId || !exercise.name.trim()) return null;
       const mode = exercise.bodyweight ? 'reps' : 'load_reps';
       const choices = await db.getAllAsync<{ id: string; name: string; category: ExerciseCategory; subcategory: ExerciseSubcategory }>('SELECT id,name,category,subcategory FROM exercises WHERE measurement_mode=? ORDER BY id', mode);

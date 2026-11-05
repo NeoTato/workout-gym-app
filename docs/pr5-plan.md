@@ -13,10 +13,10 @@ Branch: `feat/routines-and-references`, based on merged PR 4. Follow milestone 3
 
 ## Ordered tasks and acceptance
 
-1. [ ] Add previous-session store queries and real SQLite tests. Test location/machine/mode/convention/dimension isolation, cross-type references, backdating, exclusion of current/draft entries, and failed reads.
-2. [ ] Add routine domain copying and versioned persistence. Test fresh IDs, blank measurements, set counts, independent snapshots, duplicate names, rename/removal, replacement, migration, and different-gym equipment handling.
-3. [ ] Connect routine saving/management and selection to existing screens. Test cancellation, validation, failed actions/retry, and preservation of active drafts and saved workouts.
-4. [ ] Connect recent-session and exact-equipment references with focus refresh and stale-response protection. Test dependency changes, failures, empty states, and absence of automatic measurement copying.
+1. [x] Add previous-session store queries and real SQLite tests. Test location/machine/mode/convention/dimension isolation, cross-type references, backdating, exclusion of current/draft entries, and failed reads.
+2. [x] Add routine domain copying and versioned persistence. Test fresh IDs, blank measurements, set counts, independent snapshots, duplicate names, rename/removal, replacement, migration, and different-gym equipment handling.
+3. [x] Connect routine saving/management and selection to existing screens. Test cancellation, validation, failed actions/retry, and preservation of active drafts and saved workouts.
+4. [x] Connect recent-session and exact-equipment references with focus refresh and stale-response protection. Test dependency changes, failures, empty states, and absence of automatic measurement copying.
 5. [ ] Review keyboard, narrow layouts, light/dark, and accessibility in the actual runtime. Run component/storage tests, types, lint, compatibility, exports, and audit. Update review docs and open a draft PR for phone testing.
 
 ## Implementation decisions

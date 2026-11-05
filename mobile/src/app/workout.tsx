@@ -3,11 +3,15 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Text, View, useColorScheme } from 'react-native';
 import type { WorkoutDraft } from '../domain/workout';
+import { addRoutineToDraft } from '../domain/routine';
+import { validReferenceContext } from '../domain/workoutReferences';
+import { RecentSessions } from '../features/workouts/WorkoutReferences';
 import { workoutTimes } from '../domain/workoutTime';
 import { ExercisePicker } from '../features/workouts/ExercisePicker';
 import { useExerciseLibrary } from '../features/workouts/useExerciseLibrary';
 import { ExerciseEditor } from '../features/workouts/ExerciseEditor';
 import { useExerciseScroll } from '../features/workouts/useExerciseScroll';
+import { RoutineDialog } from '../features/workouts/RoutineDialog';
 import { WorkoutSessionDetails, WorkoutSessionSummary } from '../features/workouts/WorkoutSessionDetails';
 import { newExercise, useWorkoutDraft } from '../features/workouts/useWorkoutDraft';
 import { Button, Screen, styles } from '../ui/controls';
@@ -30,7 +34,9 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
   const { scrollRef, requestScroll, onExerciseLayout } = useExerciseScroll();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [addedId, setAddedId] = useState<string>();
+  const [routineOpen, setRoutineOpen] = useState(false), [routineNotice, setRoutineNotice] = useState('');
   const [setupError, setSetupError] = useState(''), [addingGym, setAddingGym] = useState(false);
+  const references = validReferenceContext(draft);
   const footer = <>
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
       <Text accessibilityLiveRegion="polite" style={{ color: status === 'Not saved' ? theme.danger : status === 'Draft saved' ? theme.success : theme.muted, flex: 1, fontSize: 12 }}>{status === 'Not saved' ? 'Couldn’t save' : status}</Text>
@@ -56,6 +62,11 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>{step === 'details' ? 'Set up workout' : 'Your workout'}</Text>
     {!!error && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{error}</Text>}
     {!!setupError && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{setupError}</Text>}
+    {!!routineNotice && <Text accessibilityLiveRegion="polite" style={{ color: theme.muted }}>{routineNotice}</Text>}
+    {routineOpen && <RoutineDialog mode="choose" theme={theme} locationId={draft.locationId} close={() => setRoutineOpen(false)} choose={routine => {
+      update(value => addRoutineToDraft(value, routine, randomUUID)); setRoutineOpen(false);
+      setRoutineNotice(draft.locationId === routine.locationId ? `Added ${routine.name}. Change or skip anything you need.` : `Added ${routine.name}. Equipment labels were cleared for this location; check each exercise’s Setup.`);
+    }} />}
     {status === 'Not saved' && <Button theme={theme} label="Retry save" onPress={() => update(value => ({ ...value }))} />}
     {pickerOpen && <ExercisePicker theme={theme} {...library} cancel={() => setPickerOpen(false)} add={(name, option, category, subcategory) => {
       const exercise = { ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, category, subcategory };
@@ -68,13 +79,15 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
           update={change => { setSetupError(''); update(change); }}
           removeLocation={async id => { setAddingGym(true); try { await removeLocation(id); } finally { setAddingGym(false); } }}
           addGym={async name => { setAddingGym(true); try { await addGym(name); } finally { setAddingGym(false); } }} />
+        <Button theme={theme} label="Choose routine" disabled={busy || addingGym || !draft.locationId} onPress={() => setRoutineOpen(true)} />
+        <RecentSessions context={references} sessionType={draft.sessionType} theme={theme} open={id => router.push({ pathname: '/history/[id]', params: { id, returnToWorkout: '1' } })} />
 
       </> : <>
         <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
           <View style={{ flex: 1 }}><WorkoutSessionSummary draft={draft} locations={locations} theme={theme} /></View>
           <Button theme={theme} variant="link" label="Edit details" disabled={busy} onPress={() => { setSetupError(''); setStep('details'); }} />
         </View>
-      {draft.exercises.map((exercise, index) => <View key={exercise.id} testID={`exercise-card-${exercise.id}`} onLayout={event => onExerciseLayout(exercise.id, event)}><ExerciseEditor library={library.items} initiallyExpanded={index === 0 || exercise.id === addedId} exercise={exercise} index={index} theme={theme} disabled={busy} newId={randomUUID}
+      {draft.exercises.map((exercise, index) => <View key={exercise.id} testID={`exercise-card-${exercise.id}`} onLayout={event => onExerciseLayout(exercise.id, event)}><ExerciseEditor references={references} library={library.items} initiallyExpanded={index === 0 || exercise.id === addedId} exercise={exercise} index={index} theme={theme} disabled={busy} newId={randomUUID}
         update={next => update(value => ({ ...value, exercises: value.exercises.map(item => item.id === next.id ? next : item) }))}
         remove={() => update(value => ({ ...value, exercises: value.exercises.filter(item => item.id !== exercise.id) }))} /></View>)}
       {!draft.exercises.length && <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
