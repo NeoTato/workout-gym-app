@@ -1,13 +1,16 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fonts, type AppTheme } from '../../ui/theme';
 import { Button } from '../../ui/controls';
-import type { SavedWorkout } from '../../domain/workout';
+import type { WorkoutListItem } from '../../domain/workout';
+import type { LocationFilter } from '../../domain/workoutCalendar';
+import { WorkoutCalendar } from './WorkoutCalendar';
 
-export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen }: {
-  theme: AppTheme; workouts?: Omit<SavedWorkout, 'exercises'>[]; hasDraft?: boolean;
+export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen, onOpenDay, refreshing = false, error = '', onRetry }: {
+  theme: AppTheme; workouts?: WorkoutListItem[]; hasDraft?: boolean;
   onStart?: () => void; onOpen?: (id: string) => void;
+  onOpenDay?: (date: string, filter: LocationFilter) => void; refreshing?: boolean; error?: string; onRetry?: () => void;
 }) {
   return (
     <SafeAreaView
@@ -24,7 +27,9 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
         </Text>
 
         {onStart && <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />}
-        {!workouts.length && <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        {refreshing && <Text style={{ color: theme.muted }}>Updating history…</Text>}
+        {!!error && <><Text accessibilityRole="alert" style={{ color: theme.danger }}>{error} Showing the last loaded view.</Text>{onRetry && <Button theme={theme} label="Retry history" onPress={onRetry} />}</>}
+        {!workouts.length && !error && <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={[styles.badge, { backgroundColor: theme.accentSoft }]}>
             <Text style={[styles.badgeLabel, { color: theme.accent }]}>A FRESH START</Text>
           </View>
@@ -35,12 +40,7 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
             Your completed workouts will appear here.
           </Text>
         </View>}
-        {workouts.map(workout => <Pressable key={workout.id} accessibilityRole="button" accessibilityLabel={`Open ${workout.sessionType} workout on ${workout.activityDate}`}
-          onPress={() => onOpen?.(workout.id)} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.cardTitle, { color: theme.text }]}>{workout.sessionType}</Text>
-          <Text style={[styles.body, { color: theme.muted }]}>{workout.activityDate} · {workout.locationName}</Text>
-          <Text style={[styles.body, { color: theme.muted }]}>View completed sets →</Text>
-        </Pressable>)}
+        <WorkoutCalendar workouts={workouts} theme={theme} openDay={onOpenDay} openWorkout={onOpen} disabled={refreshing || Boolean(error)} />
       </ScrollView>
     </SafeAreaView>
   );

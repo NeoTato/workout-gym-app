@@ -11,7 +11,7 @@ import { Button, Screen, styles } from '../../ui/controls';
 import { fonts, getTheme } from '../../ui/theme';
 
 export default function WorkoutDetailsRoute() {
-  const { id, returnToWorkout } = useLocalSearchParams<{ id: string; returnToWorkout?: string }>();
+  const { id, returnToWorkout, returnToDay, returnToCalendar } = useLocalSearchParams<{ id: string; returnToWorkout?: string; returnToDay?: string; returnToCalendar?: string }>();
   const theme = getTheme(useColorScheme());
   const [workout, setWorkout] = useState<SavedWorkout | null>(null), [error, setError] = useState('');
   const [edit, setEdit] = useState<WorkoutDraft | null>(null), [locations, setLocations] = useState<Location[]>([]);
@@ -19,7 +19,7 @@ export default function WorkoutDetailsRoute() {
   const action = useRef(false);
   const [routineOpen, setRoutineOpen] = useState(false), [routineNotice, setRoutineNotice] = useState('');
   function leaveDetails() {
-    if (returnToWorkout === '1' && router.canGoBack()) router.back();
+    if ((returnToWorkout === '1' || returnToDay === '1' || returnToCalendar === '1') && router.canGoBack()) router.back();
     else router.replace('/');
   }
   async function beginEdit() {
@@ -46,7 +46,7 @@ export default function WorkoutDetailsRoute() {
       catch { setError('Changes saved. Return Home to reopen this workout.'); }
     }} />;
   return <Screen theme={theme}>
-    <Button theme={theme} variant="link" label={returnToWorkout === '1' ? 'Back to workout' : '← Home'} onPress={leaveDetails} />
+    <Button theme={theme} variant="link" label={returnToWorkout === '1' ? 'Back to workout' : returnToDay === '1' ? 'Back to day' : returnToCalendar === '1' ? 'Back to calendar' : '← Home'} onPress={leaveDetails} />
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <Text accessibilityRole="header" style={[styles.heading, { color: theme.text, flex: 1 }]}>{workout?.sessionType ?? 'Workout details'}</Text>
       {workout && !confirmDelete && <Button theme={theme} variant="link" label="Edit workout" disabled={busy} onPress={beginEdit} />}

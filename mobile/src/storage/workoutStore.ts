@@ -1,5 +1,6 @@
 import { completedExercises } from '../domain/workout.ts';
-import type { CompletedExercise, Location, SavedWorkout, WorkoutDraft } from '../domain/workout.ts';
+import type { CompletedExercise, Location, SavedWorkout, WorkoutDraft, WorkoutListItem } from '../domain/workout.ts';
+import { activityDateValue, type LocationFilter } from '../domain/workoutCalendar.ts';
 import type { PreviousExercise, ReferenceContext, ReferenceExercise } from '../domain/workoutReferences.ts';
 import { routineExercises, type Routine, type RoutineExercise } from '../domain/routine.ts';
 import { schema } from './schema.ts';
@@ -246,7 +247,15 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
     deleteWorkout: (sessionId: string) => queue(() => db.transaction(async tx => {
       await tx.runAsync('DELETE FROM sessions WHERE id=?', sessionId);
     })),
-    listWorkouts: () => queue(() => db.getAllAsync<Omit<SavedWorkout, 'exercises'>>(`SELECT id,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions ORDER BY activity_date DESC,started_at DESC`)),
+    listWorkouts: () => queue(() => db.getAllAsync<WorkoutListItem>(`SELECT id,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_id AS locationId,location_kind_snapshot AS locationKind,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions WHERE status='completed' ORDER BY activity_date DESC,started_at DESC,id DESC`)),
+    getDayWorkouts: (date: string, filter: LocationFilter) => queue(async (): Promise<SavedWorkout[]> => {
+      activityDateValue(date);
+      if (!['all', 'gym', 'home'].includes(filter)) throw new Error('Choose a valid location filter.');
+      const rows = await db.getAllAsync<{ id: string }>(`SELECT id FROM sessions WHERE status='completed' AND activity_date=? AND (?='all' OR location_kind_snapshot=?) ORDER BY started_at,id`, date, filter, filter);
+      const result: SavedWorkout[] = [];
+      for (const row of rows) result.push(await readWorkout(row.id));
+      return result;
+    }),
     getWorkout: (sessionId: string) => queue(async (): Promise<SavedWorkout> => {
       return readWorkout(sessionId);
     }),
