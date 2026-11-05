@@ -1,6 +1,7 @@
-import { completedExercises } from '../domain/workout.ts';
+import { completedExercises, localDate } from '../domain/workout.ts';
 import type { CompletedExercise, Location, SavedWorkout, WorkoutDraft, WorkoutListItem } from '../domain/workout.ts';
 import { activityDateValue, type LocationFilter } from '../domain/workoutCalendar.ts';
+import { periodBounds, summarizePeriod, type SummaryPeriod, type WorkoutCoverage } from '../domain/workoutSummary.ts';
 import type { PreviousExercise, ReferenceContext, ReferenceExercise } from '../domain/workoutReferences.ts';
 import { routineExercises, type Routine, type RoutineExercise } from '../domain/routine.ts';
 import { schema } from './schema.ts';
@@ -94,6 +95,15 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       });
     }),
     listLocations: () => queue(() => db.getAllAsync<Location>('SELECT * FROM locations ORDER BY kind DESC,name')),
+    getPeriodSummary: (kind: SummaryPeriod, anchor: string, today = localDate(new Date(now()))) => queue(async () => {
+      activityDateValue(today);
+      const bounds = periodBounds(kind, anchor), end = bounds.end < today ? bounds.end : today;
+      if (bounds.start > today) return summarizePeriod(kind, anchor, today, [], []);
+      const items = await db.getAllAsync<WorkoutListItem>(`SELECT id,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_id AS locationId,location_kind_snapshot AS locationKind,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions WHERE status='completed' AND activity_date>=? AND activity_date<=?`, bounds.start, end);
+      const coverage = await db.getAllAsync<WorkoutCoverage>(`SELECT DISTINCT s.id AS sessionId,CASE WHEN e.subcategory<>'' THEN e.subcategory WHEN e.category<>'' THEN e.category ELSE 'Uncategorized' END AS "group"
+        FROM sessions s JOIN session_exercises se ON se.session_id=s.id JOIN exercises e ON e.id=se.exercise_id WHERE s.status='completed' AND s.activity_date>=? AND s.activity_date<=?`, bounds.start, end);
+      return summarizePeriod(kind, anchor, today, items, coverage);
+    }),
     listRoutines: () => queue(async () => {
       const rows = await db.getAllAsync<Omit<Routine, 'exercises'>>('SELECT id,name,session_type AS sessionType,location_id AS locationId,location_name_snapshot AS locationName FROM routines ORDER BY name COLLATE NOCASE,id');
       const result: Routine[] = [];
