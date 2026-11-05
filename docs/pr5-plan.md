@@ -17,10 +17,13 @@ Branch: `feat/routines-and-references`, based on merged PR 4. Follow milestone 3
 2. [x] Add routine domain copying and versioned persistence. Test fresh IDs, blank measurements, set counts, independent snapshots, duplicate names, rename/removal, replacement, migration, and different-gym equipment handling.
 3. [x] Connect routine saving/management and selection to existing screens. Test cancellation, validation, failed actions/retry, and preservation of active drafts and saved workouts.
 4. [x] Connect recent-session and exact-equipment references with focus refresh and stale-response protection. Test dependency changes, failures, empty states, and absence of automatic measurement copying.
-5. [ ] Review keyboard, narrow layouts, light/dark, and accessibility in the actual runtime. Run component/storage tests, types, lint, compatibility, exports, and audit. Update review docs and open a draft PR for phone testing.
+5. [x] Complete local runtime review, tests, types, lint, compatibility, exports, audit, and review documentation; open draft PR 5.
+6. [ ] User physical-device review and explicit merge authorization.
 
 ## Implementation decisions
 
 Routine templates keep one source location, with explicit clearing of equipment labels when copied elsewhere. Multi-location alternatives require separate UI and remain future work. Removing a routine affects templates only. Exercise categories continue as library metadata as established in PR 4; routine copies carry the selected classification without changing session-type counts.
 
 Use the existing serialized SQLite connection for all reads and writes. No new dependency, service, account, telemetry, or sample user data is required.
+
+Draft PR: https://github.com/NeoTato/workout-gym-app/pull/5
