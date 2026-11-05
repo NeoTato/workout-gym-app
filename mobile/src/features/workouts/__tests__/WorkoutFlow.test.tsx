@@ -6,7 +6,12 @@ import { newExercise, useWorkoutDraft } from '../useWorkoutDraft';
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
 jest.mock('../useExerciseLibrary', () => ({ useExerciseLibrary: () => ({ items: [], loading: false, error: '', retry: jest.fn() }) }));
-jest.mock('expo-crypto', () => ({ randomUUID: () => 'new-id' }));
+jest.mock('../WorkoutReferences', () => ({ RecentSessions: () => null, PreviousExerciseSets: () => null }));
+jest.mock('../useRoutines', () => ({ useRoutines: () => ({ items: [{ id: 'routine', name: 'Push A', sessionType: 'Push', locationId: 'home', locationName: 'Home', exercises: [
+  { catalogId: 'press', name: 'Routine press', equipment: 'Dumbbells', bodyweight: false, unit: 'lb', convention: 'total', setCount: 2 },
+] }], loading: false, error: '', reload: jest.fn() }) }));
+let mockGeneratedId = 0;
+jest.mock('expo-crypto', () => ({ randomUUID: () => `generated-${++mockGeneratedId}` }));
 jest.mock('../useWorkoutDraft', () => ({ useWorkoutDraft: jest.fn(), newExercise: jest.fn() }));
 jest.mock('@react-native-community/datetimepicker', () => ({ __esModule: true, default: () => null }));
 
@@ -55,6 +60,20 @@ it('opens resumed and legacy configured drafts directly in exercise logging', as
   await render(<WorkoutRoute />);
   expect(screen.getByRole('button', { name: 'Finish workout' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Continue to exercises' })).toBeNull();
+});
+
+it('adds an editable routine copy in setup with blank, incomplete sets', async () => {
+  seed.exercises = [];
+  await render(<WorkoutRoute />);
+  expect(screen.getByRole('button', { name: 'Choose routine' })).toBeDisabled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Workout location: Home' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Choose routine' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Use routine Push A' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue to exercises' }));
+  expect(screen.getByRole('header', { name: 'Routine press' })).toBeOnTheScreen();
+  expect(screen.getByLabelText('Exercise 1 set 1 load (lb)')).toHaveDisplayValue('');
+  expect(screen.getByLabelText('Exercise 1 set 2 reps')).toHaveDisplayValue('');
+  expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
 });
 
 it.each([

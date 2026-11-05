@@ -4,6 +4,7 @@ import { getTheme } from '../../../ui/theme';
 import { SavedWorkoutEditor } from '../SavedWorkoutEditor';
 
 jest.mock('../useExerciseLibrary', () => ({ useExerciseLibrary: () => ({ items: [], loading: false, error: '', retry: jest.fn() }) }));
+jest.mock('../WorkoutReferences', () => ({ PreviousExerciseSets: () => null }));
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'new-id' }));
 jest.mock('@react-native-community/datetimepicker', () => {
   const { View } = jest.requireActual('react-native');

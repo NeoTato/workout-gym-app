@@ -7,20 +7,23 @@ import { join } from 'node:path';
 import { createWorkoutStore } from '../src/storage/workoutStore.ts';
 import { workoutTimes } from '../src/domain/workoutTime.ts';
 import { schema } from '../src/storage/schema.ts';
+import { addRoutineToDraft } from '../src/domain/routine.ts';
 
 function connect(file) {
   const db = new DatabaseSync(file);
   let fail = false;
+  let failRoutine = false;
   const wrap = {
     execAsync: async sql => { db.exec(sql); },
     runAsync: async (sql, ...params) => {
       if (fail && sql.includes('INSERT INTO sets')) throw new Error('Injected write failure');
+      if (failRoutine && sql.includes('INSERT INTO routine_slots')) throw new Error('Injected routine failure');
       return db.prepare(sql).run(...params);
     },
     getFirstAsync: async (sql, ...params) => db.prepare(sql).get(...params) ?? null,
     getAllAsync: async (sql, ...params) => db.prepare(sql).all(...params),
   };
-  return { db, failSets: () => { fail = true; }, adapter: { ...wrap, transaction: async fn => {
+  return { db, failSets: () => { fail = true; }, failRoutineSlots: () => { failRoutine = true; }, adapter: { ...wrap, transaction: async fn => {
     db.exec('BEGIN IMMEDIATE');
     try { await fn(wrap); db.exec('COMMIT'); } catch (error) { db.exec('ROLLBACK'); throw error; }
   } } };
@@ -35,6 +38,86 @@ function draft(id = 'workout-1') {
 }
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
+
+test('version-four migration adds empty routine storage without changing saved workouts or active drafts', async () => {
+  const connection = connect(':memory:');
+  try {
+    let store = makeStore(connection); await store.initialize();
+    await store.finish(draft('pre-migration')); await store.saveDraft(draft('active-migration'));
+    connection.db.exec('DROP TABLE routine_slots; DROP TABLE routines; PRAGMA user_version=4;');
+    store = makeStore(connection); await store.initialize(); await store.initialize();
+    assert.deepEqual(await store.listRoutines(), []);
+    assert.equal((await store.getWorkout('pre-migration')).exercises[0].sets[0].reps, 10);
+    assert.deepEqual(await store.getDraft(), draft('active-migration'));
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 5);
+  } finally { connection.db.close(); }
+});
+
+test('routine snapshots copy blank independent sets, preserve history, and support explicit replacement/removal', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize(); await store.finish(draft('routine-source'));
+    await store.saveDraft(draft('routine-active-draft'));
+    const routine = await store.saveWorkoutAsRoutine('routine-source', '  Push A  ');
+    assert.equal(routine.name, 'Push A'); assert.equal(routine.exercises[0].setCount, 1);
+    const empty = { ...draft('routine-copy'), exercises: [] };
+    const copy = addRoutineToDraft(empty, routine, () => `copy-${++counter}`);
+    assert.equal(copy.exercises[0].sets[0].weight, ''); assert.equal(copy.exercises[0].sets[0].completed, false);
+    copy.exercises[0].sets[0].reps = '99';
+    const existing = { ...draft('mixed-routine'), sessionType: 'Core' };
+    const mixed = addRoutineToDraft(existing, routine, () => `copy-${++counter}`);
+    assert.equal(mixed.sessionType, 'Core'); assert.equal(mixed.exercises.length, 2);
+    assert.deepEqual(mixed.exercises[0], existing.exercises[0], 'appending a routine preserves existing performed work');
+    assert.equal((await store.getWorkout('routine-source')).exercises[0].sets[0].reps, 10);
+    assert.equal((await store.listRoutines())[0].exercises[0].setCount, 1);
+    const gym = await store.addGym('Another gym');
+    assert.equal(addRoutineToDraft({ ...empty, locationId: gym.id }, routine, () => `copy-${++counter}`).exercises[0].equipment, '');
+    await assert.rejects(store.saveWorkoutAsRoutine('routine-source', 'push a'), /name/i);
+    await store.renameRoutine(routine.id, 'Push B');
+    const edit = await store.getWorkoutEdit('routine-source'); edit.exercises[0].name = 'Modified press'; await store.updateWorkout(edit);
+    assert.notEqual((await store.listRoutines())[0].exercises[0].name, 'Modified press');
+    await store.saveWorkoutAsRoutine('routine-source', 'Push B', routine.id);
+    assert.equal((await store.listRoutines())[0].exercises[0].name, 'Modified press');
+    connection.failRoutineSlots();
+    await assert.rejects(store.saveWorkoutAsRoutine('routine-source', 'Failed replacement', routine.id), /Injected routine/);
+    assert.equal((await store.listRoutines())[0].name, 'Push B', 'failed replacement rolls back both name and slots');
+    assert.equal((await store.listRoutines())[0].exercises[0].name, 'Modified press');
+    await store.deleteWorkout('routine-source'); assert.equal((await store.listRoutines()).length, 1);
+    await store.removeRoutine(routine.id); assert.deepEqual(await store.listRoutines(), []);
+    assert.deepEqual(await store.getDraft(), draft('routine-active-draft'), 'routine operations preserve the unrelated active draft');
+  } finally { connection.db.close(); }
+});
+
+test('previous sets match exact gym/equipment/mode/convention/dimension across session types', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    const gym = await store.addGym('Other gym');
+    const save = async (id, patch = {}) => {
+      const entry = draft(id); entry.startedAt = '2026-10-31T01:00:00Z'; entry.endedAt = '2026-10-31T01:30:00Z'; entry.activityDate = '2026-10-31';
+      Object.assign(entry, patch.session ?? {}); Object.assign(entry.exercises[0], patch.exercise ?? {});
+      await store.finish(entry); return entry;
+    };
+    const matching = await save('matching', { session: { sessionType: 'Upper' } });
+    await save('other-gym', { session: { locationId: gym.id, sessionType: 'Upper' } });
+    await save('later-same-day', { session: { sessionType: 'Upper', activityDate: '2026-11-01', startedAt: '2026-11-01T01:30:00Z', endedAt: '2026-11-01T01:40:00Z' } });
+    await save('other-machine', { exercise: { equipment: 'Machine 2' } });
+    await save('other-convention', { exercise: { convention: 'total' } });
+    await save('plates', { exercise: { unit: 'plates' } });
+    await save('bodyweight', { exercise: { bodyweight: true } });
+    await store.saveDraft(draft('unfinished-reference'));
+    const context = { locationId: 'home', activityDate: '2026-11-01', startedAt: '2026-11-01T01:00:00Z', excludeSessionId: 'active' };
+    const result = await store.getPreviousExercise(context, draft().exercises[0]);
+    assert.equal(result.workoutId, matching.id); assert.equal(result.sessionType, 'Upper');
+    assert.equal(result.exercise.sets[0].weight, 35.5);
+    assert.equal((await store.getPreviousExercise(context, { ...draft().exercises[0], unit: 'kg' })).workoutId, matching.id, 'mass units share a dimension and retain recorded values');
+    assert.equal(await store.getPreviousExercise({ ...context, activityDate: '2026-10-30' }, draft().exercises[0]), null);
+    assert.equal(await store.getPreviousExercise({ ...context, excludeSessionId: matching.id }, draft().exercises[0]), null);
+    const recent = await store.getRecentSessions(context, 'Upper');
+    assert.deepEqual(recent.map(item => item.id), [matching.id], 'recent sessions exclude other gyms and later same-day work');
+    assert.deepEqual(await store.getDraft(), draft('unfinished-reference'));
+  } finally { connection.db.close(); }
+});
 
 test('all supported categories and muscle groups persist into completed workout details', async () => {
   const connection = connect(':memory:');
@@ -111,7 +194,7 @@ test('version-one locations migrate without losing gyms or draft checkpoints', a
     const pending = draft(); pending.locationId = 'legacy';
     connection.db.prepare('INSERT INTO draft_checkpoint VALUES (1,?,?)').run(pending.id, JSON.stringify(pending));
     const store = makeStore(connection); await store.initialize(); await store.initialize();
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 4);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 5);
     assert.equal((await store.listLocations()).find(item => item.id === 'legacy').archived, 0);
     assert.deepEqual(await store.getDraft(), pending);
   } finally { connection.db.close(); }
@@ -276,12 +359,14 @@ test('a draft and completed sets survive closing and reopening the real SQLite f
     assert.deepEqual(await store.getDraft(), { ...draft(), setupComplete: true });
     const categorized = draft(); categorized.exercises[0].category = 'Push'; categorized.exercises[0].subcategory = 'Chest';
     await store.finish(categorized); await store.finish(categorized);
+    await store.saveWorkoutAsRoutine(categorized.id, 'Durable routine');
     connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize();
     const history = await store.listWorkouts(); assert.equal(history.length, 1);
     const saved = await store.getWorkout(history[0].id);
     assert.equal((await store.listLoggedExercises())[0].id, saved.exercises[0].catalogId, 'saved suggestions preserve catalog identity after reopening');
     assert.equal((await store.listLoggedExercises())[0].category, 'Push', 'categories persist after reopening the database');
     assert.equal((await store.getWorkout(saved.id)).exercises[0].subcategory, 'Chest', 'completed subcategories persist after reopening');
+    assert.equal((await store.listRoutines())[0].name, 'Durable routine', 'routine snapshots survive reopening the real file');
     assert.equal(saved.exercises[0].name, "Press 'n lift");
     assert.deepEqual(saved.exercises[0].sets.map(set => ({ ...set })), [{ id: 'workout-1-set-1', weight: 35.5, reps: 10 }]);
     assert.equal(await store.getDraft(), null);

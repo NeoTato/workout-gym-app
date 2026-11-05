@@ -1,5 +1,7 @@
 import { completedExercises } from '../domain/workout.ts';
 import type { CompletedExercise, Location, SavedWorkout, WorkoutDraft } from '../domain/workout.ts';
+import type { PreviousExercise, ReferenceContext, ReferenceExercise } from '../domain/workoutReferences.ts';
+import { routineExercises, type Routine, type RoutineExercise } from '../domain/routine.ts';
 import { schema } from './schema.ts';
 import { workoutTimes } from '../domain/workoutTime.ts';
 import { cleanExerciseName, exerciseNameKey, type ExerciseCategory, type ExerciseSubcategory, type LoggedExercise } from '../domain/exerciseLibrary.ts';
@@ -63,19 +65,94 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
     }
     return { ...session, exercises };
   }
+  function routineName(name: string) {
+    const clean = cleanExerciseName(name);
+    if (!clean || clean.length > 80) throw new Error('Enter a routine name between 1 and 80 characters.');
+    return clean;
+  }
+  async function readRoutine(row: Omit<Routine, 'exercises'>): Promise<Routine> {
+    const rows = await db.getAllAsync<Omit<RoutineExercise, 'bodyweight'> & { bodyweight: number }>(
+      'SELECT exercise_id AS catalogId,name,equipment,bodyweight,unit,convention,category,subcategory,set_count AS setCount FROM routine_slots WHERE routine_id=? ORDER BY position', row.id);
+    return { ...row, exercises: rows.map(exercise => ({ ...exercise, bodyweight: Boolean(exercise.bodyweight) })) };
+  }
   return {
     initialize: () => queue(async () => {
       await db.execAsync('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;');
       await db.transaction(async tx => {
         const version = (await tx.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))?.user_version ?? 0;
-        if (version > 4) throw new Error('This database was created by a newer app. Update the app to open it.');
+        if (version > 5) throw new Error('This database was created by a newer app. Update the app to open it.');
         if (version === 0) await tx.execAsync(schema);
         if (version < 2) await tx.execAsync('ALTER TABLE locations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)); PRAGMA user_version=2;');
         if (version < 3) await tx.execAsync("ALTER TABLE exercises ADD COLUMN category TEXT NOT NULL DEFAULT '' CHECK(category IN ('','Push','Pull','Legs','Core','Cardio','Mobility','Other')); PRAGMA user_version=3;");
         if (version < 4) await tx.execAsync("ALTER TABLE exercises ADD COLUMN subcategory TEXT NOT NULL DEFAULT '' CHECK(subcategory='' OR (category='Push' AND subcategory IN ('Chest','Triceps','Shoulders')) OR (category='Pull' AND subcategory IN ('Back','Biceps'))); PRAGMA user_version=4;");
+        if (version < 5) await tx.execAsync(`
+          CREATE TABLE routines (id TEXT PRIMARY KEY,name TEXT NOT NULL COLLATE NOCASE UNIQUE,session_type TEXT NOT NULL,location_id TEXT NOT NULL REFERENCES locations(id),location_name_snapshot TEXT NOT NULL);
+          CREATE TABLE routine_slots (routine_id TEXT NOT NULL REFERENCES routines(id) ON DELETE CASCADE,position INTEGER NOT NULL,exercise_id TEXT NOT NULL REFERENCES exercises(id),
+            name TEXT NOT NULL,equipment TEXT NOT NULL,bodyweight INTEGER NOT NULL CHECK(bodyweight IN (0,1)),unit TEXT NOT NULL,convention TEXT NOT NULL,category TEXT NOT NULL,subcategory TEXT NOT NULL,set_count INTEGER NOT NULL CHECK(set_count>0),PRIMARY KEY(routine_id,position));
+          PRAGMA user_version=5;`);
       });
     }),
     listLocations: () => queue(() => db.getAllAsync<Location>('SELECT * FROM locations ORDER BY kind DESC,name')),
+    listRoutines: () => queue(async () => {
+      const rows = await db.getAllAsync<Omit<Routine, 'exercises'>>('SELECT id,name,session_type AS sessionType,location_id AS locationId,location_name_snapshot AS locationName FROM routines ORDER BY name COLLATE NOCASE,id');
+      const result: Routine[] = [];
+      for (const row of rows) result.push(await readRoutine(row));
+      return result;
+    }),
+    saveWorkoutAsRoutine: (workoutId: string, name: string, replaceId?: string) => queue(async (): Promise<Routine> => {
+      const clean = routineName(name), routineId = replaceId ?? id();
+      const saved = await readWorkout(workoutId);
+      const metadata = await db.getFirstAsync<{ locationId: string }>('SELECT location_id AS locationId FROM sessions WHERE id=?', workoutId);
+      if (!metadata) throw new Error('This workout could not be found.');
+      const routine: Routine = { id: routineId, name: clean, sessionType: saved.sessionType, locationId: metadata.locationId, locationName: saved.locationName, exercises: routineExercises(saved) };
+      await db.transaction(async tx => {
+        if (replaceId && !await tx.getFirstAsync('SELECT id FROM routines WHERE id=?', replaceId)) throw new Error('This routine could not be found.');
+        if (await tx.getFirstAsync('SELECT id FROM routines WHERE name=? COLLATE NOCASE AND id<>?', clean, routineId)) throw new Error('A routine with this name already exists. Choose another name.');
+        if (replaceId) {
+          await tx.runAsync('UPDATE routines SET name=?,session_type=?,location_id=?,location_name_snapshot=? WHERE id=?', clean, routine.sessionType, routine.locationId, routine.locationName, routineId);
+          await tx.runAsync('DELETE FROM routine_slots WHERE routine_id=?', routineId);
+        } else await tx.runAsync('INSERT INTO routines VALUES (?,?,?,?,?)', routineId, clean, routine.sessionType, routine.locationId, routine.locationName);
+        for (const [position, exercise] of routine.exercises.entries()) await tx.runAsync('INSERT INTO routine_slots VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+          routineId, position, exercise.catalogId, exercise.name, exercise.equipment, exercise.bodyweight ? 1 : 0, exercise.unit, exercise.convention,
+          exercise.category ?? '', exercise.subcategory ?? '', exercise.setCount);
+      });
+      return routine;
+    }),
+    renameRoutine: (routineId: string, name: string) => queue(async () => {
+      const clean = routineName(name);
+      if (!await db.getFirstAsync('SELECT id FROM routines WHERE id=?', routineId)) throw new Error('This routine could not be found.');
+      if (await db.getFirstAsync('SELECT id FROM routines WHERE name=? COLLATE NOCASE AND id<>?', clean, routineId)) throw new Error('A routine with this name already exists. Choose another name.');
+      await db.runAsync('UPDATE routines SET name=? WHERE id=?', clean, routineId);
+    }),
+    removeRoutine: (routineId: string) => queue(async () => { await db.runAsync('DELETE FROM routines WHERE id=?', routineId); }),
+    getRecentSessions: (context: ReferenceContext, sessionType: string) => queue(() => db.getAllAsync<Omit<SavedWorkout, 'exercises'>>(
+      `SELECT id,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions
+       WHERE status='completed' AND location_id=? AND session_type_name_snapshot=? AND id<>?
+       AND (activity_date<? OR (activity_date=? AND started_at<?)) ORDER BY activity_date DESC,started_at DESC,id DESC LIMIT 3`,
+      context.locationId, sessionType, context.excludeSessionId, context.activityDate, context.activityDate, context.startedAt)),
+    getPreviousExercise: (context: ReferenceContext, exercise: ReferenceExercise) => queue(async (): Promise<PreviousExercise | null> => {
+      if (!context.locationId || !exercise.name.trim()) return null;
+      const mode = exercise.bodyweight ? 'reps' : 'load_reps';
+      const choices = await db.getAllAsync<{ id: string; name: string; category: ExerciseCategory; subcategory: ExerciseSubcategory }>('SELECT id,name,category,subcategory FROM exercises WHERE measurement_mode=? ORDER BY id', mode);
+      const sameName = (item: { name: string }) => exerciseNameKey(item.name) === exerciseNameKey(exercise.name);
+      const catalog = choices.find(item => item.id === exercise.catalogId && sameName(item)) ?? choices.find(sameName);
+      if (!catalog) return null;
+      const row = await db.getFirstAsync<{ id: string; workoutId: string; activityDate: string; sessionType: string; locationName: string; name: string; equipment: string; unit: CompletedExercise['unit']; convention: CompletedExercise['convention'] }>(
+        `SELECT se.id,s.id AS workoutId,s.activity_date AS activityDate,s.session_type_name_snapshot AS sessionType,s.location_name_snapshot AS locationName,
+         se.exercise_name_snapshot AS name,se.equipment_name_snapshot AS equipment,se.load_unit AS unit,se.load_convention AS convention
+         FROM sessions s JOIN session_exercises se ON se.session_id=s.id JOIN equipment_variations ev ON ev.id=se.equipment_variation_id
+         WHERE s.status='completed' AND s.location_id=? AND ev.location_id=? AND ev.exercise_id=? AND ev.name=? AND ev.measurement_mode=? AND ev.load_convention=? AND ev.load_dimension=?
+         AND s.id<>? AND (s.activity_date<? OR (s.activity_date=? AND s.started_at<?))
+         ORDER BY s.activity_date DESC,s.started_at DESC,s.id DESC,se.position DESC LIMIT 1`,
+        context.locationId, context.locationId, catalog.id, exercise.equipment.trim() || cleanExerciseName(catalog.name), mode,
+        exercise.bodyweight ? 'total' : exercise.convention, exercise.bodyweight ? 'bodyweight' : exercise.unit === 'plates' ? 'plates' : 'mass',
+        context.excludeSessionId, context.activityDate, context.activityDate, context.startedAt);
+      if (!row) return null;
+      const sets = await db.getAllAsync<CompletedExercise['sets'][number]>('SELECT id,load_value AS weight,reps FROM sets WHERE session_exercise_id=? ORDER BY position', row.id);
+      return { workoutId: row.workoutId, activityDate: row.activityDate, sessionType: row.sessionType, locationName: row.locationName,
+        exercise: { id: row.id, catalogId: catalog.id, category: catalog.category, subcategory: catalog.subcategory, name: row.name, equipment: row.equipment,
+          unit: row.unit, convention: row.convention, bodyweight: exercise.bodyweight, sets } };
+    }),
     removeLocation: (locationId: string) => queue(async () => {
       const location = await db.getFirstAsync<Location>('SELECT * FROM locations WHERE id=?', locationId);
       if (!location) throw new Error('This location could not be found.');

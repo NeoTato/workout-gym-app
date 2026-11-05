@@ -1,6 +1,6 @@
 # Native implementation milestones
 
-Status: foundation PR #1 is merged and its Home screen was tested on the user's iPhone. PR #2 is merged with SQLite logging/draft/history. `feat/edit-workouts` adds explicit completed-workout editing and confirmed deletion; see `workout-editing-review.md`. See `workout-saving-review.md` for its exact scope and verification; phone persistence validation is pending. The complete milestones below remain the target, not claims that all listed behavior is already implemented.
+Status: PRs 1-4 are merged. PR 4 received user iPhone review and added the compact logger, categorized exercise library, location management, and completed-workout refinements. PR 5 implements the first routines/previous-session reference slice on its review branch; see [its scope and phone checklist](routines-and-references-review.md). Android and new-feature physical review remain pending. Remaining milestone bullets below describe target behavior, not claims of full implementation.
 
 Build in this order, keeping each slice usable and verified before adding the next. Keep prototype fixtures out of the personal database. Native app implementation is the next phase after review of this blueprint.
 

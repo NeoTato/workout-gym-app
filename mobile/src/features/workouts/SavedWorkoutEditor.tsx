@@ -6,6 +6,7 @@ import { Button, Choice, Screen, styles } from '../../ui/controls';
 import type { AppTheme } from '../../ui/theme';
 import { ExerciseEditor } from './ExerciseEditor';
 import { useExerciseScroll } from './useExerciseScroll';
+import { validReferenceContext } from '../../domain/workoutReferences';
 import { newExercise } from './useWorkoutDraft';
 import { ExercisePicker } from './ExercisePicker';
 import { useExerciseLibrary } from './useExerciseLibrary';
@@ -23,6 +24,7 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
   const { scrollRef, requestScroll, onExerciseLayout } = useExerciseScroll();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [addedId, setAddedId] = useState<string>();
+  const references = validReferenceContext(draft);
   const footer = <>
     <Button theme={theme} primary label={busy ? 'Saving changes…' : 'Save changes'} disabled={busy} onPress={async () => {
       if (saving.current) return;
@@ -48,7 +50,7 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
       options={[{ value: 'details', label: 'Session details' }, { value: 'exercises', label: 'Exercises' }]} onChange={setSection} />
     {section === 'details' ? <WorkoutSessionDetails draft={draft} locations={locations} theme={theme} busy={busy} update={setDraft} /> : <>
     <WorkoutSessionSummary draft={draft} locations={locations} theme={theme} />
-    {draft.exercises.map((exercise, index) => <View key={exercise.id} testID={`exercise-card-${exercise.id}`} onLayout={event => onExerciseLayout(exercise.id, event)}><ExerciseEditor library={library.items} initiallyExpanded={index === 0 || exercise.id === addedId} theme={theme} exercise={exercise} index={index} disabled={busy} newId={randomUUID}
+    {draft.exercises.map((exercise, index) => <View key={exercise.id} testID={`exercise-card-${exercise.id}`} onLayout={event => onExerciseLayout(exercise.id, event)}><ExerciseEditor references={references} library={library.items} initiallyExpanded={index === 0 || exercise.id === addedId} theme={theme} exercise={exercise} index={index} disabled={busy} newId={randomUUID}
       update={next => setDraft(value => ({ ...value, exercises: value.exercises.map(item => item.id === next.id ? next : item) }))}
       remove={() => setDraft(value => ({ ...value, exercises: value.exercises.filter(item => item.id !== exercise.id) }))} /></View>)}
     <Button theme={theme} variant="add" label="+ Add exercise" disabled={busy} onPress={() => setPickerOpen(true)} />
