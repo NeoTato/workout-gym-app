@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { createWorkoutStore } from '../src/storage/workoutStore.ts';
 import { workoutTimes } from '../src/domain/workoutTime.ts';
 import { schema } from '../src/storage/schema.ts';
+import { addRoutineToDraft } from '../src/domain/routine.ts';
 
 function connect(file) {
   const db = new DatabaseSync(file);
@@ -35,6 +36,61 @@ function draft(id = 'workout-1') {
 }
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
+
+test('routine snapshots copy blank independent sets, preserve history, and support explicit replacement/removal', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize(); await store.finish(draft('routine-source'));
+    const routine = await store.saveWorkoutAsRoutine('routine-source', '  Push A  ');
+    assert.equal(routine.name, 'Push A'); assert.equal(routine.exercises[0].setCount, 1);
+    const empty = { ...draft('routine-copy'), exercises: [] };
+    const copy = addRoutineToDraft(empty, routine, () => `copy-${++counter}`);
+    assert.equal(copy.exercises[0].sets[0].weight, ''); assert.equal(copy.exercises[0].sets[0].completed, false);
+    copy.exercises[0].sets[0].reps = '99';
+    assert.equal((await store.getWorkout('routine-source')).exercises[0].sets[0].reps, 10);
+    assert.equal((await store.listRoutines())[0].exercises[0].setCount, 1);
+    const gym = await store.addGym('Another gym');
+    assert.equal(addRoutineToDraft({ ...empty, locationId: gym.id }, routine, () => `copy-${++counter}`).exercises[0].equipment, '');
+    await assert.rejects(store.saveWorkoutAsRoutine('routine-source', 'push a'), /name/i);
+    await store.renameRoutine(routine.id, 'Push B');
+    const edit = await store.getWorkoutEdit('routine-source'); edit.exercises[0].name = 'Modified press'; await store.updateWorkout(edit);
+    assert.notEqual((await store.listRoutines())[0].exercises[0].name, 'Modified press');
+    await store.saveWorkoutAsRoutine('routine-source', 'Push B', routine.id);
+    assert.equal((await store.listRoutines())[0].exercises[0].name, 'Modified press');
+    await store.deleteWorkout('routine-source'); assert.equal((await store.listRoutines()).length, 1);
+    await store.removeRoutine(routine.id); assert.deepEqual(await store.listRoutines(), []);
+  } finally { connection.db.close(); }
+});
+
+test('previous sets match exact gym/equipment/mode/convention/dimension across session types', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    const gym = await store.addGym('Other gym');
+    const save = async (id, patch = {}) => {
+      const entry = draft(id); entry.startedAt = '2026-10-31T01:00:00Z'; entry.endedAt = '2026-10-31T01:30:00Z'; entry.activityDate = '2026-10-31';
+      Object.assign(entry, patch.session ?? {}); Object.assign(entry.exercises[0], patch.exercise ?? {});
+      await store.finish(entry); return entry;
+    };
+    const matching = await save('matching', { session: { sessionType: 'Upper' } });
+    await save('other-gym', { session: { locationId: gym.id } });
+    await save('other-machine', { exercise: { equipment: 'Machine 2' } });
+    await save('other-convention', { exercise: { convention: 'total' } });
+    await save('plates', { exercise: { unit: 'plates' } });
+    await save('bodyweight', { exercise: { bodyweight: true } });
+    await store.saveDraft(draft('unfinished-reference'));
+    const context = { locationId: 'home', activityDate: '2026-11-01', startedAt: '2026-11-01T01:00:00Z', excludeSessionId: 'active' };
+    const result = await store.getPreviousExercise(context, draft().exercises[0]);
+    assert.equal(result.workoutId, matching.id); assert.equal(result.sessionType, 'Upper');
+    assert.equal(result.exercise.sets[0].weight, 35.5);
+    assert.equal((await store.getPreviousExercise(context, { ...draft().exercises[0], unit: 'kg' })).workoutId, matching.id, 'mass units share a dimension and retain recorded values');
+    assert.equal(await store.getPreviousExercise({ ...context, activityDate: '2026-10-30' }, draft().exercises[0]), null);
+    assert.equal(await store.getPreviousExercise({ ...context, excludeSessionId: matching.id }, draft().exercises[0]), null);
+    const recent = await store.getRecentSessions(context, 'Upper');
+    assert.ok(recent.length <= 3); assert.ok(recent.every(item => item.sessionType === 'Upper'));
+    assert.deepEqual(await store.getDraft(), draft('unfinished-reference'));
+  } finally { connection.db.close(); }
+});
 
 test('all supported categories and muscle groups persist into completed workout details', async () => {
   const connection = connect(':memory:');
@@ -111,7 +167,7 @@ test('version-one locations migrate without losing gyms or draft checkpoints', a
     const pending = draft(); pending.locationId = 'legacy';
     connection.db.prepare('INSERT INTO draft_checkpoint VALUES (1,?,?)').run(pending.id, JSON.stringify(pending));
     const store = makeStore(connection); await store.initialize(); await store.initialize();
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 4);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 5);
     assert.equal((await store.listLocations()).find(item => item.id === 'legacy').archived, 0);
     assert.deepEqual(await store.getDraft(), pending);
   } finally { connection.db.close(); }
