@@ -4,6 +4,7 @@ import { Text, View, useColorScheme } from 'react-native';
 import type { Location, SavedWorkout, WorkoutDraft } from '../../domain/workout';
 import { timeFields } from '../../domain/workoutTime';
 import { SavedWorkoutEditor } from '../../features/workouts/SavedWorkoutEditor';
+import { CompletedExerciseSummary } from '../../features/workouts/CompletedExerciseSummary';
 import { openStore } from '../../storage/openStore';
 import { Button, Screen, styles } from '../../ui/controls';
 import { fonts, getTheme } from '../../ui/theme';
@@ -51,14 +52,7 @@ export default function WorkoutDetailsRoute() {
         {' → '}{timeFields(workout.endedAt, workout.timezone).date} {timeFields(workout.endedAt, workout.timezone).time} ({workout.timezone})
       </Text>
       <Text style={{ color: theme.success, fontFamily: fonts.bold }}>✓ Saved on this phone</Text>
-      {workout.exercises.map(exercise => <View key={exercise.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 18 }}>{exercise.name}</Text>
-        <Text style={{ color: theme.muted }}>{exercise.equipment}</Text>
-        {!exercise.bodyweight && <Text style={{ color: theme.muted }}>{exercise.unit === 'lb' ? 'lbs' : exercise.unit} · {exercise.convention.replace('_', ' ')}</Text>}
-        {exercise.sets.map((set, index) => <Text key={set.id} style={[styles.subtitle, { color: theme.text }]}>
-          Set {index + 1}: {exercise.bodyweight ? 'Bodyweight' : `${set.weight} ${exercise.unit === 'lb' ? 'lbs' : exercise.unit}`} × {set.reps} reps
-        </Text>)}
-      </View>)}
+      {workout.exercises.map(exercise => <CompletedExerciseSummary key={exercise.id} exercise={exercise} theme={theme} />)}
       {confirmDelete ? <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold }}>Delete this workout?</Text>
         <Text style={[styles.subtitle, { color: theme.muted }]}>This permanently removes this workout and all its sets from this phone. This cannot be undone.</Text>

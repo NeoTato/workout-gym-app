@@ -18,7 +18,7 @@ Suggestion loading has explicit loading/error/retry states. A failed suggestion 
 
 ## Validation
 
-- 33 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
+- 34 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
 - 13 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
 - The native UI's browser runtime passed a real SQLite journey: create gym, add exercises, log compact rows, bodyweight, copied sets, collapse/expand, Home/resume, finish excluding incomplete sets, reuse persistent suggestions in the next workout, saved-edit suggestions, and preservation of an unrelated active draft. Light/dark and 320px/390px horizontal layouts were checked.
 - TypeScript, zero-warning lint, Expo dependency compatibility, and iOS/Android/web JavaScript exports pass. Exports do not prove native visual/keyboard behavior; physical-device review remains pending.
@@ -64,3 +64,7 @@ The picker has horizontal All, Push, Pull, Legs, Core, Cardio, Mobility, Other a
 Categories are exercise-library metadata shared across gyms, distinct from the workout session type. Draft changes autosave locally; library categories are committed only when finishing a workout or saving a completed-workout edit. Cancel does not commit category edits. Changing a category keeps performed sets and equipment identities intact. Legacy drafts without a category do not clear a stored category. Version 1 and 2 database upgrades, reassignment/clearing, invalid input, transactional rollback, and real-file durability are covered. The browser journey also verified assigning Push/Core and filtering the saved picker library.
 
 Device review: add a new exercise with a category, finish it with a valid set, reopen the app, filter and search for it, change its category under Setup, and verify clearing to Uncategorized. Check the scrollable picker with the keyboard and larger text. No dependency change or database reset is required.
+
+## Compact completed-workout summaries
+
+Completed workouts initially show exercise names, set counts, and an expand indicator. Tapping an exercise reveals its equipment, load convention, and saved sets; tapping again collapses it. Exercises expand independently. The control announces expanded/collapsed state and supports large text with wrapping names. This is a display change only; editing and stored measurements are unchanged. Device check: open a workout with multiple exercises, expand two, collapse one, and verify all load/reps and bodyweight values.
