@@ -39,6 +39,32 @@ function draft(id = 'workout-1') {
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
 
+test('period reports share completed-session counts, deduplicate groups, and recalculate after history edits', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize();
+    const gym = await store.addGym('Summary gym');
+    const first = draft('report-push'); first.locationId = gym.id; first.exercises[0].category = 'Push'; first.exercises[0].subcategory = 'Chest';
+    first.exercises.push({ ...first.exercises[0], id: 'other-chest', name: 'Fly', sets: [{ id: 'fly-set', weight: '20', reps: '12', completed: true }] });
+    await store.finish(first);
+    const second = draft('report-core'); second.sessionType = 'Core'; second.exercises[0].name = 'Crunches'; second.exercises[0].category = 'Core'; await store.finish(second);
+    await store.saveDraft(draft('report-active'));
+    const result = await store.getPeriodSummary('month', '2026-11-01', '2026-11-01');
+    assert.equal(result.sessions, 2); assert.equal(result.activeDays, 1);
+    assert.deepEqual(result.locationCounts, { gym: 1, home: 1 });
+    assert.equal(result.typeCounts.find(item => item.name === 'Push').count, 1);
+    assert.equal(result.exerciseGroups.find(item => item.name === 'Chest').count, 1);
+    const edit = await store.getWorkoutEdit(first.id); edit.timing = { startDate: '2026-10-31', startTime: '09:00', endDate: '2026-10-31', endTime: '10:00' };
+    await store.updateWorkout(edit);
+    assert.equal((await store.getPeriodSummary('month', '2026-11-01', '2026-11-01')).sessions, 1);
+    assert.equal((await store.getPeriodSummary('month', '2026-10-01', '2026-11-01')).sessions, 1);
+    await store.deleteWorkout(second.id);
+    assert.equal((await store.getPeriodSummary('month', '2026-11-01', '2026-11-01')).sessions, 0);
+    assert.equal((await store.getPeriodSummary('year', '2026-11-01', '2026-11-01')).sessions, 1);
+    assert.deepEqual(await store.getDraft(), draft('report-active'));
+  } finally { connection.db.close(); }
+});
+
 test('day details include separate gym/Home sessions, preserve removed gyms, and refresh after backdating/deletion', async () => {
   const connection = connect(':memory:');
   try {
