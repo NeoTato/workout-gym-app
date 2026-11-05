@@ -18,7 +18,7 @@ Suggestion loading has explicit loading/error/retry states. A failed suggestion 
 
 ## Validation
 
-- 34 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
+- 36 component tests pass: existing logging/flow/time controls plus picker search/selection/free entry/cancel, suggestion retry, collapse/setup retention, and completed-set removal confirmation.
 - 13 SQLite/domain tests pass: catalog normalization and reuse, tracking-mode/gym separation, no draft suggestions, catalog identity after real file reopen, rollback, date/time correction, draft isolation, and scoped deletion.
 - The native UI's browser runtime passed a real SQLite journey: create gym, add exercises, log compact rows, bodyweight, copied sets, collapse/expand, Home/resume, finish excluding incomplete sets, reuse persistent suggestions in the next workout, saved-edit suggestions, and preservation of an unrelated active draft. Light/dark and 320px/390px horizontal layouts were checked.
 - TypeScript, zero-warning lint, Expo dependency compatibility, and iOS/Android/web JavaScript exports pass. Exports do not prove native visual/keyboard behavior; physical-device review remains pending.
@@ -68,3 +68,7 @@ Device review: add a new exercise with a category, finish it with a valid set, r
 ## Compact completed-workout summaries
 
 Completed workouts initially show exercise names, set counts, and an expand indicator. Tapping an exercise reveals its equipment, load convention, and saved sets; tapping again collapses it. Exercises expand independently. The control announces expanded/collapsed state and supports large text with wrapping names. This is a display change only; editing and stored measurements are unchanged. Device check: open a workout with multiple exercises, expand two, collapse one, and verify all load/reps and bodyweight values.
+
+## Completed-workout date hierarchy
+
+The completed view removes the Saved on this phone indicator and places Edit workout beside the session title. A single metadata card shows the workout date once, a 24-hour time range with elapsed duration, then location and recorded timezone. The end date appears only for an overnight session; the end year appears when crossing years. Values are formatted in the recorded workout timezone rather than the viewing device timezone. Device check: compare a same-day, overnight, and backdated workout; confirm names and time ranges wrap correctly with larger text.
