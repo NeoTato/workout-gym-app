@@ -37,7 +37,7 @@ export function ProgressBrowseControls({ theme, search, onSearch, filters, onFil
             {groups.length > 0 && <Choice<ExerciseSubcategory | 'All'> theme={theme} label="Subcategory" value={filters.subcategory} options={[{ value: 'All', label: 'All' }, ...groups.map(value => ({ value, label: value })), { value: '', label: 'Not assigned' }]} onChange={subcategory => onFilters({ ...filters, subcategory })} />}
           </ScrollView>
           <Button theme={theme} variant="link" label="Reset filters" onPress={() => onFilters(emptyProgressFilters)} />
-          <Button theme={theme} primary label={ready ? `Show ${count} ${count === 1 ? 'exercise' : 'exercises'}` : 'Show exercises'} onPress={() => setOpen(false)} />
+          <Button theme={theme} primary label="Show all exercises" onPress={() => setOpen(false)} />
         </View>
       </View>
     </Modal>}
