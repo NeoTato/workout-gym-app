@@ -3,23 +3,28 @@ import { useState } from 'react';
 import { Text, View, useColorScheme } from 'react-native';
 import { useProgressLibrary } from '../../features/progress/useExerciseProgress';
 import { ExerciseGroups } from '../../features/exercises/ExerciseGroups';
-import { Button, Field, Screen, styles } from '../../ui/controls';
+import { emptyProgressFilters, ProgressBrowseControls, type ProgressFilters } from '../../features/progress/ProgressBrowseControls';
+import { Button, Screen, styles } from '../../ui/controls';
 import { getTheme } from '../../ui/theme';
 
 export default function ProgressLibraryRoute() {
   const theme = getTheme(useColorScheme()), { data, error, retry } = useProgressLibrary();
   const [search, setSearch] = useState('');
-  const items = data?.filter(item => `${item.name} ${item.category} ${item.subcategory}`.toLowerCase().includes(search.trim().toLowerCase())) ?? [];
+  const [filters, setFilters] = useState<ProgressFilters>(emptyProgressFilters);
+  const items = data?.filter(item => `${item.name} ${item.category ?? ''} ${item.subcategory ?? ''}`.toLowerCase().includes(search.trim().toLowerCase())
+    && (filters.category === 'All' || (item.category ?? '') === filters.category)
+    && (filters.subcategory === 'All' || (item.subcategory ?? '') === filters.subcategory)
+    && (filters.mode === 'all' || item.bodyweight === (filters.mode === 'bodyweight'))) ?? [];
   return <Screen theme={theme}>
     <Button theme={theme} variant="link" label="Back to Home" onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/'); }} />
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Exercise progress</Text>
     <Text style={{ color: theme.muted }}>Your completed sets, organized by exercise and equipment.</Text>
-    <Field theme={theme} label="Search exercise progress" placeholder="Exercise or muscle group" value={search} onChangeText={setSearch} />
+    <ProgressBrowseControls theme={theme} search={search} onSearch={setSearch} filters={filters} onFilters={setFilters} count={items.length} ready={Boolean(data) && !error} />
     {!!error && <><Text accessibilityRole="alert" style={{ color: theme.danger }}>{error}</Text><Button theme={theme} label="Retry exercises" onPress={retry} /></>}
     {!data && !error && <Text style={{ color: theme.muted }}>Loading exercises...</Text>}
     {data && !data.length && <Text style={{ color: theme.muted }}>No completed exercises yet. Finish a workout to start your history.</Text>}
-    {data && data.length > 0 && !items.length && <Text style={{ color: theme.muted }}>No exercises match your search.</Text>}
-    <ExerciseGroups items={items} searching={Boolean(search.trim())} theme={theme} renderItem={item => <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+    {data && data.length > 0 && !items.length && <Text style={{ color: theme.muted }}>No exercises match your search or filters.</Text>}
+    <ExerciseGroups items={items} searching={Boolean(search.trim()) || filters.subcategory !== 'All'} theme={theme} renderItem={item => <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <Button theme={theme} label={item.name} accessibilityLabel={`View progress for ${item.name}, ${item.bodyweight ? 'bodyweight' : 'loaded'}`} onPress={() => router.push({ pathname: '/progress/[id]', params: { id: item.id } })} />
       <Text style={{ color: theme.muted }}>{[item.category, item.subcategory, item.bodyweight ? 'Bodyweight reps' : 'Loaded sets'].filter(Boolean).join(' / ')}</Text>
     </View>} />
