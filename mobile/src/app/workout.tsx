@@ -12,6 +12,7 @@ import { useExerciseLibrary } from '../features/workouts/useExerciseLibrary';
 import { ExerciseEditor } from '../features/workouts/ExerciseEditor';
 import { useExerciseScroll } from '../features/workouts/useExerciseScroll';
 import { RoutineDialog } from '../features/workouts/RoutineDialog';
+import { WorkoutLoggingHelp } from '../features/workouts/WorkoutLoggingHelp';
 import { WorkoutSessionDetails, WorkoutSessionSummary } from '../features/workouts/WorkoutSessionDetails';
 import { newExercise, useWorkoutDraft } from '../features/workouts/useWorkoutDraft';
 import { Button, Screen, styles } from '../ui/controls';
@@ -37,9 +38,13 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
   const [routineOpen, setRoutineOpen] = useState(false), [routineNotice, setRoutineNotice] = useState('');
   const [setupError, setSetupError] = useState(''), [addingGym, setAddingGym] = useState(false);
   const references = validReferenceContext(draft);
+  const completedSetCount = draft.exercises.reduce((total, exercise) => total + exercise.sets.filter(set => set.completed).length, 0);
   const footer = <>
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-      <Text accessibilityLiveRegion="polite" style={{ color: status === 'Not saved' ? theme.danger : status === 'Draft saved' ? theme.success : theme.muted, flex: 1, fontSize: 12 }}>{status === 'Not saved' ? 'Couldn’t save' : status}</Text>
+      <View style={{ flex: 1, gap: 4 }}>
+        {step === 'exercises' && <Text style={{ color: theme.text, fontSize: 12 }}>{completedSetCount} {completedSetCount === 1 ? 'set done' : 'sets done'}</Text>}
+        {!!status && <Text accessibilityLiveRegion="polite" style={{ color: status === 'Not saved' ? theme.danger : status === 'Draft saved' ? theme.success : theme.muted, fontSize: 12 }}>{status === 'Not saved' ? 'Couldn’t save' : status}</Text>}
+      </View>
       <Button theme={theme} variant="danger" label="Discard workout" disabled={busy || addingGym} onPress={() => Alert.alert('Discard this workout?', 'This removes the unfinished draft from this phone.', [
         { text: 'Keep workout', style: 'cancel' }, { text: 'Discard', style: 'destructive', onPress: async () => { if (await discard()) router.replace('/'); } },
       ])} />
@@ -79,14 +84,15 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
           update={change => { setSetupError(''); update(change); }}
           removeLocation={async id => { setAddingGym(true); try { await removeLocation(id); } finally { setAddingGym(false); } }}
           addGym={async name => { setAddingGym(true); try { await addGym(name); } finally { setAddingGym(false); } }} />
-        <Button theme={theme} label="Choose routine" disabled={busy || addingGym || !draft.locationId} onPress={() => setRoutineOpen(true)} />
+        <Button theme={theme} variant="info" label="Choose routine" disabled={busy || addingGym || !draft.locationId} onPress={() => setRoutineOpen(true)} />
         <RecentSessions context={references} sessionType={draft.sessionType} theme={theme} open={id => router.push({ pathname: '/history/[id]', params: { id, returnToWorkout: '1' } })} />
 
       </> : <>
-        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+        <View style={[styles.card, { backgroundColor: theme.infoSoft, borderColor: theme.infoBorder, flexDirection: 'row', gap: 12, alignItems: 'center', flexWrap: 'wrap' }]}>
           <View style={{ flex: 1 }}><WorkoutSessionSummary draft={draft} locations={locations} theme={theme} /></View>
-          <Button theme={theme} variant="link" label="Edit details" disabled={busy} onPress={() => { setSetupError(''); setStep('details'); }} />
+          <Button theme={theme} label="Edit details" disabled={busy} onPress={() => { setSetupError(''); setStep('details'); }} />
         </View>
+      <Text accessibilityRole="header" style={{ color: theme.text, fontSize: 18 }}>{draft.exercises.length} {draft.exercises.length === 1 ? 'exercise' : 'exercises'}</Text>
       {draft.exercises.map((exercise, index) => <View key={exercise.id} testID={`exercise-card-${exercise.id}`} onLayout={event => onExerciseLayout(exercise.id, event)}><ExerciseEditor references={references} library={library.items} initiallyExpanded={index === 0 || exercise.id === addedId} exercise={exercise} index={index} theme={theme} disabled={busy} newId={randomUUID}
         update={next => update(value => ({ ...value, exercises: value.exercises.map(item => item.id === next.id ? next : item) }))}
         remove={() => update(value => ({ ...value, exercises: value.exercises.filter(item => item.id !== exercise.id) }))} /></View>)}
@@ -94,7 +100,7 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
         <Text style={{ color: theme.text }}>Add your first exercise</Text><Text style={[styles.subtitle, { color: theme.muted }]}>Choose a familiar exercise or start with a new one.</Text>
       </View>}
       <Button theme={theme} variant="add" label="+ Add exercise" disabled={busy} onPress={() => setPickerOpen(true)} />
-      <Text style={[styles.subtitle, { color: theme.muted }]}>Only sets marked done will be saved as performed. There is no required exercise or set count.</Text>
+      <WorkoutLoggingHelp theme={theme} />
 
       </>}
 

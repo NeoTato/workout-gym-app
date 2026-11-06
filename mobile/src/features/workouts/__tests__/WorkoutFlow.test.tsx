@@ -41,6 +41,10 @@ it('starts with setup, keeps dates collapsed, and requires a location before log
   await fireEvent.press(screen.getByRole('button', { name: 'Continue to exercises' }));
   expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('10');
   expect(screen.queryByRole('button', { name: 'Change date and time' })).toBeNull();
+  expect(screen.queryByText(/Only completed sets are saved/)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'How logging works' }));
+  expect(screen.getByText(/Only completed sets are saved/)).toBeOnTheScreen();
+  expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('10');
 });
 
 it('retains exercises while moving between logging and details', async () => {
@@ -52,7 +56,8 @@ it('retains exercises while moving between logging and details', async () => {
   await fireEvent.press(screen.getByRole('button', { name: 'Session type: Upper' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Continue to exercises' }));
   expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('12');
-  expect(screen.getByText(/Upper · Home/)).toBeOnTheScreen();
+  expect(screen.getByText('Upper')).toBeOnTheScreen();
+  expect(screen.getByText('Home')).toBeOnTheScreen();
 });
 
 it('opens resumed and legacy configured drafts directly in exercise logging', async () => {

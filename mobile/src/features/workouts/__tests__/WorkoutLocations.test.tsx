@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { WorkoutSessionDetails } from '../WorkoutSessionDetails';
 import { getTheme } from '../../../ui/theme';
@@ -31,4 +31,18 @@ it('hides removed choices and requires confirmation before removing a gym', asyn
 it('keeps a removed location visible when editing its existing workout', async () => {
   await render(<WorkoutSessionDetails draft={{ ...draft, locationId: 'old' }} locations={locations} theme={getTheme('light')} busy={false} update={jest.fn()} />);
   expect(screen.getByRole('button', { name: 'Workout location: Old gym (removed)' })).toBeOnTheScreen();
+});
+
+it('reveals gym entry on demand, retains it after failure and closes it after saving', async () => {
+  const addGym = jest.fn().mockRejectedValueOnce(new Error('disk')).mockResolvedValue(undefined);
+  await render(<WorkoutSessionDetails draft={draft} locations={locations} theme={getTheme('light')} busy={false} update={jest.fn()} addGym={addGym} />);
+  expect(screen.queryByLabelText('New gym name')).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: '+ New gym' }));
+  await fireEvent.changeText(screen.getByLabelText('New gym name'), 'Gym B');
+  await fireEvent.press(screen.getByRole('button', { name: '+ Add gym' }));
+  await waitFor(() => expect(screen.getByRole('alert')).toBeOnTheScreen());
+  expect(screen.getByLabelText('New gym name')).toHaveDisplayValue('Gym B');
+  await fireEvent.press(screen.getByRole('button', { name: '+ Add gym' }));
+  await waitFor(() => expect(screen.queryByLabelText('New gym name')).toBeNull());
+  expect(addGym).toHaveBeenLastCalledWith('Gym B');
 });

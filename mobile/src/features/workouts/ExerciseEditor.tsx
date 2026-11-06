@@ -40,11 +40,11 @@ export function ExerciseEditor({ exercise, index, theme, disabled, update, remov
         <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 17 }}>{exercise.name || ('Exercise ' + (index + 1))}</Text>
         <Text style={{ color: theme.muted, fontSize: 12 }}>{completed}/{exercise.sets.length} sets done {expanded ? '-' : '+'}</Text>
       </Pressable>
-      <Button theme={theme} variant="link" label="Setup" accessibilityLabel={'Exercise ' + (index + 1) + ' settings'} disabled={disabled}
+      <Button theme={theme} variant="info" label="Setup" accessibilityLabel={'Exercise ' + (index + 1) + ' settings'} disabled={disabled}
         onPress={() => { setExpanded(true); setSetup(value => !value); }} />
     </View>
     {expanded && <>
-    {setup && <>
+    {setup && <View style={{ gap: 16, padding: 12, borderRadius: 12, backgroundColor: theme.soft }}>
     <ExerciseNameField exercise={exercise} index={index} theme={theme} disabled={disabled} items={library} update={update} />
     <ExerciseCategoryField value={exercise.category ?? ''} subcategory={exercise.subcategory ?? ''} theme={theme} disabled={disabled}
       onChange={category => update({ ...exercise, category, subcategory: category === exercise.category ? exercise.subcategory : '' })}
@@ -61,9 +61,12 @@ export function ExerciseEditor({ exercise, index, theme, disabled, update, remov
         onChange={convention => update({ ...exercise, convention, sets: exercise.sets.map(set => ({ ...set, completed: false })) })} />
     </>}
     <Button theme={theme} variant="danger" label={`Remove exercise ${index + 1}`} disabled={disabled} onPress={() => confirmRemove(remove, exercise.sets.some(set => set.completed))} />
-    <Button theme={theme} label="Done setup" disabled={disabled} onPress={() => setSetup(false)} />
-    </>}
-    <Text style={{ color: theme.muted, fontSize: 12 }}>{exercise.bodyweight ? 'Bodyweight reps' : ((exercise.unit === 'lb' ? 'lbs' : exercise.unit) + ' / ' + exercise.convention.replace('_', ' '))}{exercise.equipment ? ' / ' + exercise.equipment : ''}</Text>
+    <Button theme={theme} variant="info" label="Done setup" disabled={disabled} onPress={() => setSetup(false)} />
+    </View>}
+    {!setup && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+      {!!exercise.equipment && <Text style={{ color: theme.text, fontFamily: fonts.medium, flexShrink: 1 }}>{exercise.equipment}</Text>}
+      <Text style={{ color: theme.info, fontSize: 12, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.infoSoft }}>{exercise.bodyweight ? 'Bodyweight reps' : `${exercise.unit === 'lb' ? 'lbs' : exercise.unit} ${exercise.convention.replaceAll('_', ' ')}`}</Text>
+    </View>}
     {references !== undefined && <PreviousExerciseSets context={references} exercise={exercise} theme={theme} />}
     {!largeText && exercise.sets.length > 0 && <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Text style={{ width: 22, color: theme.muted, fontSize: 10 }}>SET</Text>

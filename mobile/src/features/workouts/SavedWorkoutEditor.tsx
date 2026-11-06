@@ -11,6 +11,7 @@ import { newExercise } from './useWorkoutDraft';
 import { ExercisePicker } from './ExercisePicker';
 import { useExerciseLibrary } from './useExerciseLibrary';
 import { WorkoutSessionDetails, WorkoutSessionSummary } from './WorkoutSessionDetails';
+import { WorkoutLoggingHelp } from './WorkoutLoggingHelp';
 
 export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: {
   initial: WorkoutDraft; locations: Location[]; theme: AppTheme;
@@ -54,7 +55,7 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
       update={next => setDraft(value => ({ ...value, exercises: value.exercises.map(item => item.id === next.id ? next : item) }))}
       remove={() => setDraft(value => ({ ...value, exercises: value.exercises.filter(item => item.id !== exercise.id) }))} /></View>)}
     <Button theme={theme} variant="add" label="+ Add exercise" disabled={busy} onPress={() => setPickerOpen(true)} />
-    <Text style={[styles.subtitle, { color: theme.muted }]}>Valid load and reps automatically complete a set; bodyweight sets need reps only. Copied sets stay incomplete until edited or marked done. Complete or remove every set before saving.</Text>
+    <WorkoutLoggingHelp theme={theme} editing />
     </>}
     {!!error && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{error}</Text>}
 
