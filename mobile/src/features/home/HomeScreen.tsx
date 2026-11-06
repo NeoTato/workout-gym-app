@@ -9,11 +9,11 @@ import type { LocationFilter } from '../../domain/workoutCalendar';
 import { WorkoutCalendar } from './WorkoutCalendar';
 import { HomeNavigationCard } from './HomeNavigationCard';
 
-export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen, onOpenDay, onSummary, onProgress, weeklyProgress, refreshing = false, error = '', onRetry }: {
+export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen, onOpenDay, onSummary, onProgress, onBackup, weeklyProgress, refreshing = false, error = '', onRetry }: {
   theme: AppTheme; workouts?: WorkoutListItem[]; hasDraft?: boolean;
   onStart?: () => void; onOpen?: (id: string) => void;
   onOpenDay?: (date: string, filter: LocationFilter) => void; refreshing?: boolean; error?: string; onRetry?: () => void;
-  onSummary?: () => void; onProgress?: () => void; weeklyProgress?: ReactNode;
+  onSummary?: () => void; onProgress?: () => void; onBackup?: () => void; weeklyProgress?: ReactNode;
 }) {
   return (
     <SafeAreaView
@@ -35,6 +35,7 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
           {onProgress && <HomeNavigationCard theme={theme} kind="progress" onPress={onProgress} />}
         </View>}
         {weeklyProgress}
+        {onBackup && <Button theme={theme} variant="info" label="Backup and restore" onPress={onBackup} />}
         {refreshing && <Text style={{ color: theme.muted }}>Updating history…</Text>}
         {!!error && <><Text accessibilityRole="alert" style={{ color: theme.danger }}>{error} Showing the last loaded view.</Text>{onRetry && <Button theme={theme} label="Retry history" onPress={onRetry} />}</>}
         {!workouts.length && !error && <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>

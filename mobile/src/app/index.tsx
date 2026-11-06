@@ -35,6 +35,7 @@ export default function HomeRoute() {
     refreshing={loading} error={error} onRetry={refresh}
     onSummary={() => router.push('/summary')}
     onProgress={() => router.push('/progress')}
+    onBackup={() => router.push('/backup')}
     weeklyProgress={<View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <Text accessibilityRole="header" style={{ color: theme.text }}>This week</Text>
       {progress.data && <><WeekProgress week={progress.data.currentWeek} theme={theme} /><Text style={{ color: theme.muted }}>Current streak: {progress.data.currentStreak} {progress.data.currentStreak === 1 ? 'week' : 'weeks'}</Text></>}
