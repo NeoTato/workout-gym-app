@@ -2,10 +2,12 @@ import { randomUUID, digestStringAsync, CryptoDigestAlgorithm } from 'expo-crypt
 import { openDatabaseAsync } from 'expo-sqlite';
 
 import { createWorkoutStore, type SqlDatabase, type WorkoutStore } from './workoutStore';
+import { databaseAccess } from './databaseAccess';
 
 let pending: Promise<WorkoutStore> | null = null;
 export function openStore(): Promise<WorkoutStore> {
   if (!pending) pending = (async () => {
+    await databaseAccess();
     const db = await openDatabaseAsync('workout-journal.db');
     const executor = {
       execAsync: db.execAsync.bind(db), runAsync: db.runAsync.bind(db),
