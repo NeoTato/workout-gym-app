@@ -1,14 +1,17 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { getTheme } from '../ui/theme';
+import { AppearanceProvider } from '../ui/AppearanceProvider';
+import { useAppearance } from '../ui/appearanceContext';
 
 export default function RootLayout() {
-  const scheme = useColorScheme();
-  const theme = getTheme(scheme);
+  return <AppearanceProvider><AppLayout /></AppearanceProvider>;
+}
+function AppLayout() {
+  const { scheme, theme, ready } = useAppearance();
   // Runtime loading works in Expo Go without a custom native build.
   const [loaded, error] = useFonts({
     'Recursive-Medium': require('../../assets/fonts/recursive.ttf'),
@@ -18,7 +21,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      {!loaded ? (
+      {!loaded || !ready ? (
         <View style={[styles.loading, { backgroundColor: theme.background }]}>
           {error ? (
             <Text accessibilityRole="alert" style={{ color: theme.text }}>

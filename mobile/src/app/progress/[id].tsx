@@ -1,14 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Text, useColorScheme } from 'react-native';
+import { Text } from 'react-native';
 import { localDate } from '../../domain/workout';
 import { ExerciseProgressScreen } from '../../features/progress/ExerciseProgressScreen';
 import { useExerciseProgress } from '../../features/progress/useExerciseProgress';
 import { Button, Screen } from '../../ui/controls';
-import { getTheme } from '../../ui/theme';
+import { useAppTheme } from '../../ui/appearanceContext';
 
 export default function ExerciseProgressRoute() {
   const { id, variationId } = useLocalSearchParams<{ id: string; variationId?: string }>();
-  const theme = getTheme(useColorScheme()), { data, error, retry, refreshing } = useExerciseProgress(id, localDate(new Date()));
+  const theme = useAppTheme(), { data, error, retry, refreshing } = useExerciseProgress(id, localDate(new Date()));
   const back = () => { if (router.canGoBack()) router.back(); else router.replace('/progress'); };
   if (!data) return <Screen theme={theme}>
     <Button theme={theme} variant="link" label="Back" onPress={back} />

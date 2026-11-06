@@ -1,15 +1,15 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Text, View, useColorScheme } from 'react-native';
+import { Text, View } from 'react-native';
 import { useProgressLibrary } from '../../features/progress/useExerciseProgress';
 import { ExerciseGroups } from '../../features/exercises/ExerciseGroups';
 import { emptyProgressFilters, ProgressBrowseControls, type ProgressFilters } from '../../features/progress/ProgressBrowseControls';
 import { Button, Screen, styles } from '../../ui/controls';
-import { getTheme } from '../../ui/theme';
+import { useAppTheme } from '../../ui/appearanceContext';
 import { exerciseNameKey } from '../../domain/exerciseLibrary';
 
 export default function ProgressLibraryRoute() {
-  const theme = getTheme(useColorScheme()), { data, error, retry } = useProgressLibrary();
+  const theme = useAppTheme(), { data, error, retry } = useProgressLibrary();
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<ProgressFilters>(emptyProgressFilters);
   const items = data?.filter(item => `${item.name} ${item.category ?? ''} ${item.subcategory ?? ''}`.toLowerCase().includes(search.trim().toLowerCase())

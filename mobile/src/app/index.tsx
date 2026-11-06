@@ -1,18 +1,18 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Text, View, useColorScheme } from 'react-native';
+import { Text, View } from 'react-native';
 import { localDate } from '../domain/workout';
 import { useWeeklyConsistency } from '../features/consistency/useWeeklyConsistency';
 import { WeekProgress } from '../features/consistency/WeekProgress';
 
 import { HomeScreen } from '../features/home/HomeScreen';
-import { getTheme } from '../ui/theme';
+import { useAppTheme } from '../ui/appearanceContext';
 import type { WorkoutListItem } from '../domain/workout';
 import { openStore } from '../storage/openStore';
 import { Button, Screen, styles } from '../ui/controls';
 
 export default function HomeRoute() {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const progress = useWeeklyConsistency(localDate(new Date()));
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -35,6 +35,7 @@ export default function HomeRoute() {
     refreshing={loading} error={error} onRetry={refresh}
     onSummary={() => router.push('/summary')}
     onProgress={() => router.push('/progress')}
+    onSettings={() => router.push('/settings')}
     weeklyProgress={<View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <Text accessibilityRole="header" style={{ color: theme.text }}>This week</Text>
       {progress.data && <><WeekProgress week={progress.data.currentWeek} theme={theme} /><Text style={{ color: theme.muted }}>Current streak: {progress.data.currentStreak} {progress.data.currentStreak === 1 ? 'week' : 'weeks'}</Text></>}

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fonts, type AppTheme } from '../../ui/theme';
@@ -9,11 +9,11 @@ import type { LocationFilter } from '../../domain/workoutCalendar';
 import { WorkoutCalendar } from './WorkoutCalendar';
 import { HomeNavigationCard } from './HomeNavigationCard';
 
-export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen, onOpenDay, onSummary, onProgress, weeklyProgress, refreshing = false, error = '', onRetry }: {
+export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen, onOpenDay, onSummary, onProgress, onSettings, weeklyProgress, refreshing = false, error = '', onRetry }: {
   theme: AppTheme; workouts?: WorkoutListItem[]; hasDraft?: boolean;
   onStart?: () => void; onOpen?: (id: string) => void;
   onOpenDay?: (date: string, filter: LocationFilter) => void; refreshing?: boolean; error?: string; onRetry?: () => void;
-  onSummary?: () => void; onProgress?: () => void; weeklyProgress?: ReactNode;
+  onSummary?: () => void; onProgress?: () => void; onSettings?: () => void; weeklyProgress?: ReactNode;
 }) {
   return (
     <SafeAreaView
@@ -23,9 +23,13 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
     >
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
         <Text style={[styles.eyebrow, { color: theme.muted }]}>WORKOUT JOURNAL</Text>
-        <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>
-          Today
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <Text accessibilityRole="header" style={[styles.title, { color: theme.text, flexShrink: 1 }]}>Today</Text>
+          {onSettings && <Pressable accessibilityRole="button" accessibilityLabel="Settings" accessibilityHint="Open app settings and backups" onPress={onSettings}
+            style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 14, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.75 : 1 })}>
+            <Text accessible={false} style={{ color: theme.text, fontSize: 27, lineHeight: 34 }}>{'\u2699\uFE0E'}</Text>
+          </Pressable>}
+        </View>
         <Text style={[styles.body, { color: theme.muted }]}>
           A little progress, at your pace.
         </Text>

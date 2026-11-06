@@ -1,7 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Text, View, useColorScheme } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import type { WorkoutDraft } from '../domain/workout';
 import { addRoutineToDraft } from '../domain/routine';
 import { validReferenceContext } from '../domain/workoutReferences';
@@ -16,11 +16,11 @@ import { WorkoutLoggingHelp } from '../features/workouts/WorkoutLoggingHelp';
 import { WorkoutSessionDetails, WorkoutSessionSummary } from '../features/workouts/WorkoutSessionDetails';
 import { newExercise, useWorkoutDraft } from '../features/workouts/useWorkoutDraft';
 import { Button, Screen, styles } from '../ui/controls';
-import { getTheme } from '../ui/theme';
+import { useAppTheme } from '../ui/appearanceContext';
 
 export default function WorkoutRoute() {
   const model = useWorkoutDraft();
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   if (model.draft) return <WorkoutFlow {...model} draft={model.draft} />;
   return <Screen theme={theme}>
     <Button theme={theme} variant="link" label="‹ Home" accessibilityLabel="Home - keep draft" onPress={() => router.replace('/')} />
@@ -29,7 +29,7 @@ export default function WorkoutRoute() {
 }
 
 function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, removeLocation, finish, discard }: ReturnType<typeof useWorkoutDraft> & { draft: WorkoutDraft }) {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const [step, setStep] = useState<'details' | 'exercises'>(() => (draft.setupComplete ?? Boolean(draft.locationId)) ? 'exercises' : 'details');
   const library = useExerciseLibrary();
   const { scrollRef, requestScroll, onExerciseLayout } = useExerciseScroll();
