@@ -1,7 +1,8 @@
 import { completedExercises, localDate } from '../domain/workout.ts';
 import type { CompletedExercise, Location, SavedWorkout, WorkoutDraft, WorkoutListItem } from '../domain/workout.ts';
 import { activityDateValue, type LocationFilter } from '../domain/workoutCalendar.ts';
-import { periodBounds, summarizePeriod, type SummaryPeriod, type WorkoutCoverage } from '../domain/workoutSummary.ts';
+import { periodBounds, shiftSummaryPeriod, summarizePeriod, type SummaryPeriod, type WorkoutCoverage } from '../domain/workoutSummary.ts';
+import { calculateConsistency, consistencyForPeriod, effectiveWeeklyTarget, type WeeklyGoal } from '../domain/weeklyGoals.ts';
 import type { PreviousExercise, ReferenceContext, ReferenceExercise } from '../domain/workoutReferences.ts';
 import { routineExercises, type Routine, type RoutineExercise } from '../domain/routine.ts';
 import { schema } from './schema.ts';
@@ -77,12 +78,18 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       'SELECT exercise_id AS catalogId,name,equipment,bodyweight,unit,convention,category,subcategory,set_count AS setCount FROM routine_slots WHERE routine_id=? ORDER BY position', row.id);
     return { ...row, exercises: rows.map(exercise => ({ ...exercise, bodyweight: Boolean(exercise.bodyweight) })) };
   }
+  async function weeklyInputs(asOf: string) {
+    activityDateValue(asOf);
+    const goals = await db.getAllAsync<WeeklyGoal>('SELECT effective_week_start AS effectiveWeekStart,target_days AS targetDays FROM weekly_goals ORDER BY effective_week_start');
+    const rows = await db.getAllAsync<{ date: string }>("SELECT DISTINCT activity_date AS date FROM sessions WHERE status='completed' AND activity_date<=? ORDER BY activity_date", asOf);
+    return { goals, dates: rows.map(row => row.date) };
+  }
   return {
     initialize: () => queue(async () => {
       await db.execAsync('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;');
       await db.transaction(async tx => {
         const version = (await tx.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))?.user_version ?? 0;
-        if (version > 5) throw new Error('This database was created by a newer app. Update the app to open it.');
+        if (version > 6) throw new Error('This database was created by a newer app. Update the app to open it.');
         if (version === 0) await tx.execAsync(schema);
         if (version < 2) await tx.execAsync('ALTER TABLE locations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)); PRAGMA user_version=2;');
         if (version < 3) await tx.execAsync("ALTER TABLE exercises ADD COLUMN category TEXT NOT NULL DEFAULT '' CHECK(category IN ('','Push','Pull','Legs','Core','Cardio','Mobility','Other')); PRAGMA user_version=3;");
@@ -92,17 +99,35 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
           CREATE TABLE routine_slots (routine_id TEXT NOT NULL REFERENCES routines(id) ON DELETE CASCADE,position INTEGER NOT NULL,exercise_id TEXT NOT NULL REFERENCES exercises(id),
             name TEXT NOT NULL,equipment TEXT NOT NULL,bodyweight INTEGER NOT NULL CHECK(bodyweight IN (0,1)),unit TEXT NOT NULL,convention TEXT NOT NULL,category TEXT NOT NULL,subcategory TEXT NOT NULL,set_count INTEGER NOT NULL CHECK(set_count>0),PRIMARY KEY(routine_id,position));
           PRAGMA user_version=5;`);
+        if (version < 6) {
+          await tx.execAsync("CREATE TABLE weekly_goals (effective_week_start TEXT NOT NULL PRIMARY KEY CHECK(COALESCE(strftime('%w',effective_week_start),'')='1'),target_days INTEGER NOT NULL CHECK(typeof(target_days)='integer' AND target_days BETWEEN 1 AND 7));");
+          await tx.runAsync('INSERT INTO weekly_goals VALUES (?,?)', periodBounds('week', localDate(new Date(now()))).start, 3);
+          await tx.execAsync('PRAGMA user_version=6;');
+        }
       });
     }),
     listLocations: () => queue(() => db.getAllAsync<Location>('SELECT * FROM locations ORDER BY kind DESC,name')),
+    getWeeklyConsistency: (asOf = localDate(new Date(now()))) => queue(async () => {
+      const input = await weeklyInputs(asOf); return calculateConsistency(input.dates, input.goals, asOf);
+    }),
+    scheduleWeeklyGoal: (targetDays: number, today = localDate(new Date(now()))) => queue(async () => {
+      if (!Number.isInteger(targetDays) || targetDays < 1 || targetDays > 7) throw new Error('Choose a weekly target from 1 to 7 active days.');
+      const next = shiftSummaryPeriod('week', today, 1);
+      if (!next) throw new Error('A target cannot be scheduled beyond the supported calendar.');
+      const goals = await db.getAllAsync<WeeklyGoal>('SELECT effective_week_start AS effectiveWeekStart,target_days AS targetDays FROM weekly_goals ORDER BY effective_week_start');
+      if (effectiveWeeklyTarget(goals, today) === targetDays) await db.runAsync('DELETE FROM weekly_goals WHERE effective_week_start=?', next);
+      else await db.runAsync('INSERT INTO weekly_goals VALUES (?,?) ON CONFLICT(effective_week_start) DO UPDATE SET target_days=excluded.target_days', next, targetDays);
+      return next;
+    }),
     getPeriodSummary: (kind: SummaryPeriod, anchor: string, today = localDate(new Date(now()))) => queue(async () => {
       activityDateValue(today);
       const bounds = periodBounds(kind, anchor), end = bounds.end < today ? bounds.end : today;
-      if (bounds.start > today) return summarizePeriod(kind, anchor, today, [], []);
+      const input = await weeklyInputs(today), consistency = consistencyForPeriod(kind, anchor, input.dates, input.goals, today);
+      if (bounds.start > today) return { ...summarizePeriod(kind, anchor, today, [], []), consistency };
       const items = await db.getAllAsync<WorkoutListItem>(`SELECT id,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_id AS locationId,location_kind_snapshot AS locationKind,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions WHERE status='completed' AND activity_date>=? AND activity_date<=?`, bounds.start, end);
       const coverage = await db.getAllAsync<WorkoutCoverage>(`SELECT DISTINCT s.id AS sessionId,CASE WHEN e.subcategory<>'' THEN e.subcategory WHEN e.category<>'' THEN e.category ELSE 'Uncategorized' END AS "group"
         FROM sessions s JOIN session_exercises se ON se.session_id=s.id JOIN exercises e ON e.id=se.exercise_id WHERE s.status='completed' AND s.activity_date>=? AND s.activity_date<=?`, bounds.start, end);
-      return summarizePeriod(kind, anchor, today, items, coverage);
+      return { ...summarizePeriod(kind, anchor, today, items, coverage), consistency };
     }),
     listRoutines: () => queue(async () => {
       const rows = await db.getAllAsync<Omit<Routine, 'exercises'>>('SELECT id,name,session_type AS sessionType,location_id AS locationId,location_name_snapshot AS locationName FROM routines ORDER BY name COLLATE NOCASE,id');

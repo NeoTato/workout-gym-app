@@ -1,15 +1,19 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Text, useColorScheme } from 'react-native';
+import { Text, View, useColorScheme } from 'react-native';
+import { localDate } from '../domain/workout';
+import { useWeeklyConsistency } from '../features/consistency/useWeeklyConsistency';
+import { WeekProgress } from '../features/consistency/WeekProgress';
 
 import { HomeScreen } from '../features/home/HomeScreen';
 import { getTheme } from '../ui/theme';
 import type { WorkoutListItem } from '../domain/workout';
 import { openStore } from '../storage/openStore';
-import { Button, Screen } from '../ui/controls';
+import { Button, Screen, styles } from '../ui/controls';
 
 export default function HomeRoute() {
   const theme = getTheme(useColorScheme());
+  const progress = useWeeklyConsistency(localDate(new Date()));
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [hasDraft, setHasDraft] = useState(false), [loading, setLoading] = useState(true), [error, setError] = useState('');
@@ -30,6 +34,13 @@ export default function HomeRoute() {
   return <HomeScreen theme={theme} workouts={workouts} hasDraft={hasDraft} onStart={() => router.push('/workout')}
     refreshing={loading} error={error} onRetry={refresh}
     onSummary={() => router.push('/summary')}
+    weeklyProgress={<View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <Text accessibilityRole="header" style={{ color: theme.text }}>This week</Text>
+      {progress.data && <><WeekProgress week={progress.data.currentWeek} theme={theme} /><Text style={{ color: theme.muted }}>Current streak: {progress.data.currentStreak} {progress.data.currentStreak === 1 ? 'week' : 'weeks'}</Text></>}
+      {!progress.data && !progress.error && <Text style={{ color: theme.muted }}>Loading progress...</Text>}
+      {!!progress.error && <><Text accessibilityRole="alert" style={{ color: theme.danger }}>{progress.error}</Text><Button theme={theme} label="Retry progress" onPress={progress.retry} /></>}
+      <Button theme={theme} variant="link" label="Goals and streaks" onPress={() => router.push('/consistency')} />
+    </View>}
     onOpenDay={(date, filter) => router.push({ pathname: '/history/day', params: { date, filter } })}
     onOpen={id => router.push({ pathname: '/history/[id]', params: { id, returnToCalendar: '1' } })} />;
 }

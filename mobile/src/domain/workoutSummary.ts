@@ -1,9 +1,10 @@
 import { localDate, sessionTypes, type WorkoutListItem } from './workout.ts';
 import { activityDateValue } from './workoutCalendar.ts';
+import type { PeriodConsistency } from './weeklyGoals.ts';
 
 export type SummaryPeriod = 'week' | 'month' | 'year';
 export type WorkoutCoverage = { sessionId: string; group: string };
-export type PeriodSummary = ReturnType<typeof summarizePeriod>;
+export type PeriodSummary = ReturnType<typeof summarizePeriod> & { consistency?: PeriodConsistency };
 
 function dateKey(date: Date): string {
   return `${String(date.getUTCFullYear()).padStart(4, '0')}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
