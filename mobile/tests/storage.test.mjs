@@ -39,6 +39,37 @@ function draft(id = 'workout-1') {
 let counter = 0;
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
 
+test('exercise progress isolates gym, machine, convention, dimension and mode, and refreshes corrections', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize(); const gym = await store.addGym('Progress gym');
+    await store.finish(draft('progress-lb'));
+    const kg = draft('progress-kg'); kg.exercises[0].unit = 'kg'; kg.exercises[0].sets[0].weight = '20'; await store.finish(kg);
+    const otherGym = draft('progress-gym'); otherGym.locationId = gym.id; await store.finish(otherGym);
+    const machine = draft('progress-machine'); machine.exercises[0].equipment = 'Machine B'; await store.finish(machine);
+    const total = draft('progress-total'); total.exercises[0].convention = 'total'; await store.finish(total);
+    const plates = draft('progress-plates'); plates.exercises[0].unit = 'plates'; await store.finish(plates);
+    const bodyweight = draft('progress-bodyweight'); bodyweight.exercises[0].bodyweight = true; await store.finish(bodyweight);
+    await store.saveDraft(draft('progress-draft')); await store.removeLocation(gym.id);
+    const library = await store.listLoggedExercises(), loaded = library.find(item => !item.bodyweight);
+    let result = await store.getExerciseProgress(loaded.id);
+    assert.equal(result.variations.length, 5);
+    const homeMass = result.variations.find(item => item.locationId === 'home' && item.equipment === 'Dumbbells' && item.convention === 'per_hand' && item.dimension === 'mass');
+    assert.equal(homeMass.sessions.length, 2); assert.deepEqual(homeMass.sessions.map(item => item.sets[0].unit).sort(), ['kg', 'lb']);
+    assert.equal(result.variations.find(item => item.locationId === gym.id).archived, true);
+    assert.equal((await store.getExerciseProgress(library.find(item => item.bodyweight).id)).variations[0].bodyweight, true);
+    const edit = await store.getWorkoutEdit('progress-kg'); edit.exercises[0].sets[0].weight = '25'; edit.timing = { startDate: '2026-10-31', startTime: '09:00', endDate: '2026-10-31', endTime: '10:00' }; await store.updateWorkout(edit);
+    result = await store.getExerciseProgress(loaded.id);
+    const corrected = result.variations.flatMap(item => item.sessions).find(item => item.workoutId === 'progress-kg');
+    assert.equal(corrected.activityDate, '2026-10-31'); assert.equal(corrected.sets[0].weight, 25);
+    await store.deleteWorkout('progress-lb'); await store.deleteWorkout('progress-kg');
+    result = await store.getExerciseProgress(loaded.id);
+    assert.equal(result.variations.some(item => item.variationId === homeMass.variationId), false);
+    assert.deepEqual(await store.getDraft(), draft('progress-draft'));
+    await assert.rejects(store.getExerciseProgress('missing'), /not be found/);
+  } finally { connection.db.close(); }
+});
+
 test('weekly targets schedule next Monday, replace/cancel pending edits, and preserve historical goals and drafts', async () => {
   const connection = connect(':memory:');
   try {
