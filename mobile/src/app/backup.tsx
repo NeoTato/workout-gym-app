@@ -7,5 +7,5 @@ import { openStore } from '../storage/openStore';
 import { getTheme } from '../ui/theme';
 
 export default function BackupRoute() {
-  return <><Stack.Screen options={{ gestureEnabled: false }} /><BackupScreen theme={getTheme(useColorScheme())} store={openStore} files={backupFiles} appVersion={Constants.expoConfig?.version ?? 'unknown'} onBack={() => { if (router.canGoBack()) router.back(); else router.replace('/'); }} /></>;
+  return <><Stack.Screen options={{ gestureEnabled: false }} /><BackupScreen theme={getTheme(useColorScheme())} store={openStore} files={backupFiles} appVersion={Constants.expoConfig?.version ?? 'unknown'} onBack={() => { if (router.canGoBack()) router.back(); else router.replace('/settings'); }} onHome={() => router.replace('/')} /></>;
 }

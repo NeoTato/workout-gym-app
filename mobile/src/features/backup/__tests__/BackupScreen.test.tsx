@@ -10,7 +10,7 @@ function setup() {
   const files: BackupFiles = { pick: jest.fn().mockResolvedValue({ name: 'journal.json', read, dispose }), save: jest.fn().mockResolvedValue('Share sheet closed. Make sure you saved a copy.') };
   const storage = { inspectBackup: jest.fn().mockResolvedValue({ token: 'review', exportedAt: '2026-11-01T10:00:00Z', appVersion: '0.1.0', incoming: counts, current: { ...counts, workouts: 4 } }), exportBackup: jest.fn().mockResolvedValue('current-data'), restoreBackup: jest.fn().mockResolvedValue(counts) };
   const back = jest.fn(), store = async () => storage as unknown as WorkoutStore;
-  return { files, storage, read, dispose, back, props: { theme: getTheme('light'), store, files, appVersion: '0.1.0', onBack: back } };
+  return { files, storage, read, dispose, back, props: { theme: getTheme('light'), store, files, appVersion: '0.1.0', onBack: back, onHome: back } };
 }
 const press = async (name: string) => fireEvent.press(screen.getByRole('button', { name }));
 
@@ -47,7 +47,7 @@ test('failed replacement requires fresh inspection and busy actions cannot trigg
   await render(<BackupScreen {...state.props} />); await press('Choose backup file'); await screen.findByText('Backup preview');
   await press('Review replacement'); await press('Replace data');
   await waitFor(() => expect(state.storage.restoreBackup).toHaveBeenCalledTimes(1));
-  expect(screen.getByRole('button', { name: 'Back to Home' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Back to Settings' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Choose backup file' })).toBeDisabled();
   await act(() => reject(new Error('The file or your local data changed. Inspect again.')));
   await screen.findByText('The file or your local data changed. Inspect again.');

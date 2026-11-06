@@ -4,7 +4,7 @@ Status: implemented on `feat/json-backup-restore`; leave the PR unmerged until p
 
 ## Behavior
 
-Home has a **Backup and restore** button. Export takes a consistent snapshot after pending writes finish. The file includes workouts, original loads/units, equipment and location identities, archived gyms, exercise categories/subcategories, routine templates, weekly goal history (including a pending target) and the active draft with unfinished input. There are no stored theme/unit preferences yet. Charts and streaks recalculate from restored records.
+The gear at the top right of Home opens **Settings**, where **Backup and restore** lives. Export takes a consistent snapshot after pending writes finish. The file includes workouts, original loads/units, equipment and location identities, archived gyms, exercise categories/subcategories, routine templates, weekly goal history (including a pending target) and the active draft with unfinished input. There are no stored theme/unit preferences yet. Charts and streaks recalculate from restored records.
 
 On iOS/Android, export opens the system share sheet. Choose **Save to Files** or another destination; returning from the share sheet does not prove a copy was saved. Cached files are temporary. Web starts a browser download. JSON is readable personal workout data; there is no app upload or cloud sync.
 
@@ -19,7 +19,7 @@ Schema 7 adds internal revision metadata and transactional triggers for every us
 From `mobile/`, stop Metro if it is running, run `npm ci`, then `npm start -- --clear`. The new Expo DocumentPicker, FileSystem and Sharing packages are SDK 58 compatible and included in Expo Go. This feature does not add a receiving share extension or generate native projects.
 
 1. Make a few completed workouts with Push/Pull subcategories, a gym and Home, mixed lb/kg/plates/bodyweight sets, a routine and a scheduled goal change. Leave an unfinished draft, including a blank set.
-2. Open **Backup and restore**, export JSON and explicitly save it to Files. Open Files and verify the `.json` exists outside the app cache. Cancelling the share sheet must not claim a durable backup or alter workouts.
+2. Open **Settings > Backup and restore**, export JSON and explicitly save it to Files. Open Files and verify the `.json` exists outside the app cache. Cancelling the share sheet must not claim a durable backup or alter workouts.
 3. Choose that file. Check the counts/date range and unfinished-workout indication. Cancel the replacement confirmation and confirm the existing journal is unchanged. Cancelling the file picker must also be harmless.
 4. Export a safety copy of current data, make a temporary change, then choose the earlier backup and confirm replacement. Check history, dates, original units/equipment, categories, routines, goals/streaks and the resumed draft. Close/reopen the app and check again.
 5. Restore the same file again; counts must stay the same. Try a malformed or unsupported JSON file; the app must show an actionable error and retain existing data. Do not delete the safety copy until review is complete.

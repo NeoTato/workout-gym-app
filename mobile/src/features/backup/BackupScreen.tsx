@@ -6,8 +6,8 @@ import { Button, Screen, styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
 import type { BackupFile, BackupFiles } from './backupFiles.types';
 
-export function BackupScreen({ theme, store, files, appVersion, onBack }: {
-  theme: AppTheme; store: () => Promise<WorkoutStore>; files: BackupFiles; appVersion: string; onBack: () => void;
+export function BackupScreen({ theme, store, files, appVersion, onBack, onHome }: {
+  theme: AppTheme; store: () => Promise<WorkoutStore>; files: BackupFiles; appVersion: string; onBack: () => void; onHome: () => void;
 }) {
   const [review, setReview] = useState<BackupInspection | null>(null), [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(''), [error, setError] = useState(''), [message, setMessage] = useState(''), [restored, setRestored] = useState(false);
@@ -49,7 +49,7 @@ export function BackupScreen({ theme, store, files, appVersion, onBack }: {
   const card = [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }];
   const body = [styles.subtitle, { color: theme.muted }];
   return <Screen theme={theme}>
-    <Button theme={theme} variant="link" label="Back to Home" disabled={!!busy} onPress={onBack} />
+    <Button theme={theme} variant="link" label="Back to Settings" disabled={!!busy} onPress={onBack} />
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Backup and restore</Text>
     <Text style={body}>Keep a complete copy of your journal, or move it to another device.</Text>
     <View style={card}>
@@ -85,7 +85,7 @@ export function BackupScreen({ theme, store, files, appVersion, onBack }: {
       <Button theme={theme} variant="info" label="Back up current data first" onPress={() => { void exportCurrent(); }} disabled={!!busy} />
       <Button theme={theme} variant="destructive" label="Review replacement" onPress={() => setConfirm(true)} disabled={!!busy} />
     </View>}
-    {restored && <Button theme={theme} primary label="View restored journal" onPress={onBack} />}
+    {restored && <Button theme={theme} primary label="View restored journal" onPress={onHome} />}
     {confirm && review && <Modal transparent animationType="fade" onRequestClose={() => { if (!locked.current) setConfirm(false); }}>
       <View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#00000066', padding: 20 }}>
         <View accessibilityViewIsModal style={[...card, { width: '100%', maxWidth: 520, alignSelf: 'center', maxHeight: '90%' }]}>
