@@ -8,11 +8,11 @@ import type { WorkoutListItem } from '../../domain/workout';
 import type { LocationFilter } from '../../domain/workoutCalendar';
 import { WorkoutCalendar } from './WorkoutCalendar';
 
-export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen, onOpenDay, onSummary, weeklyProgress, refreshing = false, error = '', onRetry }: {
+export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen, onOpenDay, onSummary, onProgress, weeklyProgress, refreshing = false, error = '', onRetry }: {
   theme: AppTheme; workouts?: WorkoutListItem[]; hasDraft?: boolean;
   onStart?: () => void; onOpen?: (id: string) => void;
   onOpenDay?: (date: string, filter: LocationFilter) => void; refreshing?: boolean; error?: string; onRetry?: () => void;
-  onSummary?: () => void; weeklyProgress?: ReactNode;
+  onSummary?: () => void; onProgress?: () => void; weeklyProgress?: ReactNode;
 }) {
   return (
     <SafeAreaView
@@ -30,6 +30,7 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
 
         {onStart && <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />}
         {onSummary && <Button theme={theme} variant="link" label="Workout summaries" onPress={onSummary} />}
+        {onProgress && <Button theme={theme} variant="link" label="Exercise progress" onPress={onProgress} />}
         {weeklyProgress}
         {refreshing && <Text style={{ color: theme.muted }}>Updating history…</Text>}
         {!!error && <><Text accessibilityRole="alert" style={{ color: theme.danger }}>{error} Showing the last loaded view.</Text>{onRetry && <Button theme={theme} label="Retry history" onPress={onRetry} />}</>}
