@@ -3,6 +3,7 @@ import { activityDateValue } from './workoutCalendar.ts';
 import { periodBounds } from './workoutSummary.ts';
 import { timeFields } from './workoutTime.ts';
 import { canCompleteSet, sessionTypes, type WorkoutDraft } from './workout.ts';
+import { appearanceOptions, type AppearancePreference } from './appearance.ts';
 
 export const MAX_BACKUP_BYTES = 50 * 1024 * 1024;
 type Parser<T> = (value: unknown, path: string) => T;
@@ -44,7 +45,8 @@ export const backupRowSchemas = {
 } as const;
 type Schema = Record<string, Parser<unknown>>;
 type Parsed<S extends Schema> = { [K in keyof S]: ReturnType<S[K]> };
-export type BackupData = { [K in keyof typeof backupRowSchemas]: Parsed<typeof backupRowSchemas[K]>[] } & { draft: WorkoutDraft | null };
+type RecordData = { [K in keyof typeof backupRowSchemas]: Parsed<typeof backupRowSchemas[K]>[] };
+export type BackupData = RecordData & { draft: WorkoutDraft | null; settings: { appearance: AppearancePreference } };
 export type Backup = { format: 'workout-journal-backup'; formatVersion: 1; exportedAt: string; appVersion: string; data: BackupData };
 
 function parseRow<S extends Schema>(schema: S, value: unknown, path: string): Parsed<S> {
@@ -65,7 +67,7 @@ function positions<T>(values: T[], parent: (value: T) => string, position: (valu
   unique(values, value => `${parent(value)}:${position(value)}`, path);
 }
 
-function parseDraft(value: unknown, data: Omit<BackupData, 'draft'>, exportedAt: string): WorkoutDraft | null {
+function parseDraft(value: unknown, data: RecordData, exportedAt: string): WorkoutDraft | null {
   if (value === null) return null;
   const source = record(value, 'draft');
   keys(source, ['id', 'startedAt', 'activityDate', 'timezone', 'locationId', 'sessionType', 'exercises'], ['endedAt', 'setupComplete', 'timing'], 'draft');
@@ -109,13 +111,14 @@ export function validateBackup(input: unknown): Backup {
   const root = record(input, 'envelope'); keys(root, ['format', 'formatVersion', 'exportedAt', 'appVersion', 'data'], [], 'envelope');
   if (root.format !== 'workout-journal-backup' || root.formatVersion !== 1) throw new Error('This backup format or version is not supported. No data has been changed.');
   const exportedAt = instant(root.exportedAt, 'exportedAt'), appVersion = name(root.appVersion, 'appVersion'), source = record(root.data, 'data');
-  keys(source, [...Object.keys(backupRowSchemas), 'draft'], [], 'data');
+  keys(source, [...Object.keys(backupRowSchemas), 'draft'], ['settings'], 'data');
+  const settings = Object.hasOwn(source, 'settings') ? parseRow({ appearance: choice(appearanceOptions) }, source.settings, 'settings') : { appearance: 'system' as const };
   const parsed: Record<string, unknown> = {};
   for (const [key, schema] of Object.entries(backupRowSchemas)) {
     const rows = source[key]; if (!Array.isArray(rows)) fail(`data.${key}`);
     parsed[key] = rows.map((row, index) => parseRow(schema, row, `${key}[${index}]`));
   }
-  const data = parsed as Omit<BackupData, 'draft'>;
+  const data = parsed as RecordData;
   const locations = unique(data.locations, row => row.id, 'locations'), exercises = unique(data.exercises, row => row.id, 'exercises');
   const equipment = unique(data.equipmentVariations, row => row.id, 'equipment'), sessions = unique(data.sessions, row => row.id, 'sessions');
   const sessionExercises = unique(data.sessionExercises, row => row.id, 'session exercises'), routines = unique(data.routines, row => row.id, 'routines');
@@ -155,7 +158,7 @@ export function validateBackup(input: unknown): Backup {
     if (!populatedExercises.has(exercise.id)) fail('empty completed exercise');
   }
   for (const set of data.sets) { const exercise = ref(sessionExercises, set.sessionExerciseId, 'set exercise'); if (exercise.bodyweight ? set.loadValue !== null : set.loadValue === null) fail('completed set load'); }
-  return { format: 'workout-journal-backup', formatVersion: 1, exportedAt, appVersion, data: { ...data, draft: parseDraft(source.draft, data, exportedAt) } };
+  return { format: 'workout-journal-backup', formatVersion: 1, exportedAt, appVersion, data: { ...data, settings, draft: parseDraft(source.draft, data, exportedAt) } };
 }
 
 export function utf8Size(value: string): number {

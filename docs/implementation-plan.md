@@ -45,7 +45,7 @@ Verification: cross-year weeks, closed unmet weeks, current week met/unmet, long
 
 ## 6. JSON backup and atomic restore
 
-- Implement the versioned DTO validator, consistent snapshot export, native file picker/share adapters, inspection counts, explicit replacement confirmation, stale inspection detection, and transactional restoration. Support archived data, goals and the active draft. No app preferences exist yet; future stored settings need a format migration.
+- Implement the versioned DTO validator, consistent snapshot export, native file picker/share adapters, inspection counts, explicit replacement confirmation, stale inspection detection, and transactional restoration. Support archived data, goals and the active draft. Include the System/Light/Dark appearance setting; older preview backups without settings restore System.
 - Acceptance: export on one device and restore on a clean app/device; IDs, session snapshots, original units, targets, routines, draft input and calculated results match. A malformed, unsupported, stale, or failed import changes nothing. Restoring the same file again does not duplicate sessions.
 - Verify manual export/restore on both iOS and Android. File picker/share cancellation must be harmless. OS sharing must not be presented as confirmed cloud backup.
 

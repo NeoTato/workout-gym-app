@@ -6,8 +6,8 @@ import { Button, Screen, styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
 import type { BackupFile, BackupFiles } from './backupFiles.types';
 
-export function BackupScreen({ theme, store, files, appVersion, onBack, onHome }: {
-  theme: AppTheme; store: () => Promise<WorkoutStore>; files: BackupFiles; appVersion: string; onBack: () => void; onHome: () => void;
+export function BackupScreen({ theme, store, files, appVersion, onBack, onHome, onRestored }: {
+  theme: AppTheme; store: () => Promise<WorkoutStore>; files: BackupFiles; appVersion: string; onBack: () => void; onHome: () => void; onRestored?: () => void;
 }) {
   const [review, setReview] = useState<BackupInspection | null>(null), [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(''), [error, setError] = useState(''), [message, setMessage] = useState(''), [restored, setRestored] = useState(false);
@@ -44,7 +44,7 @@ export function BackupScreen({ theme, store, files, appVersion, onBack, onHome }
     const token = review.token; setConfirm(false); setReview(null);
     const content = await selected.current.read();
     await (await store()).restoreBackup(token, content.text, content.fingerprint);
-    if (mounted.current) { selected.current.dispose(); selected.current = null; setRestored(true); setMessage('Backup restored. Your workouts, routines, goals and draft are ready.'); }
+    if (mounted.current) { selected.current.dispose(); selected.current = null; setRestored(true); setMessage('Backup restored. Your workouts, routines, goals and draft are ready.'); onRestored?.(); }
   });
   const card = [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }];
   const body = [styles.subtitle, { color: theme.muted }];
@@ -78,6 +78,7 @@ export function BackupScreen({ theme, store, files, appVersion, onBack, onHome }
       </View>
       <Text style={body}>{review.incoming.firstDate ? `${review.incoming.firstDate} to ${review.incoming.lastDate}` : 'No completed workouts in this backup.'}</Text>
       <Text style={body}>Unfinished workout: {review.incoming.hasDraft ? 'included' : 'none'}</Text>
+      <Text style={body}>Appearance: {review.appearance === 'dark' ? 'Dark' : review.appearance === 'light' ? 'Light' : 'System'}</Text>
       <View style={{ backgroundColor: theme.dangerSoft, padding: 14, borderRadius: 12, gap: 8 }}>
         <Text style={{ color: theme.danger, fontFamily: fonts.bold }}>This replaces all current data</Text>
         <Text style={[styles.subtitle, { color: theme.danger }]}>{review.current.workouts} current workouts, {review.current.routines} routines and {review.current.hasDraft ? 'your unfinished workout' : 'all other journal data'} will be replaced. Data is not merged.</Text>

@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Text, View, useColorScheme } from 'react-native';
+import { Text, View } from 'react-native';
 import { localDate } from '../domain/workout';
 import { shiftSummaryPeriod, summaryPeriodLabel } from '../domain/workoutSummary';
 import { GoalDialog } from '../features/consistency/GoalDialog';
@@ -8,10 +8,11 @@ import { WeekProgress } from '../features/consistency/WeekProgress';
 import { useWeeklyConsistency } from '../features/consistency/useWeeklyConsistency';
 import { openStore } from '../storage/openStore';
 import { Button, Screen, styles } from '../ui/controls';
-import { getTheme, fonts } from '../ui/theme';
+import { fonts } from '../ui/theme';
+import { useAppTheme } from '../ui/appearanceContext';
 
 export default function ConsistencyRoute() {
-  const theme = getTheme(useColorScheme()), today = localDate(new Date());
+  const theme = useAppTheme(), today = localDate(new Date());
   const { data, error, retry } = useWeeklyConsistency(today);
   const [editing, setEditing] = useState(false);
   const next = shiftSummaryPeriod('week', today, 1);

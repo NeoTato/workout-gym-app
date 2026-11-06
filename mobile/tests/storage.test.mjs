@@ -41,6 +41,35 @@ let counter = 0;
 const digest = async text => createHash('sha256').update(text).digest('hex');
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z', digest);
 
+test('appearance defaults to system, persists, invalidates inspections and round trips in backups', async () => {
+  const folder = mkdtempSync(join(tmpdir(), 'workout-appearance-')), file = join(folder, 'workouts.db'); let connection = connect(file);
+  try {
+    let store = makeStore(connection); await store.initialize(); assert.equal(await store.getAppearance(), 'system');
+    await store.setAppearance('dark'); const text = await store.exportBackup('0.1.0');
+    assert.deepEqual(JSON.parse(text).data.settings, { appearance: 'dark' });
+    let review = await store.inspectBackup(text); await store.setAppearance('light');
+    await assert.rejects(store.restoreBackup(review.token, text), /changed/);
+    review = await store.inspectBackup(text); await store.restoreBackup(review.token, text); assert.equal(await store.getAppearance(), 'dark');
+    connection.db.close(); connection = connect(file); store = makeStore(connection); await store.initialize(); assert.equal(await store.getAppearance(), 'dark');
+    await assert.rejects(store.setAppearance('invalid'), /appearance/i); assert.equal(await store.getAppearance(), 'dark');
+    const older = JSON.parse(text); delete older.data.settings; const oldText = JSON.stringify(older);
+    review = await store.inspectBackup(oldText); await store.restoreBackup(review.token, oldText); assert.equal(await store.getAppearance(), 'system');
+    const invalid = JSON.parse(text); invalid.data.settings.appearance = 'invalid'; await assert.rejects(store.inspectBackup(JSON.stringify(invalid)), /Invalid backup/);
+  } finally { connection.db.close(); rmSync(folder, { recursive: true, force: true }); }
+});
+
+test('version-seven migration adds System appearance without changing journal data', async () => {
+  const connection = connect(':memory:');
+  try {
+    let store = makeStore(connection); await store.initialize(); await store.finish(draft('appearance-migrate')); await store.saveDraft(draft('appearance-pending'));
+    const before = JSON.parse(await store.exportBackup('0.1.0')); delete before.data.settings;
+    connection.db.exec('DROP TABLE settings; PRAGMA user_version=7;');
+    store = makeStore(connection); await store.initialize(); await store.initialize();
+    const after = JSON.parse(await store.exportBackup('0.1.0')); delete after.data.settings;
+    assert.deepEqual(after, before); assert.equal(await store.getAppearance(), 'system');
+  } finally { connection.db.close(); }
+});
+
 test('JSON backup round trips all records, original units, archived gyms, goals and unfinished input through reopening', async () => {
   const folder = mkdtempSync(join(tmpdir(), 'workout-backup-')), file = join(folder, 'restored.db');
   const source = connect(':memory:'); let destination = connect(file);
@@ -107,7 +136,7 @@ test('a write failure midway through replacement restores the entire prior datas
   const connection = connect(':memory:');
   try {
     const store = makeStore(connection); await store.initialize(); await store.finish(draft('rollback-source'));
-    const incoming = await store.exportBackup('0.1.0'); await store.finish(draft('rollback-keep')); await store.saveDraft(draft('rollback-draft'));
+    await store.setAppearance('dark'); const incoming = await store.exportBackup('0.1.0'); await store.setAppearance('light'); await store.finish(draft('rollback-keep')); await store.saveDraft(draft('rollback-draft'));
     const before = await store.exportBackup('0.1.0'), revision = connection.db.prepare('SELECT revision FROM store_metadata').get().revision;
     const review = await store.inspectBackup(incoming); connection.failSets();
     await assert.rejects(store.restoreBackup(review.token, incoming), /Injected write failure/);
@@ -137,7 +166,7 @@ test('version-six migration preserves data and tracks every user table mutation'
     store = makeStore(connection); await store.initialize(); await store.initialize();
     assert.equal(await store.exportBackup('0.1.0'), before);
     const revision = () => connection.db.prepare('SELECT revision FROM store_metadata').get().revision;
-    for (const table of ['locations','exercises','equipment_variations','routines','routine_slots','sessions','session_exercises','sets','weekly_goals','draft_checkpoint']) {
+    for (const table of ['locations','exercises','equipment_variations','routines','routine_slots','sessions','session_exercises','sets','weekly_goals','draft_checkpoint','settings']) {
       const column = connection.db.prepare(`PRAGMA table_info(${table})`).all()[0].name, previous = revision();
       connection.db.exec(`UPDATE ${table} SET ${column}=${column}`); assert.ok(revision() > previous, table);
       assert.equal(connection.db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='trigger' AND tbl_name=?").get(table).n, 3);
@@ -297,7 +326,7 @@ test('version-four migration adds empty routine storage without changing saved w
     assert.deepEqual(await store.listRoutines(), []);
     assert.equal((await store.getWorkout('pre-migration')).exercises[0].sets[0].reps, 10);
     assert.deepEqual(await store.getDraft(), draft('active-migration'));
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 7);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 8);
   } finally { connection.db.close(); }
 });
 
@@ -442,7 +471,7 @@ test('version-one locations migrate without losing gyms or draft checkpoints', a
     const pending = draft(); pending.locationId = 'legacy';
     connection.db.prepare('INSERT INTO draft_checkpoint VALUES (1,?,?)').run(pending.id, JSON.stringify(pending));
     const store = makeStore(connection); await store.initialize(); await store.initialize();
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 7);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 8);
     assert.equal((await store.listLocations()).find(item => item.id === 'legacy').archived, 0);
     assert.deepEqual(await store.getDraft(), pending);
   } finally { connection.db.close(); }

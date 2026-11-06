@@ -1,6 +1,7 @@
 import type { ColorSchemeName } from 'react-native';
 
 const light = {
+  scheme: 'light' as 'light' | 'dark',
   background: '#F6F6F8',
   surface: '#FFFFFF',
   text: '#2C2C2E',
@@ -23,6 +24,7 @@ const light = {
 export type AppTheme = typeof light;
 
 const dark: AppTheme = {
+  scheme: 'dark',
   background: '#19191C',
   surface: '#252528',
   text: '#F7F5F3',

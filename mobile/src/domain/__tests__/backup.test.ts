@@ -1,7 +1,7 @@
 import { parseBackup, utf8Size, validateBackup } from '../backup';
 
 const empty = () => ({ format: 'workout-journal-backup', formatVersion: 1, exportedAt: '2026-11-06T01:00:00.000Z', appVersion: '0.1.0', data: {
-  locations: [{ id: 'home', name: 'Home', kind: 'home', archived: false }], exercises: [], equipmentVariations: [], routines: [], routineSlots: [], sessions: [], sessionExercises: [], sets: [], weeklyGoals: [{ effectiveWeekStart: '2026-11-02', targetDays: 3 }], draft: null,
+  locations: [{ id: 'home', name: 'Home', kind: 'home', archived: false }], exercises: [], equipmentVariations: [], routines: [], routineSlots: [], sessions: [], sessionExercises: [], sets: [], weeklyGoals: [{ effectiveWeekStart: '2026-11-02', targetDays: 3 }], draft: null, settings: { appearance: 'system' },
 } });
 
 test('empty backup round trips and accepts a UTF-8 BOM', () => {

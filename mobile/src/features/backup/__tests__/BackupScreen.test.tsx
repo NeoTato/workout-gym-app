@@ -8,7 +8,7 @@ const counts = { workouts: 12, exercises: 8, sets: 70, routines: 2, locations: 3
 function setup() {
   const read = jest.fn().mockResolvedValue({ text: 'backup', fingerprint: 'sha256' }), dispose = jest.fn();
   const files: BackupFiles = { pick: jest.fn().mockResolvedValue({ name: 'journal.json', read, dispose }), save: jest.fn().mockResolvedValue('Share sheet closed. Make sure you saved a copy.') };
-  const storage = { inspectBackup: jest.fn().mockResolvedValue({ token: 'review', exportedAt: '2026-11-01T10:00:00Z', appVersion: '0.1.0', incoming: counts, current: { ...counts, workouts: 4 } }), exportBackup: jest.fn().mockResolvedValue('current-data'), restoreBackup: jest.fn().mockResolvedValue(counts) };
+  const storage = { inspectBackup: jest.fn().mockResolvedValue({ token: 'review', exportedAt: '2026-11-01T10:00:00Z', appVersion: '0.1.0', appearance: 'dark', incoming: counts, current: { ...counts, workouts: 4 } }), exportBackup: jest.fn().mockResolvedValue('current-data'), restoreBackup: jest.fn().mockResolvedValue(counts) };
   const back = jest.fn(), store = async () => storage as unknown as WorkoutStore;
   return { files, storage, read, dispose, back, props: { theme: getTheme('light'), store, files, appVersion: '0.1.0', onBack: back, onHome: back } };
 }

@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
-import { useColorScheme } from 'react-native';
 import { SettingsScreen } from '../features/settings/SettingsScreen';
-import { getTheme } from '../ui/theme';
+import { useAppearance } from '../ui/appearanceContext';
 
 export default function SettingsRoute() {
-  return <SettingsScreen theme={getTheme(useColorScheme())} onBack={() => { if (router.canGoBack()) router.back(); else router.replace('/'); }} onBackup={() => router.push('/backup')} />;
+  const appearance = useAppearance();
+  return <SettingsScreen theme={appearance.theme} appearance={appearance} onBack={() => { if (router.canGoBack()) router.back(); else router.replace('/'); }} onBackup={() => router.push('/backup')} />;
 }

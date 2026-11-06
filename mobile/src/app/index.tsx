@@ -1,18 +1,18 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Text, View, useColorScheme } from 'react-native';
+import { Text, View } from 'react-native';
 import { localDate } from '../domain/workout';
 import { useWeeklyConsistency } from '../features/consistency/useWeeklyConsistency';
 import { WeekProgress } from '../features/consistency/WeekProgress';
 
 import { HomeScreen } from '../features/home/HomeScreen';
-import { getTheme } from '../ui/theme';
+import { useAppTheme } from '../ui/appearanceContext';
 import type { WorkoutListItem } from '../domain/workout';
 import { openStore } from '../storage/openStore';
 import { Button, Screen, styles } from '../ui/controls';
 
 export default function HomeRoute() {
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const progress = useWeeklyConsistency(localDate(new Date()));
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([]);
   const [loaded, setLoaded] = useState(false);

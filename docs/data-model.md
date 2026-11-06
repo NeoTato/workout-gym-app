@@ -1,6 +1,6 @@
 # Data model and portability contracts
 
-Status: the entity blueprint below describes future capabilities as well as implemented ones. The native app on PR 10 uses SQLite schema version 7, adding internal mutation revisions for safe restore. The **JSON backup version 1** section defines the actual interchange contract, limited to records the app currently stores. The original unshipped envelope was refined before its first implementation; future additions require explicit format migrations. The requirements document defines user behavior.
+Status: the entity blueprint below describes future capabilities as well as implemented ones. The native app on PR 10 uses SQLite schema version 8, adding persisted appearance to the revision-protected store. The **JSON backup version 1** section defines the actual interchange contract, limited to records the app currently stores. The original unshipped envelope was refined before its first implementation; future additions require explicit format migrations. The requirements document defines user behavior.
 
 ## Record conventions
 
@@ -43,7 +43,7 @@ Indexes: sessions `(status,activityDate)`, `(sessionTypeId,locationId,activityDa
 
 ## JSON backup version 1
 
-This is the first implemented native format. It does not include the blueprint's future settings, notes, session-type catalog, timed/distance measurements, quick sessions, muscle-tag snapshots or routine alternatives. Appearance follows the device, units are stored on exercises, and exercise categories/subcategories are current catalog metadata. There are no stored app preferences to export yet.
+This is the first implemented native format. It does not include the blueprint's future unit preferences, notes, session-type catalog, timed/distance measurements, quick sessions, muscle-tag snapshots or routine alternatives. Appearance can follow System or stay Light/Dark, units are stored on exercises, and exercise categories/subcategories are current catalog metadata. The appearance setting is included.
 
 Minimal valid envelope:
 
@@ -63,7 +63,8 @@ Minimal valid envelope:
     "sessionExercises": [],
     "sets": [],
     "weeklyGoals": [{ "effectiveWeekStart": "2026-10-26", "targetDays": 3 }],
-    "draft": null
+    "draft": null,
+    "settings": { "appearance": "system" }
   }
 }
 ```
@@ -81,11 +82,12 @@ Exact collection fields (all required; JSON booleans, camelCase names):
 | sessionExercises | id, sessionId, exerciseId, equipmentVariationId, position, exerciseNameSnapshot, equipmentNameSnapshot, bodyweight, loadUnit, loadConvention |
 | sets | id, sessionExerciseId, position, loadValue, reps |
 | weeklyGoals | effectiveWeekStart, targetDays |
+| settings | object with appearance: `system`, `light` or `dark` |
 | draft | null or the complete WorkoutDraft: id, startedAt, activityDate, timezone, locationId, sessionType, exercises; optional endedAt, setupComplete, timing |
 
 Draft exercises contain id, name, equipment, bodyweight, unit, convention, sets; optional catalogId, category, subcategory. Draft sets contain id, weight, reps, completed; weight/reps remain exact strings so unfinished invalid/blank input survives. Optional timing contains startDate/startTime/endDate/endTime; pending times may be blank. Completed draft sets still require valid measurements. See the executable contract in `mobile/src/domain/backup.ts`.
 
-IDs accept 1-128 ASCII letters, digits, underscores or hyphens (including existing UUIDs and the built-in `home`). Positions are nonnegative safe integers and unique within each parent. Measurement modes are `load_reps` or `reps`; dimensions are `mass`, `plates` or `bodyweight`. Bodyweight completed loads are null; numeric zero remains zero. Exactly one unarchived built-in Home and at least one Monday goal are required. Unknown fields, invalid references and unsupported versions are rejected rather than silently discarded.
+IDs accept 1-128 ASCII letters, digits, underscores or hyphens (including existing UUIDs and the built-in `home`). Positions are nonnegative safe integers and unique within each parent. Measurement modes are `load_reps` or `reps`; dimensions are `mass`, `plates` or `bodyweight`. Bodyweight completed loads are null; numeric zero remains zero. Exactly one unarchived built-in Home and at least one Monday goal are required. New exports include settings. Earlier PR 10 preview backups without this field remain accepted and default to System; malformed settings are rejected. Unknown fields, invalid references and unsupported versions are rejected rather than silently discarded.
 
 `appVersion` comes from actual app configuration. Backup `formatVersion` is independent of SQLite `user_version` and the app release version. Deterministic ordering by ID/composite key makes round-trip comparison practical; collection ordering never replaces explicit exercise/set positions. No internal revision, SQL, paths or generated summaries are accepted in the envelope.
 
@@ -99,7 +101,7 @@ Restore protocol:
 4. Block writes during confirmed replacement. Match the inspection token to the cached bytes' digest and database revision; if either changed, repeat inspection and confirmation. Use a transaction to delete children before parents and insert parents before children, map DTOs to the current schema, run foreign-key/invariant checks, and commit. Update metadata revision in that transaction. Never execute SQL, paths, or code from the JSON.
 5. On validation, storage, or transaction failure, roll back all changes and retain the original dataset. On success, clear in-memory draft state, reload Home queries, and resume the restored draft if present. IDs and goal history retain their original values. Re-importing replaces rather than appends, so it cannot duplicate sessions.
 
-Full restore includes pending goal changes and the unfinished workout. It does not downgrade the database migration version or restore caches, browser fixtures, telemetry, or generated summaries. No merge mode or CSV import in v1. A new database keeps its own internal metadata row and current migration version, regardless of backup creation date. Schema 7 triggers increment the revision for all writes to the nine record tables and draft checkpoint; failed transactions roll those increments back too. Browser downloads/file inputs provide the equivalent web workflow without uploading files.
+Full restore includes appearance, pending goal changes and the unfinished workout. It does not downgrade the database migration version or restore caches, browser fixtures, telemetry, or generated summaries. No merge mode or CSV import in v1. A new database keeps its own internal metadata row and current migration version, regardless of backup creation date. Revision triggers increment for all writes to the nine record tables, draft checkpoint and settings; failed transactions roll those increments back too. Browser downloads/file inputs provide the equivalent web workflow without uploading files.
 
 ## CSV export version 1
 

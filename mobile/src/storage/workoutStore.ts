@@ -9,6 +9,7 @@ import { routineExercises, type Routine, type RoutineExercise } from '../domain/
 import { schema } from './schema.ts';
 import { createBackupOperations } from './backupStore.ts';
 import { revisionSchema } from './backupTables.ts';
+import { isAppearance, type AppearancePreference } from '../domain/appearance.ts';
 import { workoutTimes } from '../domain/workoutTime.ts';
 import { cleanExerciseName, exerciseNameKey, type ExerciseCategory, type ExerciseSubcategory, type LoggedExercise } from '../domain/exerciseLibrary.ts';
 
@@ -93,7 +94,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       await db.execAsync('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;');
       await db.transaction(async tx => {
         const version = (await tx.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))?.user_version ?? 0;
-        if (version > 7) throw new Error('This database was created by a newer app. Update the app to open it.');
+        if (version > 8) throw new Error('This database was created by a newer app. Update the app to open it.');
         if (version === 0) await tx.execAsync(schema);
         if (version < 2) await tx.execAsync('ALTER TABLE locations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)); PRAGMA user_version=2;');
         if (version < 3) await tx.execAsync("ALTER TABLE exercises ADD COLUMN category TEXT NOT NULL DEFAULT '' CHECK(category IN ('','Push','Pull','Legs','Core','Cardio','Mobility','Other')); PRAGMA user_version=3;");
@@ -109,7 +110,21 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
           await tx.execAsync('PRAGMA user_version=6;');
         }
         if (version < 7) await tx.execAsync(revisionSchema);
+        if (version < 8) await tx.execAsync(`
+          CREATE TABLE IF NOT EXISTS settings (singleton INTEGER PRIMARY KEY CHECK(singleton=1),appearance TEXT NOT NULL CHECK(appearance IN ('system','light','dark')));
+          INSERT OR IGNORE INTO settings VALUES (1,'system');
+          ${['INSERT', 'UPDATE', 'DELETE'].map(event => `CREATE TRIGGER IF NOT EXISTS backup_revision_settings_${event.toLowerCase()} AFTER ${event} ON settings BEGIN UPDATE store_metadata SET revision=revision+1 WHERE singleton=1; END;`).join('\n')}
+          PRAGMA user_version=8;`);
       });
+    }),
+    getAppearance: () => queue(async (): Promise<AppearancePreference> => {
+      const row = await db.getFirstAsync<{ appearance: string }>('SELECT appearance FROM settings WHERE singleton=1');
+      if (!isAppearance(row?.appearance)) throw new Error('Unable to load your appearance setting. Try again.');
+      return row.appearance;
+    }),
+    setAppearance: (appearance: AppearancePreference) => queue(async () => {
+      if (!isAppearance(appearance)) throw new Error('Choose System, Light or Dark appearance.');
+      await db.runAsync('UPDATE settings SET appearance=? WHERE singleton=1', appearance);
     }),
     listLocations: () => queue(() => db.getAllAsync<Location>('SELECT * FROM locations ORDER BY kind DESC,name')),
     getWeeklyConsistency: (asOf = localDate(new Date(now()))) => queue(async () => {

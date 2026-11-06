@@ -1,6 +1,6 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
-import { Modal, Platform, ScrollView, Text, View, useColorScheme } from 'react-native';
+import { Modal, Platform, ScrollView, Text, View } from 'react-native';
 import { Button, styles } from '../../ui/controls';
 import type { AppTheme } from '../../ui/theme';
 
@@ -11,7 +11,6 @@ export type DateTimeFieldProps = {
 
 export function DateTimeField({ label, mode, date, time, maximumDate, theme, disabled, onChange }: DateTimeFieldProps) {
   const [candidate, setCandidate] = useState<Date | null>(null);
-  const scheme = useColorScheme();
   const selected = new Date(`${date}T${time}:00Z`);
   const displayValue = Number.isFinite(selected.getTime()) ? new Intl.DateTimeFormat('en', mode === 'date'
     ? { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }
@@ -28,7 +27,7 @@ export function DateTimeField({ label, mode, date, time, maximumDate, theme, dis
     timeZoneName="UTC" is24Hour
     maximumDate={mode === 'date' ? new Date(`${maximumDate}T23:59:59Z`) : undefined}
     display={Platform.OS === 'ios' ? mode === 'date' ? 'inline' : 'spinner' : mode === 'date' ? 'calendar' : 'clock'}
-    themeVariant={scheme === 'dark' ? 'dark' : 'light'} accentColor={theme.primary} textColor={theme.text}
+    themeVariant={theme.scheme} accentColor={theme.primary} textColor={theme.text}
     onDismiss={close} onValueChange={(_event, value) => {
       if (!Number.isFinite(value.getTime())) return;
       if (Platform.OS === 'android') apply(value); else setCandidate(value);

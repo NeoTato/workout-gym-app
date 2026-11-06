@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Text, View, useColorScheme } from 'react-native';
+import { Text, View } from 'react-native';
 import type { Location, SavedWorkout, WorkoutDraft } from '../../domain/workout';
 import { SavedWorkoutEditor } from '../../features/workouts/SavedWorkoutEditor';
 import { ExerciseGroups } from '../../features/exercises/ExerciseGroups';
@@ -9,11 +9,12 @@ import { CompletedWorkoutMetadata } from '../../features/workouts/CompletedWorko
 import { RoutineDialog } from '../../features/workouts/RoutineDialog';
 import { openStore } from '../../storage/openStore';
 import { Button, Screen, styles } from '../../ui/controls';
-import { fonts, getTheme } from '../../ui/theme';
+import { fonts } from '../../ui/theme';
+import { useAppTheme } from '../../ui/appearanceContext';
 
 export default function WorkoutDetailsRoute() {
   const { id, returnToWorkout, returnToDay, returnToCalendar, returnToProgress } = useLocalSearchParams<{ id: string; returnToWorkout?: string; returnToDay?: string; returnToCalendar?: string; returnToProgress?: string }>();
-  const theme = getTheme(useColorScheme());
+  const theme = useAppTheme();
   const [workout, setWorkout] = useState<SavedWorkout | null>(null), [error, setError] = useState('');
   const [edit, setEdit] = useState<WorkoutDraft | null>(null), [locations, setLocations] = useState<Location[]>([]);
   const [busy, setBusy] = useState(false), [confirmDelete, setConfirmDelete] = useState(false);

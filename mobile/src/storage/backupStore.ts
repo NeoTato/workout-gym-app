@@ -1,11 +1,12 @@
 import { backupSummary, MAX_BACKUP_BYTES, parseBackup, utf8Size, validateBackup, type Backup } from '../domain/backup.ts';
 import { backupTables, camelCase } from './backupTables.ts';
 import type { SqlDatabase, SqlExecutor } from './workoutStore.ts';
+import type { AppearancePreference } from '../domain/appearance.ts';
 
 type Digest = (text: string) => Promise<string>;
 type Queue = <T>(work: () => Promise<T>) => Promise<T>;
 export type BackupInspection = {
-  token: string; exportedAt: string; appVersion: string;
+  token: string; exportedAt: string; appVersion: string; appearance: AppearancePreference;
   incoming: ReturnType<typeof backupSummary>; current: ReturnType<typeof backupSummary>;
 };
 
@@ -31,6 +32,7 @@ export function createBackupOperations(db: SqlDatabase, queue: Queue, id: () => 
     }
     const draft = await tx.getFirstAsync<{ payload: string }>('SELECT payload FROM draft_checkpoint WHERE singleton=1');
     data.draft = draft ? JSON.parse(draft.payload) as unknown : null;
+    data.settings = await tx.getFirstAsync('SELECT appearance FROM settings WHERE singleton=1');
     return validateBackup({ format: 'workout-journal-backup', formatVersion: 1, exportedAt: now(), appVersion, data });
   }
   return {
@@ -58,7 +60,7 @@ export function createBackupOperations(db: SqlDatabase, queue: Queue, id: () => 
         current = { ...counts, hasDraft: counts.hasDraft > 0 };
       });
       const token = id(); pending = { token, revision: version, digest: hash, fingerprint: fingerprint ?? hash };
-      return { token, exportedAt: backup.exportedAt, appVersion: backup.appVersion, incoming: backupSummary(backup.data), current };
+      return { token, exportedAt: backup.exportedAt, appVersion: backup.appVersion, appearance: backup.data.settings.appearance, incoming: backupSummary(backup.data), current };
     }),
     restoreBackup: (token: string, text: string, fingerprint?: string) => queue(async () => {
       const inspection = pending; pending = null;
@@ -69,6 +71,7 @@ export function createBackupOperations(db: SqlDatabase, queue: Queue, id: () => 
       await db.transaction(async tx => {
         if (await revision(tx) !== inspection.revision) throw stale();
         await tx.runAsync('DELETE FROM draft_checkpoint');
+        await tx.runAsync('DELETE FROM settings');
         for (const item of [...backupTables].reverse()) await tx.runAsync(`DELETE FROM ${item.table}`);
         for (const item of backupTables) {
           const columns = item.fields.split(','), rows = backup.data[item.key];
@@ -84,6 +87,7 @@ export function createBackupOperations(db: SqlDatabase, queue: Queue, id: () => 
           }
         }
         if (backup.data.draft) await tx.runAsync('INSERT INTO draft_checkpoint VALUES (1,?,?)', backup.data.draft.id, JSON.stringify(backup.data.draft));
+        await tx.runAsync('INSERT INTO settings VALUES (1,?)', backup.data.settings.appearance);
         if ((await tx.getAllAsync('PRAGMA foreign_key_check')).length) throw new Error('Backup relationships could not be restored. No data has been changed.');
       });
       return backupSummary(backup.data);
