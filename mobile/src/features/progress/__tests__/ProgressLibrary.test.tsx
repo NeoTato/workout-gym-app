@@ -8,7 +8,10 @@ jest.mock('../useExerciseProgress', () => ({ useProgressLibrary: jest.fn() }));
 it('searches completed exercise names and muscle groups without mixing loaded/bodyweight entries', async () => {
   jest.mocked(useProgressLibrary).mockReturnValue({ data: [{ id: 'press', name: 'Press', bodyweight: false, category: 'Push', subcategory: 'Chest' }, { id: 'pullup', name: 'Pull up', bodyweight: true, category: 'Pull', subcategory: 'Back' }], error: '', refreshing: false, retry: jest.fn() });
   await render(<ProgressLibraryRoute />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Push / Chest, 1 exercise' }));
+  expect(screen.queryByText('Push / Chest / Loaded sets')).toBeNull();
   await fireEvent.changeText(screen.getByLabelText('Search exercise progress'), 'chest');
+  expect(screen.getByText('Push / Chest / Loaded sets')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'View progress for Press, loaded' })).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'View progress for Pull up, bodyweight' })).toBeNull();
   await fireEvent.changeText(screen.getByLabelText('Search exercise progress'), 'unknown');
