@@ -20,7 +20,7 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
       style={[styles.safeArea, { backgroundColor: theme.background }]}
       testID="home-screen"
     >
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
         <Text style={[styles.eyebrow, { color: theme.muted }]}>WORKOUT JOURNAL</Text>
         <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>
           Today
@@ -29,7 +29,6 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
           A little progress, at your pace.
         </Text>
 
-        {onStart && <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />}
         {(onSummary || onProgress) && <View style={{ gap: 8 }}>
           {onSummary && <HomeNavigationCard theme={theme} kind="summary" onPress={onSummary} />}
           {onProgress && <HomeNavigationCard theme={theme} kind="progress" onPress={onProgress} />}
@@ -50,6 +49,9 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
         </View>}
         <WorkoutCalendar workouts={workouts} theme={theme} openDay={onOpenDay} openWorkout={onOpen} disabled={refreshing || Boolean(error)} />
       </ScrollView>
+      {onStart && <View style={[styles.actionDock, { backgroundColor: theme.background }]}>
+        <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />
+      </View>}
     </SafeAreaView>
   );
 }
@@ -57,6 +59,7 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { padding: 24, paddingTop: 40, gap: 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  actionDock: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
   eyebrow: { fontFamily: fonts.bold, fontSize: 12, letterSpacing: 1.44 },
   title: { fontFamily: fonts.bold, fontSize: 30, letterSpacing: -0.6 },
   body: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 22 },
