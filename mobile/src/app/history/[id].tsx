@@ -57,7 +57,7 @@ export default function WorkoutDetailsRoute() {
     {!workout && !error && <Text style={{ color: theme.muted }}>Loading workout…</Text>}
     {workout && <>
       <CompletedWorkoutMetadata workout={workout} theme={theme} />
-      <Button theme={theme} variant="link" label="Save as routine" disabled={busy || confirmDelete} onPress={() => setRoutineOpen(true)} />
+      <Button theme={theme} variant="info" label="Save as routine" disabled={busy || confirmDelete} onPress={() => setRoutineOpen(true)} />
       {!!routineNotice && <Text accessibilityLiveRegion="polite" style={{ color: theme.success }}>{routineNotice}</Text>}
       {routineOpen && <RoutineDialog mode="save" theme={theme} workoutId={workout.id} close={() => setRoutineOpen(false)} saved={name => { setRoutineOpen(false); setRoutineNotice(`Routine saved: ${name}`); }} />}
       <ExerciseGroups key={workout.id} items={workout.exercises} theme={theme} renderItem={exercise => <CompletedExerciseSummary exercise={exercise} theme={theme} onProgress={exercise.catalogId ? () => router.push({ pathname: '/progress/[id]', params: { id: exercise.catalogId, variationId: exercise.equipmentVariationId } }) : undefined} />} />

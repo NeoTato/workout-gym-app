@@ -30,10 +30,12 @@ Stop Metro and run `npm start -- --clear` from `mobile/` to pick up the new rout
 7. Confirm multiple occurrences of the same exercise/equipment in one session give one point with all sets. With more than 12 sessions, check the chart limit and Show more history.
 8. Check horizontal chart scrolling, touch labels, text scaling, light/dark appearance and narrow screens. Verify existing workout logging, calendar, summaries, routines and an active draft still work.
 
-Validation: 93 Jest tests and 25 real SQLite tests pass. Automated coverage includes domain conversion/grouping/record/chart limits, real SQLite isolation and history corrections, collapsed sets, equipment/unit selection, history expansion, search, error/empty distinction and stale-response recovery. Lint, types, SDK compatibility, all-platform bundle export and the high/critical audit gate pass. Dependencies are unchanged, with 1 low and 30 moderate audit findings.
+Validation: 95 Jest tests and 25 real SQLite tests pass. Automated coverage includes domain conversion/grouping/record/chart limits, real SQLite isolation and history corrections, collapsed sets, equipment/unit selection, history expansion, search, error/empty distinction and stale-response recovery. Lint, types, SDK compatibility, all-platform bundle export and the high/critical audit gate pass. Dependencies are unchanged, with 1 low and 30 moderate audit findings.
 
 Real browser verification covered empty/search states, separate gyms/mass/plate/bodyweight histories, lb/kg conversion, original-unit sets, saved-workout shortcuts, edit/delete refresh, retained chart units, active draft preservation, light/dark appearance, 320/390px layouts and chart-unit touch targets. Screenshots are in `screenshots/native-progress-*.png`.
 
 All-platform JavaScript export is not a signed build or a physical iOS/Android test. Keep the PR unmerged until phone review and explicit approval.
 
 The search/filter controls use a centered, scrollable popup with a result count and Show results action. Filter selections apply together with name/muscle-group search; clearing filters preserves search text. Search and filter controls do not change exercise metadata or workout history.
+
+Home navigation uses blue summary and green progress cards with icons, descriptions and chevrons. Forward browsing/actions such as Filters, Goals and streaks, View exercise progress, Open workout and Save as routine use filled blue controls; back navigation remains a quiet link. Start/finish actions retain coral, additions/success use green, and removal uses red. Both themes retain labels and shapes so color is not the only action cue.

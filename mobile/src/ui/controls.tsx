@@ -15,13 +15,13 @@ export function Screen({ theme, children, footer, scrollRef }: { theme: AppTheme
 }
 export function Button({ theme, label, accessibilityLabel, onPress, primary = false, disabled = false, variant }: {
   theme: AppTheme; label: string; accessibilityLabel?: string; onPress: () => void; primary?: boolean; disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'add' | 'danger' | 'destructive' | 'link';
+  variant?: 'primary' | 'secondary' | 'info' | 'add' | 'danger' | 'destructive' | 'link';
 }) {
   const kind = variant ?? (primary ? 'primary' : 'secondary');
   const quiet = kind === 'link' || kind === 'danger';
-  const backgroundColor = kind === 'primary' ? theme.primary : kind === 'add' ? theme.successSoft : kind === 'destructive' ? theme.dangerSoft : quiet ? 'transparent' : theme.surface;
-  const color = kind === 'primary' ? '#35201C' : kind === 'add' ? theme.success : kind === 'danger' || kind === 'destructive' ? theme.danger : kind === 'link' ? theme.muted : theme.text;
-  const borderColor = kind === 'add' ? theme.successBorder : kind === 'secondary' ? theme.border : 'transparent';
+  const backgroundColor = kind === 'primary' ? theme.primary : kind === 'info' ? theme.infoSoft : kind === 'add' ? theme.successSoft : kind === 'destructive' ? theme.dangerSoft : quiet ? 'transparent' : theme.surface;
+  const color = kind === 'primary' ? '#35201C' : kind === 'info' ? theme.info : kind === 'add' ? theme.success : kind === 'danger' || kind === 'destructive' ? theme.danger : kind === 'link' ? theme.muted : theme.text;
+  const borderColor = kind === 'info' ? theme.infoBorder : kind === 'add' ? theme.successBorder : kind === 'secondary' ? theme.border : 'transparent';
   return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
     style={({ pressed }) => [styles.button, { backgroundColor, borderColor, opacity: disabled ? 0.5 : pressed ? 0.8 : 1 }, quiet && { alignSelf: 'flex-start', paddingHorizontal: 4, borderRadius: 8, minHeight: 44 }]}>
     <Text style={{ fontFamily: quiet ? fonts.medium : fonts.bold, color, textAlign: quiet ? 'left' : 'center' }}>{label}</Text>

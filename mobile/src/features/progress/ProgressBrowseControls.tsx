@@ -24,7 +24,7 @@ export function ProgressBrowseControls({ theme, search, onSearch, filters, onFil
     </View>
     </View>
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
-      <Button theme={theme} label={active ? `Filters (${active})` : 'Filters'} onPress={() => { Keyboard.dismiss(); setOpen(true); }} />
+      <Button theme={theme} variant="info" label={active ? `Filters (${active})` : 'Filters'} onPress={() => { Keyboard.dismiss(); setOpen(true); }} />
       {ready && <Text accessibilityLiveRegion="polite" style={{ color: theme.muted }}>{count} {count === 1 ? 'exercise' : 'exercises'}</Text>}
     </View>
     {!!summary && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>

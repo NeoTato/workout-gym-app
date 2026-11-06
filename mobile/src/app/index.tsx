@@ -40,7 +40,7 @@ export default function HomeRoute() {
       {progress.data && <><WeekProgress week={progress.data.currentWeek} theme={theme} /><Text style={{ color: theme.muted }}>Current streak: {progress.data.currentStreak} {progress.data.currentStreak === 1 ? 'week' : 'weeks'}</Text></>}
       {!progress.data && !progress.error && <Text style={{ color: theme.muted }}>Loading progress...</Text>}
       {!!progress.error && <><Text accessibilityRole="alert" style={{ color: theme.danger }}>{progress.error}</Text><Button theme={theme} label="Retry progress" onPress={progress.retry} /></>}
-      <Button theme={theme} variant="link" label="Goals and streaks" onPress={() => router.push('/consistency')} />
+      <Button theme={theme} variant="info" label="Goals and streaks" onPress={() => router.push('/consistency')} />
     </View>}
     onOpenDay={(date, filter) => router.push({ pathname: '/history/day', params: { date, filter } })}
     onOpen={id => router.push({ pathname: '/history/[id]', params: { id, returnToCalendar: '1' } })} />;

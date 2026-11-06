@@ -12,7 +12,7 @@ function SessionCard({ session, bodyweight, theme, openWorkout }: { session: Pro
       <Text style={{ color: theme.text, fontFamily: fonts.bold }}>{session.activityDate} / {session.sessionType}</Text>
       <Text style={{ color: theme.muted }}>{session.sets.length} {session.sets.length === 1 ? 'set' : 'sets'} / {expanded ? 'Hide sets' : 'Show sets'}</Text>
     </Pressable>
-    {expanded && <>{session.sets.map((set, index) => <Text key={set.id} style={{ color: theme.text }}>Set {index + 1}: {bodyweight ? 'Bodyweight' : `${set.weight} ${set.unit}`} × {set.reps} reps</Text>)}<Button theme={theme} variant="link" label="Open workout" onPress={() => openWorkout(session.workoutId)} /></>}
+    {expanded && <>{session.sets.map((set, index) => <Text key={set.id} style={{ color: theme.text }}>Set {index + 1}: {bodyweight ? 'Bodyweight' : `${set.weight} ${set.unit}`} × {set.reps} reps</Text>)}<Button theme={theme} variant="info" label="Open workout" onPress={() => openWorkout(session.workoutId)} /></>}
   </View>;
 }
 

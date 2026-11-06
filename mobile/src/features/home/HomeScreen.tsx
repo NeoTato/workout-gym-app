@@ -7,6 +7,7 @@ import { Button } from '../../ui/controls';
 import type { WorkoutListItem } from '../../domain/workout';
 import type { LocationFilter } from '../../domain/workoutCalendar';
 import { WorkoutCalendar } from './WorkoutCalendar';
+import { HomeNavigationCard } from './HomeNavigationCard';
 
 export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen, onOpenDay, onSummary, onProgress, weeklyProgress, refreshing = false, error = '', onRetry }: {
   theme: AppTheme; workouts?: WorkoutListItem[]; hasDraft?: boolean;
@@ -29,9 +30,9 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
         </Text>
 
         {onStart && <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />}
-        {(onSummary || onProgress) && <View>
-          {onSummary && <Button theme={theme} variant="link" label="Workout summaries" onPress={onSummary} />}
-          {onProgress && <Button theme={theme} variant="link" label="Exercise progress" onPress={onProgress} />}
+        {(onSummary || onProgress) && <View style={{ gap: 8 }}>
+          {onSummary && <HomeNavigationCard theme={theme} kind="summary" onPress={onSummary} />}
+          {onProgress && <HomeNavigationCard theme={theme} kind="progress" onPress={onProgress} />}
         </View>}
         {weeklyProgress}
         {refreshing && <Text style={{ color: theme.muted }}>Updating history…</Text>}

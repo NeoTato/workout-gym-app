@@ -24,7 +24,7 @@ export function CompletedExerciseSummary({ exercise, theme, onProgress }: { exer
       {exercise.sets.map((set, index) => <Text key={set.id} style={[styles.subtitle, { color: theme.text }]}>
         Set {index + 1}: {exercise.bodyweight ? 'Bodyweight' : `${set.weight} ${exercise.unit === 'lb' ? 'lbs' : exercise.unit}`} × {set.reps} reps
       </Text>)}
-      {onProgress && <Button theme={theme} variant="link" label="View exercise progress" onPress={onProgress} />}
+      {onProgress && <Button theme={theme} variant="info" label="View exercise progress" onPress={onProgress} />}
     </>}
   </View>;
 }

@@ -4,6 +4,16 @@ import { HomeScreen } from '../HomeScreen';
 import { getTheme } from '../../../ui/theme';
 
 describe('Home screen foundation', () => {
+  it.each(['light', 'dark'] as const)('opens the correct destination from descriptive %s navigation cards', async scheme => {
+    const summary = jest.fn(), progress = jest.fn();
+    await render(<HomeScreen theme={getTheme(scheme)} onSummary={summary} onProgress={progress} />);
+    expect(screen.getByText('Weekly, monthly and yearly totals')).toBeOnTheScreen();
+    expect(screen.getByText('Loads, reps and equipment history')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Workout summaries' }));
+    expect(summary).toHaveBeenCalledTimes(1); expect(progress).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise progress' }));
+    expect(progress).toHaveBeenCalledTimes(1);
+  });
   it('starts a new workout or resumes a saved draft', async () => {
     const start = jest.fn();
     const view = await render(<HomeScreen theme={getTheme('light')} onStart={start} />);
