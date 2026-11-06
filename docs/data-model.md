@@ -1,6 +1,6 @@
 # Data model and portability contracts
 
-Status: target logical schema for the complete first version. The native app uses SQLite schema version 6, which adds effective-dated weekly_goals. Migration seeds a three-day target from the current Monday without changing workouts, routines, or drafts. Calendar and summary reads use existing session records. The implemented subset is defined by mobile/src/storage/schema.ts and workoutStore.ts migrations. The requirements document defines user behavior; this document defines stored records and interchange rules.
+Status: the entity blueprint below describes future capabilities as well as implemented ones. The native app on PR 10 uses SQLite schema version 7, adding internal mutation revisions for safe restore. The **JSON backup version 1** section defines the actual interchange contract, limited to records the app currently stores. The original unshipped envelope was refined before its first implementation; future additions require explicit format migrations. The requirements document defines user behavior.
 
 ## Record conventions
 
@@ -43,7 +43,9 @@ Indexes: sessions `(status,activityDate)`, `(sessionTypeId,locationId,activityDa
 
 ## JSON backup version 1
 
-Envelope:
+This is the first implemented native format. It does not include the blueprint's future settings, notes, session-type catalog, timed/distance measurements, quick sessions, muscle-tag snapshots or routine alternatives. Appearance follows the device, units are stored on exercises, and exercise categories/subcategories are current catalog metadata. There are no stored app preferences to export yet.
+
+Minimal valid envelope:
 
 ```json
 {
@@ -52,31 +54,42 @@ Envelope:
   "exportedAt": "2026-10-31T10:00:00.000Z",
   "appVersion": "0.1.0",
   "data": {
-    "locations": [],
-    "sessionTypes": [],
+    "locations": [{ "id": "home", "name": "Home", "kind": "home", "archived": false }],
     "exercises": [],
-    "exerciseMuscleGroups": [],
     "equipmentVariations": [],
     "routines": [],
     "routineSlots": [],
-    "routineAlternatives": [],
     "sessions": [],
     "sessionExercises": [],
     "sets": [],
-    "weeklyGoals": [],
-    "settings": {
-      "theme": "system",
-      "preferredWeightUnit": "lb",
-      "preferredDistanceUnit": "km",
-      "lastLocationId": null
-    }
+    "weeklyGoals": [{ "effectiveWeekStart": "2026-10-26", "targetDays": 3 }],
+    "draft": null
   }
 }
 ```
 
-The envelope above illustrates field shape only; empty arrays are not a restorable initial database because a valid backup requires the Home location and an initial weekly goal. Entity arrays contain the complete logical DTOs from the table, including IDs, timestamps, snapshots, archived records, and the active draft. `appVersion` comes from actual app configuration, not the example literal. Backup `formatVersion` is independent of SQLite `user_version` and the app release version. Deterministic ordering by ID/composite key makes round-trip comparison practical; collection ordering never replaces explicit exercise/set positions.
+Exact collection fields (all required; JSON booleans, camelCase names):
 
-Create JSON from a consistent database read transaction after queued writes finish. Generate a `.json` file using UTF-8 and `application/json`; filename `workout-backup-YYYYMMDD-HHmmss.json`. Offer the OS share sheet. Canceling sharing does not delete workout data; distinguish “file prepared” from “saved to another app.” Do not treat a cache file as durable backup or display an unverifiable last-cloud-backup timestamp.
+| Collection | Fields |
+|---|---|
+| locations | id, name, kind, archived |
+| exercises | id, name, measurementMode, category, subcategory |
+| equipmentVariations | id, exerciseId, locationId, name, measurementMode, loadConvention, loadDimension |
+| routines | id, name, sessionType, locationId, locationNameSnapshot |
+| routineSlots | routineId, position, exerciseId, name, equipment, bodyweight, unit, convention, category, subcategory, setCount |
+| sessions | id, activityDate, timezone, startedAt, endedAt, locationId, locationNameSnapshot, locationKindSnapshot, sessionTypeNameSnapshot, status |
+| sessionExercises | id, sessionId, exerciseId, equipmentVariationId, position, exerciseNameSnapshot, equipmentNameSnapshot, bodyweight, loadUnit, loadConvention |
+| sets | id, sessionExerciseId, position, loadValue, reps |
+| weeklyGoals | effectiveWeekStart, targetDays |
+| draft | null or the complete WorkoutDraft: id, startedAt, activityDate, timezone, locationId, sessionType, exercises; optional endedAt, setupComplete, timing |
+
+Draft exercises contain id, name, equipment, bodyweight, unit, convention, sets; optional catalogId, category, subcategory. Draft sets contain id, weight, reps, completed; weight/reps remain exact strings so unfinished invalid/blank input survives. Optional timing contains startDate/startTime/endDate/endTime; pending times may be blank. Completed draft sets still require valid measurements. See the executable contract in `mobile/src/domain/backup.ts`.
+
+IDs accept 1-128 ASCII letters, digits, underscores or hyphens (including existing UUIDs and the built-in `home`). Positions are nonnegative safe integers and unique within each parent. Measurement modes are `load_reps` or `reps`; dimensions are `mass`, `plates` or `bodyweight`. Bodyweight completed loads are null; numeric zero remains zero. Exactly one unarchived built-in Home and at least one Monday goal are required. Unknown fields, invalid references and unsupported versions are rejected rather than silently discarded.
+
+`appVersion` comes from actual app configuration. Backup `formatVersion` is independent of SQLite `user_version` and the app release version. Deterministic ordering by ID/composite key makes round-trip comparison practical; collection ordering never replaces explicit exercise/set positions. No internal revision, SQL, paths or generated summaries are accepted in the envelope.
+
+Create JSON from a consistent database read transaction after queued writes finish. Generate a `.json` file using UTF-8 and `application/json`; filename `workout-journal-<UTC timestamp>.json`. Offer the OS share sheet. Canceling sharing does not delete workout data; distinguish “file prepared” from “saved to another app.” Do not treat a cache file as durable backup or display an unverifiable last-cloud-backup timestamp.
 
 Restore protocol:
 
@@ -84,9 +97,9 @@ Restore protocol:
 2. Validate the exact recognized format/version, required field types, IDs, finite numeric values, timestamps/dates/timezones, enum values, unique IDs/compound keys, ordering positions, references, Home/goal invariants, one-active-draft limit, and completed-set/session rules. Preserve recorded local dates across travel: for backup temporal validation, compare a completed session's date to `exportedAt` interpreted in that session's timezone, rather than rejecting valid records because the importing device is currently a day behind. Reject unknown format versions; do not partially import or guess how to repair data. Version 1 is the only initial accepted version; future versions need explicit migrations.
 3. Show record counts, date range, whether a draft is included, and that restore replaces the entire local dataset. Offer full backup export of the current data before confirmation. Require explicit Replace confirmation, never implicit consent from picking a file.
 4. Block writes during confirmed replacement. Match the inspection token to the cached bytes' digest and database revision; if either changed, repeat inspection and confirmation. Use a transaction to delete children before parents and insert parents before children, map DTOs to the current schema, run foreign-key/invariant checks, and commit. Update metadata revision in that transaction. Never execute SQL, paths, or code from the JSON.
-5. On validation, storage, or transaction failure, roll back all changes and retain the original dataset. On success, clear in-memory draft state, reload settings/queries, and resume the restored draft if present. IDs and goal history retain their original values. Re-importing replaces rather than appends, so it cannot duplicate sessions.
+5. On validation, storage, or transaction failure, roll back all changes and retain the original dataset. On success, clear in-memory draft state, reload Home queries, and resume the restored draft if present. IDs and goal history retain their original values. Re-importing replaces rather than appends, so it cannot duplicate sessions.
 
-Full restore includes preferences and pending goal changes. It does not downgrade the database migration version or restore caches, browser fixtures, telemetry, or generated summaries. No merge mode or CSV import in v1. A new database needs its own internal metadata row and current migration version, regardless of backup creation date.
+Full restore includes pending goal changes and the unfinished workout. It does not downgrade the database migration version or restore caches, browser fixtures, telemetry, or generated summaries. No merge mode or CSV import in v1. A new database keeps its own internal metadata row and current migration version, regardless of backup creation date. Schema 7 triggers increment the revision for all writes to the nine record tables and draft checkpoint; failed transactions roll those increments back too. Browser downloads/file inputs provide the equivalent web workflow without uploading files.
 
 ## CSV export version 1
 

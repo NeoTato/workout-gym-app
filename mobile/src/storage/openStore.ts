@@ -1,4 +1,4 @@
-import { randomUUID } from 'expo-crypto';
+import { randomUUID, digestStringAsync, CryptoDigestAlgorithm } from 'expo-crypto';
 import { openDatabaseAsync } from 'expo-sqlite';
 
 import { createWorkoutStore, type SqlDatabase, type WorkoutStore } from './workoutStore';
@@ -12,7 +12,7 @@ export function openStore(): Promise<WorkoutStore> {
       getFirstAsync: db.getFirstAsync.bind(db), getAllAsync: db.getAllAsync.bind(db),
     };
     const adapter: SqlDatabase = { ...executor, transaction: work => db.withTransactionAsync(() => work(executor)) };
-    const store = createWorkoutStore(adapter, randomUUID, () => new Date().toISOString());
+    const store = createWorkoutStore(adapter, randomUUID, () => new Date().toISOString(), text => digestStringAsync(CryptoDigestAlgorithm.SHA256, text));
     try { await store.initialize(); } catch (error) { await db.closeAsync(); throw error; }
     return store;
   })().catch(error => { pending = null; throw error; });

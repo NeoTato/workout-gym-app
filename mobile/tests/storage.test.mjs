@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
+import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -37,7 +38,112 @@ function draft(id = 'workout-1') {
   }] };
 }
 let counter = 0;
-const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z');
+const digest = async text => createHash('sha256').update(text).digest('hex');
+const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z', digest);
+
+test('JSON backup round trips all records, original units, archived gyms, goals and unfinished input through reopening', async () => {
+  const folder = mkdtempSync(join(tmpdir(), 'workout-backup-')), file = join(folder, 'restored.db');
+  const source = connect(':memory:'); let destination = connect(file);
+  try {
+    const store = makeStore(source); await store.initialize(); const gym = await store.addGym('Gym café 🏋');
+    for (const [index, unit] of ['lb', 'kg', 'plates', 'bodyweight'].entries()) {
+      const item = draft(`backup-${index}`); item.locationId = gym.id;
+      Object.assign(item.exercises[0], { unit: unit === 'bodyweight' ? 'lb' : unit, bodyweight: unit === 'bodyweight', category: 'Push', subcategory: 'Chest' });
+      item.exercises[0].sets[0].weight = '0'; await store.finish(item);
+    }
+    await store.saveWorkoutAsRoutine('backup-0', 'My push'); await store.scheduleWeeklyGoal(5, '2026-11-01'); await store.removeLocation(gym.id);
+    const pending = draft('backup-draft'); pending.exercises[0].sets[0] = { id: 'pending-set', weight: 'oops', reps: '', completed: false }; await store.saveDraft(pending);
+    const text = await store.exportBackup('0.1.0'), original = JSON.parse(text);
+    let restored = makeStore(destination); await restored.initialize(); await restored.finish(draft('will-be-replaced'));
+    const inspection = await restored.inspectBackup(text);
+    assert.equal(inspection.incoming.workouts, 4); assert.equal(inspection.current.workouts, 1); assert.equal(inspection.incoming.hasDraft, true);
+    assert.equal((await restored.listWorkouts()).length, 1, 'inspection must not mutate data');
+    await restored.restoreBackup(inspection.token, text);
+    assert.deepEqual(JSON.parse(await restored.exportBackup('0.1.0')), original);
+    destination.db.close(); destination = connect(file); restored = makeStore(destination); await restored.initialize();
+    assert.deepEqual(JSON.parse(await restored.exportBackup('0.1.0')), original);
+    assert.deepEqual(await restored.getDraft(), pending);
+    assert.equal((await restored.listRoutines())[0].name, 'My push');
+    assert.equal((await restored.getWeeklyConsistency('2026-11-02')).currentWeek.targetDays, 5);
+    assert.deepEqual(destination.db.prepare('PRAGMA foreign_key_check').all(), []);
+  } finally { source.db.close(); destination.db.close(); rmSync(folder, { recursive: true, force: true }); }
+});
+
+test('restore refuses changed file bytes, changed local data, reused tokens and malformed graphs', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize(); await store.finish(draft('source'));
+    const text = await store.exportBackup('0.1.0');
+    const travel = JSON.parse(text);
+    travel.exportedAt = '2026-11-01T12:00:00Z';
+    Object.assign(travel.data.sessions[0], { timezone: 'Pacific/Kiritimati', activityDate: '2026-11-02', startedAt: '2026-11-01T10:00:00Z', endedAt: '2026-11-01T11:00:00Z' });
+    assert.equal((await store.inspectBackup(JSON.stringify(travel))).incoming.firstDate, '2026-11-02', 'recorded timezone can be a day ahead of the importing device');
+    let review = await store.inspectBackup(text, 'raw-bytes-1');
+    await assert.rejects(store.restoreBackup(review.token, text, 'raw-bytes-2'), /changed/);
+    review = await store.inspectBackup(text); await store.saveDraft(draft('new-local-draft'));
+    await assert.rejects(store.restoreBackup(review.token, text), /changed/);
+    review = await store.inspectBackup(text); await assert.rejects(store.restoreBackup(review.token, text + ' '), /changed/);
+    review = await store.inspectBackup(text); await store.restoreBackup(review.token, text);
+    await assert.rejects(store.restoreBackup(review.token, text), /changed/);
+    const before = await store.exportBackup('0.1.0');
+    const mutations = [
+      value => { value.data.sets[0].reps = 0; },
+      value => { value.data.sets[0].loadValue = null; },
+      value => { value.data.sets.push({ ...value.data.sets[0], id: 'duplicate-position' }); },
+      value => { value.data.sessionExercises[0].equipmentVariationId = 'missing'; },
+      value => { value.data.sessions[0].timezone = 'Not/A_Zone'; },
+      value => { value.data.sessions[0].activityDate = '2026-11-02'; },
+      value => { value.data.sessions[0].endedAt = '2026-11-02T00:00:00Z'; },
+      value => { value.data.equipmentVariations[0].loadDimension = 'bodyweight'; },
+      value => { value.data.exercises[0].subcategory = 'Biceps'; },
+      value => { value.data.sets = []; },
+    ];
+    for (const change of mutations) { const value = JSON.parse(text); change(value); await assert.rejects(store.inspectBackup(JSON.stringify(value)), /Invalid backup/); }
+    assert.equal(await store.exportBackup('0.1.0'), before);
+  } finally { connection.db.close(); }
+});
+
+test('a write failure midway through replacement restores the entire prior dataset and revision', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize(); await store.finish(draft('rollback-source'));
+    const incoming = await store.exportBackup('0.1.0'); await store.finish(draft('rollback-keep')); await store.saveDraft(draft('rollback-draft'));
+    const before = await store.exportBackup('0.1.0'), revision = connection.db.prepare('SELECT revision FROM store_metadata').get().revision;
+    const review = await store.inspectBackup(incoming); connection.failSets();
+    await assert.rejects(store.restoreBackup(review.token, incoming), /Injected write failure/);
+    assert.equal(await store.exportBackup('0.1.0'), before);
+    assert.equal(connection.db.prepare('SELECT revision FROM store_metadata').get().revision, revision);
+    assert.deepEqual(connection.db.prepare('PRAGMA foreign_key_check').all(), []);
+  } finally { connection.db.close(); }
+});
+
+test('a valid backup can replace a damaged existing checkpoint without parsing the damaged payload', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize(); const text = await store.exportBackup('0.1.0');
+    connection.db.prepare('INSERT INTO draft_checkpoint VALUES (1,?,?)').run('broken', '{broken');
+    const review = await store.inspectBackup(text); assert.equal(review.current.hasDraft, true);
+    await store.restoreBackup(review.token, text); assert.equal(await store.getDraft(), null);
+  } finally { connection.db.close(); }
+});
+
+test('version-six migration preserves data and tracks every user table mutation', async () => {
+  const connection = connect(':memory:');
+  try {
+    let store = makeStore(connection); await store.initialize(); await store.finish(draft('version-six')); await store.saveWorkoutAsRoutine('version-six', 'Routine'); await store.saveDraft(draft('six-draft'));
+    const before = await store.exportBackup('0.1.0');
+    for (const row of connection.db.prepare("SELECT name FROM sqlite_master WHERE type='trigger'").all()) connection.db.exec(`DROP TRIGGER ${row.name}`);
+    connection.db.exec('DROP TABLE store_metadata; PRAGMA user_version=6;');
+    store = makeStore(connection); await store.initialize(); await store.initialize();
+    assert.equal(await store.exportBackup('0.1.0'), before);
+    const revision = () => connection.db.prepare('SELECT revision FROM store_metadata').get().revision;
+    for (const table of ['locations','exercises','equipment_variations','routines','routine_slots','sessions','session_exercises','sets','weekly_goals','draft_checkpoint']) {
+      const column = connection.db.prepare(`PRAGMA table_info(${table})`).all()[0].name, previous = revision();
+      connection.db.exec(`UPDATE ${table} SET ${column}=${column}`); assert.ok(revision() > previous, table);
+      assert.equal(connection.db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='trigger' AND tbl_name=?").get(table).n, 3);
+    }
+  } finally { connection.db.close(); }
+});
 
 test('exercise progress isolates gym, machine, convention, dimension and mode, and refreshes corrections', async () => {
   const connection = connect(':memory:');
@@ -111,7 +217,7 @@ test('backdating and deleting completed workouts recalculates achieved weeks wit
   const connection = connect(':memory:');
   try {
     let now = '2026-11-01T02:00:00.000Z';
-    const store = createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => now);
+    const store = createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => now, digest);
     await store.initialize(); await store.scheduleWeeklyGoal(2, '2026-11-01'); now = '2026-11-05T02:00:00.000Z';
     for (const [index, date] of ['2026-11-02', '2026-11-03', '2026-11-03'].entries()) {
       const item = draft(`streak-${index}`); item.timing = { startDate: date, startTime: '09:00', endDate: date, endTime: '10:00' }; await store.finish(item);
@@ -191,7 +297,7 @@ test('version-four migration adds empty routine storage without changing saved w
     assert.deepEqual(await store.listRoutines(), []);
     assert.equal((await store.getWorkout('pre-migration')).exercises[0].sets[0].reps, 10);
     assert.deepEqual(await store.getDraft(), draft('active-migration'));
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 6);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 7);
   } finally { connection.db.close(); }
 });
 
@@ -336,7 +442,7 @@ test('version-one locations migrate without losing gyms or draft checkpoints', a
     const pending = draft(); pending.locationId = 'legacy';
     connection.db.prepare('INSERT INTO draft_checkpoint VALUES (1,?,?)').run(pending.id, JSON.stringify(pending));
     const store = makeStore(connection); await store.initialize(); await store.initialize();
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 6);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 7);
     assert.equal((await store.listLocations()).find(item => item.id === 'legacy').archived, 0);
     assert.deepEqual(await store.getDraft(), pending);
   } finally { connection.db.close(); }
