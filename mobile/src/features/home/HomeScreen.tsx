@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,14 +15,13 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
   onOpenDay?: (date: string, filter: LocationFilter) => void; refreshing?: boolean; error?: string; onRetry?: () => void;
   onSummary?: () => void; onProgress?: () => void; weeklyProgress?: ReactNode;
 }) {
-  const [actionHeight, setActionHeight] = useState(0);
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: theme.background }]}
+      edges={onStart ? ['top', 'left', 'right'] : undefined}
       testID="home-screen"
     >
-      <View style={{ flex: 1 }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, onStart && { paddingBottom: actionHeight + 24 }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
         <Text style={[styles.eyebrow, { color: theme.muted }]}>WORKOUT JOURNAL</Text>
         <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>
           Today
@@ -51,14 +50,11 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
         </View>}
         <WorkoutCalendar workouts={workouts} theme={theme} openDay={onOpenDay} openWorkout={onOpen} disabled={refreshing || Boolean(error)} />
       </ScrollView>
-      {onStart && <View pointerEvents="box-none" style={styles.actionOverlay} onLayout={event => setActionHeight(event.nativeEvent.layout.height)}>
-        <View pointerEvents="box-none" style={styles.actionDock}>
-        <View style={styles.actionShape}>
-        <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />
+      {onStart && <SafeAreaView edges={['bottom']} style={[styles.actionBar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+        <View style={styles.actionDock}>
+          <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />
         </View>
-        </View>
-      </View>}
-      </View>
+      </SafeAreaView>}
     </SafeAreaView>
   );
 }
@@ -66,9 +62,8 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { padding: 24, paddingTop: 40, gap: 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  actionOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0 },
-  actionDock: { paddingHorizontal: 40, paddingTop: 12, paddingBottom: 28, width: '100%', maxWidth: 420, alignSelf: 'center' },
-  actionShape: { borderRadius: 999, overflow: 'hidden' },
+  actionBar: { borderTopWidth: 1 },
+  actionDock: { paddingHorizontal: 24, paddingVertical: 16, width: '100%', maxWidth: 640, alignSelf: 'center' },
   eyebrow: { fontFamily: fonts.bold, fontSize: 12, letterSpacing: 1.44 },
   title: { fontFamily: fonts.bold, fontSize: 30, letterSpacing: -0.6 },
   body: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 22 },
