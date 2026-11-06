@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text, View, useColorScheme } from 'react-native';
 import { useProgressLibrary } from '../../features/progress/useExerciseProgress';
+import { ExerciseGroups } from '../../features/exercises/ExerciseGroups';
 import { Button, Field, Screen, styles } from '../../ui/controls';
 import { getTheme } from '../../ui/theme';
 
@@ -18,9 +19,9 @@ export default function ProgressLibraryRoute() {
     {!data && !error && <Text style={{ color: theme.muted }}>Loading exercises...</Text>}
     {data && !data.length && <Text style={{ color: theme.muted }}>No completed exercises yet. Finish a workout to start your history.</Text>}
     {data && data.length > 0 && !items.length && <Text style={{ color: theme.muted }}>No exercises match your search.</Text>}
-    {items.map(item => <View key={item.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+    <ExerciseGroups items={items} searching={Boolean(search.trim())} theme={theme} renderItem={item => <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <Button theme={theme} label={item.name} accessibilityLabel={`View progress for ${item.name}, ${item.bodyweight ? 'bodyweight' : 'loaded'}`} onPress={() => router.push({ pathname: '/progress/[id]', params: { id: item.id } })} />
       <Text style={{ color: theme.muted }}>{[item.category, item.subcategory, item.bodyweight ? 'Bodyweight reps' : 'Loaded sets'].filter(Boolean).join(' / ')}</Text>
-    </View>)}
+    </View>} />
   </Screen>;
 }

@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 import type { SavedWorkout } from '../../domain/workout';
 import { calendarDateLabel, type LocationFilter } from '../../domain/workoutCalendar';
 import { CompletedExerciseSummary } from '../workouts/CompletedExerciseSummary';
+import { ExerciseGroups } from '../exercises/ExerciseGroups';
 import { CompletedWorkoutMetadata } from '../workouts/CompletedWorkoutMetadata';
 import { Button, Screen, styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
@@ -26,7 +27,7 @@ export function DayDetailsScreen({ date, filter, workouts, error, retry, back, o
         <Button theme={theme} variant="link" label="View / edit" accessibilityLabel={`View or edit ${workout.sessionType} workout`} onPress={() => open(workout.id)} />
       </View>
       <CompletedWorkoutMetadata workout={workout} theme={theme} showDate={false} />
-      {workout.exercises.map(exercise => <CompletedExerciseSummary key={exercise.id} exercise={exercise} theme={theme} />)}
+      <ExerciseGroups items={workout.exercises} theme={theme} renderItem={exercise => <CompletedExerciseSummary exercise={exercise} theme={theme} />} />
     </View>)}
   </Screen>;
 }

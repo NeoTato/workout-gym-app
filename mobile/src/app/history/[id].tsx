@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Text, View, useColorScheme } from 'react-native';
 import type { Location, SavedWorkout, WorkoutDraft } from '../../domain/workout';
 import { SavedWorkoutEditor } from '../../features/workouts/SavedWorkoutEditor';
+import { ExerciseGroups } from '../../features/exercises/ExerciseGroups';
 import { CompletedExerciseSummary } from '../../features/workouts/CompletedExerciseSummary';
 import { CompletedWorkoutMetadata } from '../../features/workouts/CompletedWorkoutMetadata';
 import { RoutineDialog } from '../../features/workouts/RoutineDialog';
@@ -59,7 +60,7 @@ export default function WorkoutDetailsRoute() {
       <Button theme={theme} variant="link" label="Save as routine" disabled={busy || confirmDelete} onPress={() => setRoutineOpen(true)} />
       {!!routineNotice && <Text accessibilityLiveRegion="polite" style={{ color: theme.success }}>{routineNotice}</Text>}
       {routineOpen && <RoutineDialog mode="save" theme={theme} workoutId={workout.id} close={() => setRoutineOpen(false)} saved={name => { setRoutineOpen(false); setRoutineNotice(`Routine saved: ${name}`); }} />}
-      {workout.exercises.map(exercise => <CompletedExerciseSummary key={exercise.id} exercise={exercise} theme={theme} onProgress={exercise.catalogId ? () => router.push({ pathname: '/progress/[id]', params: { id: exercise.catalogId, variationId: exercise.equipmentVariationId } }) : undefined} />)}
+      <ExerciseGroups key={workout.id} items={workout.exercises} theme={theme} renderItem={exercise => <CompletedExerciseSummary exercise={exercise} theme={theme} onProgress={exercise.catalogId ? () => router.push({ pathname: '/progress/[id]', params: { id: exercise.catalogId, variationId: exercise.equipmentVariationId } }) : undefined} />} />
       {confirmDelete ? <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold }}>Delete this workout?</Text>
         <Text style={[styles.subtitle, { color: theme.muted }]}>This permanently removes this workout and all its sets from this phone. This cannot be undone.</Text>

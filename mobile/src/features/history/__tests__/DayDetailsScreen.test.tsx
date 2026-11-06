@@ -11,6 +11,7 @@ it('shows all sessions for a day with expandable sets and an editor link', async
   expect(screen.getByText('2 workouts')).toBeOnTheScreen();
   expect(screen.getByRole('header', { name: 'Core' })).toBeOnTheScreen();
   expect(screen.queryByText(/Set 1:/)).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Uncategorized, 1 exercise' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Press, 1 set' }));
   expect(screen.getByText('Set 1: 40 kg × 8 reps')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'View or edit Push workout' }));
