@@ -59,7 +59,7 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { padding: 24, paddingTop: 40, gap: 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  actionDock: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  actionDock: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 28, width: '100%', maxWidth: 640, alignSelf: 'center' },
   eyebrow: { fontFamily: fonts.bold, fontSize: 12, letterSpacing: 1.44 },
   title: { fontFamily: fonts.bold, fontSize: 30, letterSpacing: -0.6 },
   body: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 22 },
