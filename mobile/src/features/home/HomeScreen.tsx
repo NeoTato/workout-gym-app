@@ -29,8 +29,10 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
         </Text>
 
         {onStart && <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />}
-        {onSummary && <Button theme={theme} variant="link" label="Workout summaries" onPress={onSummary} />}
-        {onProgress && <Button theme={theme} variant="link" label="Exercise progress" onPress={onProgress} />}
+        {(onSummary || onProgress) && <View>
+          {onSummary && <Button theme={theme} variant="link" label="Workout summaries" onPress={onSummary} />}
+          {onProgress && <Button theme={theme} variant="link" label="Exercise progress" onPress={onProgress} />}
+        </View>}
         {weeklyProgress}
         {refreshing && <Text style={{ color: theme.muted }}>Updating history…</Text>}
         {!!error && <><Text accessibilityRole="alert" style={{ color: theme.danger }}>{error} Showing the last loaded view.</Text>{onRetry && <Button theme={theme} label="Retry history" onPress={onRetry} />}</>}
