@@ -24,3 +24,5 @@ Stop Metro with Ctrl+C and run `npm start -- --clear` from `mobile/`. This adds 
 81 Jest tests and 24 real SQLite tests pass. Coverage includes effective goal history, open/closed weeks, duplicate dates, missing weeks, cross-year and future periods, scheduling/replacing/cancelling changes, failed-save recovery, stale responses, version-five migration, file reopen, and history corrections. Type checking, lint, SDK compatibility, all-platform bundle export, and the high/critical audit gate pass. The unchanged dependency tree has 1 low and 30 moderate audit findings.
 
 JavaScript exports and browser verification do not replace physical iOS/Android review. Leave this PR unmerged until the phone checklist is reviewed.
+
+Goals and streaks shows the current week only in its main progress card. Previous weeks excludes the current week and stays hidden until older history exists, including its history explanation. This presentation change does not alter goal or streak calculations.
