@@ -53,7 +53,9 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
       </ScrollView>
       {onStart && <View pointerEvents="box-none" style={styles.actionOverlay} onLayout={event => setActionHeight(event.nativeEvent.layout.height)}>
         <View pointerEvents="box-none" style={styles.actionDock}>
+        <View style={styles.actionShape}>
         <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />
+        </View>
         </View>
       </View>}
       </View>
@@ -65,7 +67,8 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { padding: 24, paddingTop: 40, gap: 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
   actionOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0 },
-  actionDock: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 28, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  actionDock: { paddingHorizontal: 40, paddingTop: 12, paddingBottom: 28, width: '100%', maxWidth: 420, alignSelf: 'center' },
+  actionShape: { borderRadius: 999, overflow: 'hidden' },
   eyebrow: { fontFamily: fonts.bold, fontSize: 12, letterSpacing: 1.44 },
   title: { fontFamily: fonts.bold, fontSize: 30, letterSpacing: -0.6 },
   body: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 22 },
