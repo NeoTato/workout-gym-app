@@ -15,6 +15,7 @@ export default function ConsistencyRoute() {
   const { data, error, retry } = useWeeklyConsistency(today);
   const [editing, setEditing] = useState(false);
   const next = shiftSummaryPeriod('week', today, 1);
+  const previousWeeks = data?.recentWeeks.filter(week => week.start < data.currentWeek.start) ?? [];
   const card = [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }];
   return <Screen theme={theme}>
     <Button theme={theme} variant="link" label="Back to Home" onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/'); }} />
@@ -33,9 +34,11 @@ export default function ConsistencyRoute() {
         <Text style={{ color: theme.text }}>Longest streak: {data.longestStreak} {data.longestStreak === 1 ? 'week' : 'weeks'}</Text>
         <Text style={{ color: theme.muted }}>Meet your active-day target in consecutive Monday-to-Sunday weeks. An unfinished current week keeps your streak open. A closed week below its target breaks it.</Text>
       </View>
-      <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold }}>Recent weeks</Text>
-      {data.recentWeeks.map(week => <View key={week.start} style={card}><WeekProgress week={week} theme={theme} /></View>)}
-      <Text style={{ color: theme.muted }}>Targets are kept with their effective week. Older workouts use your earliest recorded target. Backdating or removing a workout updates your streaks.</Text>
+      {previousWeeks.length > 0 && <>
+        <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold }}>Previous weeks</Text>
+        {previousWeeks.map(week => <View key={week.start} style={card}><WeekProgress week={week} theme={theme} /></View>)}
+        <Text style={{ color: theme.muted }}>Targets are kept with their effective week. Older workouts use your earliest recorded target. Backdating or removing a workout updates your streaks.</Text>
+      </>}
       {editing && next && <GoalDialog theme={theme} initial={data.pendingGoal?.targetDays ?? data.currentWeek.targetDays} currentTarget={data.currentWeek.targetDays} nextWeekLabel={`next Monday (${next})`} close={() => setEditing(false)} save={async target => { const store = await openStore(); await store.scheduleWeeklyGoal(target, today); retry(); }} />}
     </>}
   </Screen>;

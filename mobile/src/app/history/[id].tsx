@@ -1,8 +1,9 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import { Text, View, useColorScheme } from 'react-native';
 import type { Location, SavedWorkout, WorkoutDraft } from '../../domain/workout';
 import { SavedWorkoutEditor } from '../../features/workouts/SavedWorkoutEditor';
+import { ExerciseGroups } from '../../features/exercises/ExerciseGroups';
 import { CompletedExerciseSummary } from '../../features/workouts/CompletedExerciseSummary';
 import { CompletedWorkoutMetadata } from '../../features/workouts/CompletedWorkoutMetadata';
 import { RoutineDialog } from '../../features/workouts/RoutineDialog';
@@ -11,7 +12,7 @@ import { Button, Screen, styles } from '../../ui/controls';
 import { fonts, getTheme } from '../../ui/theme';
 
 export default function WorkoutDetailsRoute() {
-  const { id, returnToWorkout, returnToDay, returnToCalendar } = useLocalSearchParams<{ id: string; returnToWorkout?: string; returnToDay?: string; returnToCalendar?: string }>();
+  const { id, returnToWorkout, returnToDay, returnToCalendar, returnToProgress } = useLocalSearchParams<{ id: string; returnToWorkout?: string; returnToDay?: string; returnToCalendar?: string; returnToProgress?: string }>();
   const theme = getTheme(useColorScheme());
   const [workout, setWorkout] = useState<SavedWorkout | null>(null), [error, setError] = useState('');
   const [edit, setEdit] = useState<WorkoutDraft | null>(null), [locations, setLocations] = useState<Location[]>([]);
@@ -19,7 +20,7 @@ export default function WorkoutDetailsRoute() {
   const action = useRef(false);
   const [routineOpen, setRoutineOpen] = useState(false), [routineNotice, setRoutineNotice] = useState('');
   function leaveDetails() {
-    if ((returnToWorkout === '1' || returnToDay === '1' || returnToCalendar === '1') && router.canGoBack()) router.back();
+    if ((returnToWorkout === '1' || returnToDay === '1' || returnToCalendar === '1' || returnToProgress === '1') && router.canGoBack()) router.back();
     else router.replace('/');
   }
   async function beginEdit() {
@@ -32,12 +33,13 @@ export default function WorkoutDetailsRoute() {
     } catch { setError('Unable to open editing. Try again.'); }
     finally { action.current = false; setBusy(false); }
   }
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let active = true;
+    setError('');
     openStore().then(store => store.getWorkout(id)).then(value => { if (active) setWorkout(value); })
-      .catch(() => { if (active) setError('Unable to load this workout. Return Home and try again.'); });
+      .catch(() => { if (active) { setWorkout(null); setError('Unable to load this workout. It may have been removed. Return Home and try again.'); } });
     return () => { active = false; };
-  }, [id]);
+  }, [id]));
   if (edit) return <SavedWorkoutEditor initial={edit} locations={locations} theme={theme}
     cancel={() => setEdit(null)} save={async draft => {
       const store = await openStore(); await store.updateWorkout(draft);
@@ -46,7 +48,7 @@ export default function WorkoutDetailsRoute() {
       catch { setError('Changes saved. Return Home to reopen this workout.'); }
     }} />;
   return <Screen theme={theme}>
-    <Button theme={theme} variant="link" label={returnToWorkout === '1' ? 'Back to workout' : returnToDay === '1' ? 'Back to day' : returnToCalendar === '1' ? 'Back to calendar' : '← Home'} onPress={leaveDetails} />
+    <Button theme={theme} variant="link" label={returnToProgress === '1' ? 'Back to exercise progress' : returnToWorkout === '1' ? 'Back to workout' : returnToDay === '1' ? 'Back to day' : returnToCalendar === '1' ? 'Back to calendar' : '← Home'} onPress={leaveDetails} />
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <Text accessibilityRole="header" style={[styles.heading, { color: theme.text, flex: 1 }]}>{workout?.sessionType ?? 'Workout details'}</Text>
       {workout && !confirmDelete && <Button theme={theme} variant="link" label="Edit workout" disabled={busy} onPress={beginEdit} />}
@@ -55,10 +57,10 @@ export default function WorkoutDetailsRoute() {
     {!workout && !error && <Text style={{ color: theme.muted }}>Loading workout…</Text>}
     {workout && <>
       <CompletedWorkoutMetadata workout={workout} theme={theme} />
-      <Button theme={theme} variant="link" label="Save as routine" disabled={busy || confirmDelete} onPress={() => setRoutineOpen(true)} />
+      <Button theme={theme} variant="info" label="Save as routine" disabled={busy || confirmDelete} onPress={() => setRoutineOpen(true)} />
       {!!routineNotice && <Text accessibilityLiveRegion="polite" style={{ color: theme.success }}>{routineNotice}</Text>}
       {routineOpen && <RoutineDialog mode="save" theme={theme} workoutId={workout.id} close={() => setRoutineOpen(false)} saved={name => { setRoutineOpen(false); setRoutineNotice(`Routine saved: ${name}`); }} />}
-      {workout.exercises.map(exercise => <CompletedExerciseSummary key={exercise.id} exercise={exercise} theme={theme} />)}
+      <ExerciseGroups key={workout.id} items={workout.exercises} theme={theme} renderItem={exercise => <CompletedExerciseSummary exercise={exercise} theme={theme} onProgress={exercise.catalogId ? () => router.push({ pathname: '/progress/[id]', params: { id: exercise.catalogId, variationId: exercise.equipmentVariationId } }) : undefined} />} />
       {confirmDelete ? <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold }}>Delete this workout?</Text>
         <Text style={[styles.subtitle, { color: theme.muted }]}>This permanently removes this workout and all its sets from this phone. This cannot be undone.</Text>

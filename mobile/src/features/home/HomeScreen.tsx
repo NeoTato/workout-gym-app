@@ -7,19 +7,21 @@ import { Button } from '../../ui/controls';
 import type { WorkoutListItem } from '../../domain/workout';
 import type { LocationFilter } from '../../domain/workoutCalendar';
 import { WorkoutCalendar } from './WorkoutCalendar';
+import { HomeNavigationCard } from './HomeNavigationCard';
 
-export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen, onOpenDay, onSummary, weeklyProgress, refreshing = false, error = '', onRetry }: {
+export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen, onOpenDay, onSummary, onProgress, weeklyProgress, refreshing = false, error = '', onRetry }: {
   theme: AppTheme; workouts?: WorkoutListItem[]; hasDraft?: boolean;
   onStart?: () => void; onOpen?: (id: string) => void;
   onOpenDay?: (date: string, filter: LocationFilter) => void; refreshing?: boolean; error?: string; onRetry?: () => void;
-  onSummary?: () => void; weeklyProgress?: ReactNode;
+  onSummary?: () => void; onProgress?: () => void; weeklyProgress?: ReactNode;
 }) {
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: theme.background }]}
+      edges={onStart ? ['top', 'left', 'right'] : undefined}
       testID="home-screen"
     >
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
         <Text style={[styles.eyebrow, { color: theme.muted }]}>WORKOUT JOURNAL</Text>
         <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>
           Today
@@ -28,8 +30,10 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
           A little progress, at your pace.
         </Text>
 
-        {onStart && <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />}
-        {onSummary && <Button theme={theme} variant="link" label="Workout summaries" onPress={onSummary} />}
+        {(onSummary || onProgress) && <View style={{ gap: 8 }}>
+          {onSummary && <HomeNavigationCard theme={theme} kind="summary" onPress={onSummary} />}
+          {onProgress && <HomeNavigationCard theme={theme} kind="progress" onPress={onProgress} />}
+        </View>}
         {weeklyProgress}
         {refreshing && <Text style={{ color: theme.muted }}>Updating history…</Text>}
         {!!error && <><Text accessibilityRole="alert" style={{ color: theme.danger }}>{error} Showing the last loaded view.</Text>{onRetry && <Button theme={theme} label="Retry history" onPress={onRetry} />}</>}
@@ -46,6 +50,11 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
         </View>}
         <WorkoutCalendar workouts={workouts} theme={theme} openDay={onOpenDay} openWorkout={onOpen} disabled={refreshing || Boolean(error)} />
       </ScrollView>
+      {onStart && <SafeAreaView edges={['bottom']} style={[styles.actionBar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+        <View style={styles.actionDock}>
+          <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />
+        </View>
+      </SafeAreaView>}
     </SafeAreaView>
   );
 }
@@ -53,6 +62,8 @@ export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, on
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { padding: 24, paddingTop: 40, gap: 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  actionBar: { borderTopWidth: 1 },
+  actionDock: { paddingHorizontal: 24, paddingVertical: 16, width: '100%', maxWidth: 640, alignSelf: 'center' },
   eyebrow: { fontFamily: fonts.bold, fontSize: 12, letterSpacing: 1.44 },
   title: { fontFamily: fonts.bold, fontSize: 30, letterSpacing: -0.6 },
   body: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 22 },

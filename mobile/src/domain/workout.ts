@@ -18,6 +18,7 @@ export type WorkoutDraft = {
   locationId: string; sessionType: string; exercises: ExerciseDraft[];
 };
 export type CompletedExercise = Omit<ExerciseDraft, 'sets'> & {
+  equipmentVariationId?: string;
   sets: { id: string; weight: number | null; reps: number }[];
 };
 export type Location = { id: string; name: string; kind: 'gym' | 'home'; archived?: number };

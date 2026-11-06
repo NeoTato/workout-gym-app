@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { CompletedExercise } from '../../domain/workout';
-import { styles } from '../../ui/controls';
+import { Button, styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
 
-export function CompletedExerciseSummary({ exercise, theme }: { exercise: CompletedExercise; theme: AppTheme }) {
+export function CompletedExerciseSummary({ exercise, theme, onProgress }: { exercise: CompletedExercise; theme: AppTheme; onProgress?: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const count = `${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`;
   const classification = [exercise.category, exercise.subcategory].filter(Boolean).join(' · ');
@@ -24,6 +24,7 @@ export function CompletedExerciseSummary({ exercise, theme }: { exercise: Comple
       {exercise.sets.map((set, index) => <Text key={set.id} style={[styles.subtitle, { color: theme.text }]}>
         Set {index + 1}: {exercise.bodyweight ? 'Bodyweight' : `${set.weight} ${exercise.unit === 'lb' ? 'lbs' : exercise.unit}`} × {set.reps} reps
       </Text>)}
+      {onProgress && <Button theme={theme} variant="info" label="View exercise progress" onPress={onProgress} />}
     </>}
   </View>;
 }

@@ -1,4 +1,5 @@
 import { completedExercises, localDate } from '../domain/workout.ts';
+import { buildExerciseProgress, type ProgressRow } from '../domain/exerciseProgress.ts';
 import type { CompletedExercise, Location, SavedWorkout, WorkoutDraft, WorkoutListItem } from '../domain/workout.ts';
 import { activityDateValue, type LocationFilter } from '../domain/workoutCalendar.ts';
 import { periodBounds, shiftSummaryPeriod, summarizePeriod, type SummaryPeriod, type WorkoutCoverage } from '../domain/workoutSummary.ts';
@@ -60,7 +61,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
   async function readWorkout(sessionId: string): Promise<SavedWorkout> {
     const session = await db.getFirstAsync<Omit<SavedWorkout, 'exercises'>>('SELECT id,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions WHERE id=?', sessionId);
     if (!session) throw new Error('This workout could not be found.');
-    const rows = await db.getAllAsync<{ id: string; catalogId: string; category: ExerciseCategory; subcategory: ExerciseSubcategory; name: string; equipment: string; bodyweight: number; unit: CompletedExercise['unit']; convention: CompletedExercise['convention'] }>('SELECT se.id,se.exercise_id AS catalogId,e.category,e.subcategory,se.exercise_name_snapshot AS name,se.equipment_name_snapshot AS equipment,se.bodyweight,se.load_unit AS unit,se.load_convention AS convention FROM session_exercises se JOIN exercises e ON e.id=se.exercise_id WHERE se.session_id=? ORDER BY se.position', sessionId);
+    const rows = await db.getAllAsync<{ id: string; equipmentVariationId: string; catalogId: string; category: ExerciseCategory; subcategory: ExerciseSubcategory; name: string; equipment: string; bodyweight: number; unit: CompletedExercise['unit']; convention: CompletedExercise['convention'] }>('SELECT se.id,se.equipment_variation_id AS equipmentVariationId,se.exercise_id AS catalogId,e.category,e.subcategory,se.exercise_name_snapshot AS name,se.equipment_name_snapshot AS equipment,se.bodyweight,se.load_unit AS unit,se.load_convention AS convention FROM session_exercises se JOIN exercises e ON e.id=se.exercise_id WHERE se.session_id=? ORDER BY se.position', sessionId);
     const exercises: CompletedExercise[] = [];
     for (const exercise of rows) {
       const sets = await db.getAllAsync<CompletedExercise['sets'][number]>('SELECT id,load_value AS weight,reps FROM sets WHERE session_exercise_id=? ORDER BY position', exercise.id);
@@ -194,6 +195,20 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       if (!location) throw new Error('This location could not be found.');
       if (location.kind === 'home') throw new Error('Home is a built-in location and cannot be removed.');
       await db.runAsync('UPDATE locations SET archived=1 WHERE id=?', locationId);
+    }),
+    getExerciseProgress: (exerciseId: string, today = localDate(new Date(now()))) => queue(async () => {
+      activityDateValue(today);
+      const exercise = await db.getFirstAsync<{ id: string; name: string }>('SELECT id,name FROM exercises WHERE id=?', exerciseId);
+      if (!exercise) throw new Error('This exercise could not be found.');
+      const rows = await db.getAllAsync<ProgressRow>(`SELECT e.id AS exerciseId,e.name AS exerciseName,ev.id AS variationId,s.location_id AS locationId,s.location_name_snapshot AS locationName,l.archived,
+        se.equipment_name_snapshot AS equipment,se.bodyweight,ev.load_dimension AS dimension,se.load_convention AS convention,
+        s.id AS workoutId,s.activity_date AS activityDate,s.started_at AS startedAt,s.session_type_name_snapshot AS sessionType,
+        st.id AS setId,st.load_value AS weight,st.reps,se.load_unit AS unit
+        FROM sessions s JOIN session_exercises se ON se.session_id=s.id JOIN sets st ON st.session_exercise_id=se.id
+        JOIN equipment_variations ev ON ev.id=se.equipment_variation_id JOIN exercises e ON e.id=se.exercise_id JOIN locations l ON l.id=s.location_id
+        WHERE s.status='completed' AND e.id=? AND s.activity_date<=?
+        ORDER BY s.activity_date DESC,s.started_at DESC,s.id DESC,se.position,st.position`, exerciseId, today);
+      return { exercise, variations: buildExerciseProgress(rows) };
     }),
     listLoggedExercises: () => queue(async (): Promise<LoggedExercise[]> => {
       const rows = await db.getAllAsync<{ id: string; name: string; category: ExerciseCategory; subcategory: ExerciseSubcategory; measurement_mode: string }>(
