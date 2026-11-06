@@ -1,5 +1,6 @@
 import { backupFilename, checkBackupSize, readBackupBytes } from './backupBytes';
 import type { BackupFiles } from './backupFiles.types';
+import { saveTextFile } from '../export/saveTextFile';
 
 export const backupFiles: BackupFiles = {
   pick: () => new Promise((resolve, reject) => {
@@ -18,11 +19,5 @@ export const backupFiles: BackupFiles = {
     // Open synchronously from the button gesture; browsers block deferred dialogs.
     input.click();
   }),
-  async save(text) {
-    const url = URL.createObjectURL(new Blob([text], { type: 'application/json;charset=utf-8' }));
-    const link = document.createElement('a'); link.href = url; link.download = backupFilename();
-    document.body.appendChild(link); link.click(); link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    return 'Download started. Check your Downloads folder for the JSON backup.';
-  },
+  save: text => saveTextFile({ text, filename: backupFilename(), mimeType: 'application/json', uti: 'public.json', title: 'Save your workout backup' }),
 };

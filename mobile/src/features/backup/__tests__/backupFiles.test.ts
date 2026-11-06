@@ -1,5 +1,5 @@
 import { getDocumentAsync } from 'expo-document-picker';
-import { shareAsync } from 'expo-sharing';
+import { isAvailableAsync, shareAsync } from 'expo-sharing';
 import { backupFiles } from '../backupFiles.native';
 
 const mockWrite = jest.fn(), mockCreate = jest.fn(), mockDelete = jest.fn();
@@ -8,7 +8,7 @@ jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), 
 jest.mock('../backupBytes', () => ({ checkBackupSize: jest.fn(), readBackupBytes: jest.fn(async () => ({ text: '{}', fingerprint: 'sha' })), backupFilename: () => 'generated.json' }));
 jest.mock('expo-file-system', () => ({
   Paths: { cache: { uri: 'file:///cache/' } },
-  Directory: class { uri = 'file:///cache/workout-backups'; create = mockCreate; },
+  Directory: class { uri = 'file:///cache/workout-exports'; create = mockCreate; },
   File: class {
     uri: string; size = 2; exists = true; create = mockCreate; write = mockWrite; delete = mockDelete;
     constructor(source: string | { uri: string }, filename?: string) { this.uri = typeof source === 'string' ? source : `${source.uri}/${filename}`; }
@@ -30,5 +30,11 @@ test('cleanup never deletes the provider original and sharing never claims a dur
   const file = await backupFiles.pick(); file?.dispose(); expect(mockDelete).not.toHaveBeenCalled();
   expect(await backupFiles.save('{"journal":true}')).toMatch(/Make sure you saved a copy/);
   expect(mockWrite).toHaveBeenCalledWith('{"journal":true}');
-  expect(shareAsync).toHaveBeenCalledWith('file:///cache/workout-backups/generated.json', expect.objectContaining({ mimeType: 'application/json', UTI: 'public.json' }));
+  expect(shareAsync).toHaveBeenCalledWith('file:///cache/workout-exports/generated.json', expect.objectContaining({ mimeType: 'application/json', UTI: 'public.json' }));
+});
+
+test('unavailable native sharing reports an error before writing a cache file', async () => {
+  jest.mocked(isAvailableAsync).mockResolvedValueOnce(false);
+  await expect(backupFiles.save('{}')).rejects.toThrow(/not available/);
+  expect(mockWrite).not.toHaveBeenCalled(); expect(shareAsync).not.toHaveBeenCalled();
 });
