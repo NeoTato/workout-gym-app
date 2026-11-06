@@ -5,8 +5,8 @@ import type { AppTheme } from '../../ui/theme';
 export function ProgressChart({ metrics, theme, openWorkout }: { metrics: ReturnType<typeof progressMetrics>; theme: AppTheme; openWorkout: (id: string) => void }) {
   const max = Math.max(1, ...metrics.points.map(point => point.value));
   return <View style={{ gap: 8 }}>
-    <Text style={{ color: theme.muted }}>Recent {metrics.points.length} {metrics.points.length === 1 ? 'session' : 'sessions'}, oldest to newest</Text>
-    <Text style={{ color: theme.muted, fontSize: 12 }}>Each bar is one session, spaced equally. Tap a bar to open its workout.</Text>
+    <Text style={{ color: theme.muted, fontSize: 12 }}>Latest {metrics.points.length} / oldest to newest</Text>
+    <Text style={{ color: theme.muted, fontSize: 12 }}>Tap a bar to open its workout.</Text>
     <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ gap: 8, paddingVertical: 8 }}>
       {metrics.points.map(point => <Pressable key={point.workoutId} accessibilityRole="button" accessibilityLabel={`${point.date}: ${formatProgressValue(point.value)} ${metrics.unit}. Open workout`} onPress={() => openWorkout(point.workoutId)} style={{ width: 72, minHeight: 180, alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
         <Text style={{ color: theme.text, fontSize: 12 }}>{formatProgressValue(point.value)}</Text>

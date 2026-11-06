@@ -9,6 +9,13 @@ it('converts chart units, preserves original sets, and changes equipment explici
   const openWorkout = jest.fn();
   const variations = buildExerciseProgress([row, { ...row, variationId: 'gym', locationId: 'gym', locationName: 'Gym B', archived: 1, workoutId: 'other', setId: 'other-set', weight: 20, unit: 'kg' }]);
   await render(<ExerciseProgressScreen name="Press" variations={variations} theme={getTheme('light')} back={jest.fn()} openWorkout={openWorkout} />);
+  expect(screen.getByText('Location')).toBeOnTheScreen();
+  expect(screen.getByText('Tracking')).toBeOnTheScreen();
+  expect(screen.queryByText('Loads are compared regardless of reps; this is not a strength score.')).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'How comparisons work', expanded: false }));
+  expect(screen.getByText('Loads are compared regardless of reps; this is not a strength score.')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'How comparisons work', expanded: true }));
+  expect(screen.queryByText('Loads are compared regardless of reps; this is not a strength score.')).toBeNull();
   expect(screen.queryByText('Set 1: 100 lb × 8 reps')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Chart unit: kg' }));
   expect(screen.getByText('45.36 kg')).toBeOnTheScreen();
