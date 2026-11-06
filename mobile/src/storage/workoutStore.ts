@@ -10,6 +10,7 @@ import { schema } from './schema.ts';
 import { createBackupOperations } from './backupStore.ts';
 import { revisionSchema } from './backupTables.ts';
 import { isAppearance, type AppearancePreference } from '../domain/appearance.ts';
+import { buildCsvExport, validateCsvSelection, type CsvRow, type CsvSelection } from '../domain/csvExport.ts';
 import { workoutTimes } from '../domain/workoutTime.ts';
 import { cleanExerciseName, exerciseNameKey, type ExerciseCategory, type ExerciseSubcategory, type LoggedExercise } from '../domain/exerciseLibrary.ts';
 
@@ -90,6 +91,20 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
   }
   return {
     ...createBackupOperations(db, queue, id, now, digest),
+    getCsvExport: (input: CsvSelection) => queue(async () => {
+      const selection = validateCsvSelection(input);
+      let rows: CsvRow[] = [];
+      await db.transaction(async tx => {
+        rows = await tx.getAllAsync<CsvRow>(`SELECT s.id AS sessionId,s.activity_date AS activityDate,s.timezone,s.started_at AS startedAt,s.ended_at AS endedAt,
+          s.session_type_name_snapshot AS sessionType,s.location_id AS locationId,s.location_name_snapshot AS locationName,s.location_kind_snapshot AS locationKind,
+          se.exercise_id AS exerciseId,se.exercise_name_snapshot AS exerciseName,se.equipment_variation_id AS equipmentId,se.equipment_name_snapshot AS equipmentName,
+          se.bodyweight,se.load_convention AS loadConvention,se.load_unit AS loadUnit,st.id AS setId,st.position AS setPosition,st.load_value AS loadValue,st.reps
+          FROM sessions s LEFT JOIN session_exercises se ON se.session_id=s.id LEFT JOIN sets st ON st.session_exercise_id=se.id
+          WHERE s.status='completed' ${selection.kind === 'range' ? 'AND s.activity_date>=? AND s.activity_date<=?' : ''}
+          ORDER BY s.activity_date,s.started_at,s.id,se.position,st.position`, ...(selection.kind === 'range' ? [selection.from, selection.to] : []));
+      });
+      return buildCsvExport(rows);
+    }),
     initialize: () => queue(async () => {
       await db.execAsync('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;');
       await db.transaction(async tx => {

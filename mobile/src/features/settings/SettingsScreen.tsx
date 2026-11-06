@@ -3,7 +3,7 @@ import { Button, Choice, Screen, styles } from '../../ui/controls';
 import type { AppearanceState } from '../../ui/appearanceContext';
 import { fonts, type AppTheme } from '../../ui/theme';
 
-export function SettingsScreen({ theme, appearance, onBack, onBackup }: { theme: AppTheme; appearance: AppearanceState; onBack: () => void; onBackup: () => void }) {
+export function SettingsScreen({ theme, appearance, onBack, onBackup, onExport }: { theme: AppTheme; appearance: AppearanceState; onBack: () => void; onBackup: () => void; onExport: () => void }) {
   return <Screen theme={theme}>
     <Button theme={theme} variant="link" label="Back to Home" onPress={onBack} />
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Settings</Text>
@@ -15,14 +15,17 @@ export function SettingsScreen({ theme, appearance, onBack, onBackup }: { theme:
     </View>
     <View style={{ gap: 10 }}>
       <Text accessibilityRole="header" style={{ color: theme.muted, fontFamily: fonts.bold, fontSize: 12, letterSpacing: 1 }}>YOUR DATA</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel="Backup and restore" accessibilityHint="Save your journal or restore a JSON backup" onPress={onBackup}
+      {[
+        { title: 'Backup and restore', description: 'Save a complete copy of your workouts, routines, goals and unfinished workout.', hint: 'Save your journal or restore a JSON backup', open: onBackup },
+        { title: 'Export workout history', description: 'Export completed workouts as CSV for spreadsheets.', hint: 'Choose all history or a date range', open: onExport },
+      ].map(item => <Pressable key={item.title} accessibilityRole="button" accessibilityLabel={item.title} accessibilityHint={item.hint} onPress={item.open}
         style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: theme.border, flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed ? 0.75 : 1 }]}>
         <View style={{ flex: 1, gap: 6 }}>
-          <Text style={{ color: theme.info, fontFamily: fonts.bold, fontSize: 17 }}>Backup and restore</Text>
-          <Text style={[styles.subtitle, { color: theme.muted }]}>Save a complete copy of your workouts, routines, goals and unfinished workout.</Text>
+          <Text style={{ color: theme.info, fontFamily: fonts.bold, fontSize: 17 }}>{item.title}</Text>
+          <Text style={[styles.subtitle, { color: theme.muted }]}>{item.description}</Text>
         </View>
         <Text accessible={false} style={{ color: theme.info, fontSize: 26 }}>{'\u203A'}</Text>
-      </Pressable>
+      </Pressable>)}
     </View>
   </Screen>;
 }

@@ -5,7 +5,7 @@ import { Button, styles } from '../../ui/controls';
 import type { AppTheme } from '../../ui/theme';
 
 export type DateTimeFieldProps = {
-  label: string; mode: 'date' | 'time'; date: string; time: string; maximumDate: string;
+  label: string; mode: 'date' | 'time'; date: string; time: string; maximumDate?: string;
   theme: AppTheme; disabled: boolean; onChange: (value: string) => void;
 };
 
@@ -25,7 +25,7 @@ export function DateTimeField({ label, mode, date, time, maximumDate, theme, dis
     // Wall-clock values are carried in UTC here; the domain layer converts them
     // to the workout's recorded timezone when saving, independent of device zone.
     timeZoneName="UTC" is24Hour
-    maximumDate={mode === 'date' ? new Date(`${maximumDate}T23:59:59Z`) : undefined}
+    maximumDate={mode === 'date' && maximumDate ? new Date(`${maximumDate}T23:59:59Z`) : undefined}
     display={Platform.OS === 'ios' ? mode === 'date' ? 'inline' : 'spinner' : mode === 'date' ? 'calendar' : 'clock'}
     themeVariant={theme.scheme} accentColor={theme.primary} textColor={theme.text}
     onDismiss={close} onValueChange={(_event, value) => {
