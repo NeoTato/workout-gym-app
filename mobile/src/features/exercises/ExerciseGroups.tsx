@@ -23,13 +23,23 @@ export function ExerciseGroups<T extends Groupable>({ items, theme, renderItem, 
   const ordered = [...groups.entries()].sort(([, a], [, b]) => categoryOrder(a.category) - categoryOrder(b.category) || subcategoryOrder(a.category, a.subcategory) - subcategoryOrder(b.category, b.subcategory));
   return <>{ordered.map(([key, group]) => {
     const open = expanded.has(key), count = `${group.items.length} ${group.items.length === 1 ? 'exercise' : 'exercises'}`;
+    const parentLabel = group.subcategory || subcategoriesFor(group.category).length ? group.category.toUpperCase() : 'EXERCISE GROUP';
+    const title = group.subcategory || (subcategoriesFor(group.category).length ? 'Other exercises' : group.category || 'Uncategorized');
     return <View key={key} style={{ gap: 10 }}>
       <Pressable accessibilityRole="button" accessibilityLabel={`${group.label}, ${count}`} accessibilityState={{ expanded: open }} accessibilityHint={open ? 'Hide exercises' : 'Show exercises'} onPress={() => setExpanded(previous => { const next = new Set(previous); if (next.has(key)) next.delete(key); else next.add(key); return next; })}
-        style={{ minHeight: 56, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{ flex: 1, gap: 4 }}><Text style={{ color: theme.text, fontFamily: fonts.bold }}>{group.label}</Text><Text style={{ color: theme.muted, fontSize: 12 }}>{count}</Text></View>
-        <Text accessible={false} style={{ color: theme.muted, fontSize: 20 }}>{open ? '−' : '+'}</Text>
+        style={{ minHeight: 88, padding: 16, borderRadius: 14, borderWidth: 1, borderLeftWidth: 4, borderColor: theme.infoBorder, backgroundColor: theme.infoSoft, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={{ color: theme.info, fontFamily: fonts.bold, fontSize: 10, letterSpacing: 1 }}>{parentLabel}</Text>
+          <Text style={{ color: theme.info, fontFamily: fonts.bold, fontSize: 20 }}>{title}</Text>
+          <Text style={{ color: theme.muted, fontSize: 12 }}>{count}</Text>
+        </View>
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surface }}>
+          <Text style={{ color: theme.info, fontSize: 20 }}>{open ? '−' : '+'}</Text>
+        </View>
       </Pressable>
-      {open && group.items.map(item => <Fragment key={item.id}>{renderItem(item)}</Fragment>)}
+      {open && <View style={{ gap: 10, marginLeft: 12, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: theme.infoBorder }}>
+        {group.items.map(item => <Fragment key={item.id}>{renderItem(item)}</Fragment>)}
+      </View>}
     </View>;
   })}</>;
 }
