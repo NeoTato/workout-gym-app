@@ -10,7 +10,7 @@ const props = { kind: 'month' as const, anchor: '2026-11-05', today: '2026-11-05
 it('shows current-period totals, type/location counts, and period navigation', async () => {
   const data = summarizePeriod('month', props.anchor, props.today, [workout, { ...workout, id: 'core', sessionType: 'Core', locationKind: 'home' }], [{ sessionId: 'push', group: 'Chest' }]);
   await render(<WorkoutSummaryScreen {...props} data={data} error="" />);
-  expect(screen.getByText('So far')).toBeOnTheScreen();
+  expect(screen.queryByText('So far')).toBeNull();
   expect(screen.getByLabelText('2 workouts')).toBeOnTheScreen();
   expect(screen.getByLabelText('1 active day')).toBeOnTheScreen();
   expect(screen.getByLabelText('Push, 1 workout')).toBeOnTheScreen();

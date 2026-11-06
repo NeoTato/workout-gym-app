@@ -32,7 +32,7 @@ export function WorkoutSummaryScreen({ kind, anchor, today, data, error, retry, 
     {!!error && <><Text accessibilityRole="alert" style={{ color: theme.danger }}>{error}</Text><Button theme={theme} label="Retry summary" onPress={retry} /></>}
     {!error && !data && <Text style={{ color: theme.muted }}>Loading summary…</Text>}
     {!error && data && <>
-      <Text style={{ color: theme.muted }}>{data.status === 'current' ? 'So far' : data.status === 'future' ? 'Future period · no completed results' : 'Past period'}</Text>
+      {data.status !== 'current' && <Text style={{ color: theme.muted }}>{data.status === 'future' ? 'Future period · no completed results' : 'Past period'}</Text>}
       <View style={card}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 20 }}>
           <View style={{ flex: 1, minWidth: 100, gap: 4 }}><Text style={{ color: theme.muted }}>Workouts</Text><Text accessibilityLabel={`${data.sessions} ${data.sessions === 1 ? 'workout' : 'workouts'}`} style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 30 }}>{data.sessions}</Text></View>

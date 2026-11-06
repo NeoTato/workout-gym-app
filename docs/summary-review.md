@@ -6,7 +6,7 @@ Home offers Workout summaries. The report defaults to the current month and supp
 
 Each period shows workout-session count, unique active dates, recorded time, activity bars, session-type counts, Gym/Home counts, and exercise-group coverage. Push/Pull/Legs always have visible count rows; other session types appear when used. Multiple sessions on one date increase workouts but count once as an active day. Type and location counts each sum to the workout total. Weekly activity is shown by day, monthly activity by clipped calendar weeks, and annual activity by month.
 
-Current periods say So far, past periods are labeled, and future periods contain no completed results. No comparisons to unfinished periods, fitness scores, or implied strength/consistency judgments are added. Recorded time comes from valid saved start/end timestamps; invalid or unknown durations are omitted and counted explicitly rather than treated as measured zero.
+Current periods use the selected date range without an extra status label, past periods are labeled, and future periods contain no completed results. No comparisons to unfinished periods, fitness scores, or implied strength/consistency judgments are added. Recorded time comes from valid saved start/end timestamps; invalid or unknown durations are omitted and counted explicitly rather than treated as measured zero.
 
 Exercise groups use current library category/subcategory metadata. Each group counts at most once per session, even if multiple exercises or sets share it. Groups can overlap. Extra Core exercises in a Push session contribute Core exercise coverage while leaving the Push session count unchanged. This is not a historical tag snapshot or an exercise-count total, and the UI labels the current-category basis.
 
@@ -31,7 +31,7 @@ This is the period-reporting slice of milestone 5. Effective-dated weekly target
 1. Reload Expo Go on this branch. No dependency installation or database reset is needed. On Home, tap Workout summaries.
 2. Check a known month: workout total, distinct dates, Push/Pull/Legs and other used types, Gym/Home totals, and recorded time should match saved history. Two workouts on one date should produce two workouts and one active day.
 3. Add Core exercises to a Push workout. Confirm Core exercise coverage increases without inventing a separate Core session. Verify several Chest exercises in one session count once toward Chest coverage.
-4. Switch Week/Month/Year, navigate periods across December/January and leap-year February, and use Back to this period. Current periods should say So far; future periods should have no completed results. A year should show twelve months.
+4. Switch Week/Month/Year, navigate periods across December/January and leap-year February, and use Back to this period. Current periods should have no extra status label; future periods should have no completed results. A year should show twelve months.
 5. Backdate, edit, or delete disposable test history, then return to summaries. The affected periods and calendar must agree. Leave a separate unfinished workout active and verify it resumes unchanged afterward.
 6. Check dark/light mode, larger system text, narrow layouts, accessible count labels, and report navigation. Review unknown-duration wording if such records are introduced through future data portability features.
 

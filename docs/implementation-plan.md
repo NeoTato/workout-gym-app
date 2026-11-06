@@ -38,7 +38,7 @@ Verification: Monday offsets, leap years, month/year rollover, midnight sessions
 ## 5. Targets, streaks, and summaries
 
 - Implement effective-dated weekly targets and shared summary/streak calculations as pure domain functions over completed-session read models. Connect Home, Week/Month/Year views, session-type breakdowns, gym/home counts, recorded time, and completed-exercise muscle coverage.
-- Add monthly weekly-consistency and annual active-day-by-month views. Current period says “so far”; incomplete current weeks do not prematurely break streaks.
+- Add monthly weekly-consistency and annual active-day-by-month views. Current periods use the selected date range; incomplete current weeks do not prematurely break streaks.
 - Acceptance: a shortened Push counts once as Push; extra core exercises add coverage without inventing a separate Core session. Two separate workouts on one date contribute two sessions and one active day. Changing next week's target preserves earlier weeks' target interpretation.
 
 Verification: cross-year weeks, closed unmet weeks, current week met/unmet, longest/current streak, historical edits/deletion, goals before imported history, pending target replacement, custom/renamed routine types, and unknown session durations. Sum type counts and location counts to the completed-session total.
