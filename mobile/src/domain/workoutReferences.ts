@@ -3,7 +3,7 @@ import { workoutTimes } from './workoutTime.ts';
 
 export type ReferenceContext = { locationId: string; activityDate: string; startedAt: string; excludeSessionId: string };
 export type PreviousExercise = { workoutId: string; activityDate: string; sessionType: string; locationName: string; exercise: CompletedExercise };
-export type ReferenceExercise = Pick<ExerciseDraft, 'catalogId' | 'name' | 'equipment' | 'bodyweight' | 'unit' | 'convention'>;
+export type ReferenceExercise = Pick<ExerciseDraft, 'catalogId' | 'name' | 'equipment' | 'bodyweight' | 'tracking' | 'unit' | 'convention'>;
 
 export function referenceContext(draft: WorkoutDraft, now: string): ReferenceContext {
   const times = workoutTimes(draft, now);

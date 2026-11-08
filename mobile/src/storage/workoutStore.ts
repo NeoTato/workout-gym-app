@@ -1,4 +1,4 @@
-import { completedExercises, localDate } from '../domain/workout.ts';
+import { completedExercises, localDate, trackingOf } from '../domain/workout.ts';
 import { buildExerciseProgress, type ProgressRow } from '../domain/exerciseProgress.ts';
 import type { CompletedExercise, Location, SavedWorkout, WorkoutDraft, WorkoutListItem } from '../domain/workout.ts';
 import { activityDateValue, type LocationFilter } from '../domain/workoutCalendar.ts';
@@ -7,6 +7,7 @@ import { calculateConsistency, consistencyForPeriod, effectiveWeeklyTarget, type
 import type { PreviousExercise, ReferenceContext, ReferenceExercise } from '../domain/workoutReferences.ts';
 import { routineExercises, type Routine, type RoutineExercise } from '../domain/routine.ts';
 import { schema } from './schema.ts';
+import { migrateFlexibleLogging } from './flexibleLoggingMigration.ts';
 import { createBackupOperations } from './backupStore.ts';
 import { revisionSchema } from './backupTables.ts';
 import { isAppearance, type AppearancePreference } from '../domain/appearance.ts';
@@ -36,7 +37,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
   }
   async function writeExercises(tx: SqlExecutor, sessionId: string, locationId: string, exercises: CompletedExercise[]) {
     for (const [position, exercise] of exercises.entries()) {
-      const mode = exercise.bodyweight ? 'reps' : 'load_reps';
+      const mode = trackingOf(exercise);
       const choices = await tx.getAllAsync<{ id: string; name: string; category: ExerciseCategory; subcategory: ExerciseSubcategory }>('SELECT id,name,category,subcategory FROM exercises WHERE measurement_mode=? ORDER BY id', mode);
       const sameName = (item: { name: string }) => exerciseNameKey(item.name) === exerciseNameKey(exercise.name);
       let catalog = choices.find(item => item.id === exercise.catalogId && sameName(item)) ?? choices.find(sameName);
@@ -49,8 +50,8 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
         await tx.runAsync('UPDATE exercises SET category=?,subcategory=? WHERE id=?', exercise.category, subcategory, catalog.id);
       }
       const equipmentName = exercise.equipment || cleanExerciseName(catalog.name);
-      const convention = exercise.bodyweight ? 'total' : exercise.convention;
-      const dimension = exercise.bodyweight ? 'bodyweight' : exercise.unit === 'plates' ? 'plates' : 'mass';
+      const convention = exercise.tracking || exercise.bodyweight ? 'total' : exercise.convention;
+      const dimension = exercise.tracking ? exercise.tracking === 'duration' ? 'time' : 'distance' : exercise.bodyweight ? 'bodyweight' : exercise.unit === 'plates' ? 'plates' : 'mass';
       let equipment = await tx.getFirstAsync<{ id: string }>('SELECT id FROM equipment_variations WHERE exercise_id=? AND location_id=? AND name=? AND measurement_mode=? AND load_convention=? AND load_dimension=?', catalog.id, locationId, equipmentName, mode, convention, dimension);
       if (!equipment) {
         equipment = { id: id() };
@@ -58,20 +59,20 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       }
       await tx.runAsync('INSERT INTO session_exercises VALUES (?,?,?,?,?,?,?,?,?,?)', exercise.id, sessionId, catalog.id, equipment.id, position, cleanExerciseName(catalog.name), equipmentName, exercise.bodyweight ? 1 : 0, exercise.unit, convention);
       for (const [setPosition, set] of exercise.sets.entries()) {
-        await tx.runAsync('INSERT INTO sets VALUES (?,?,?,?,?)', set.id, exercise.id, setPosition, set.weight, set.reps);
+        await tx.runAsync('INSERT INTO sets VALUES (?,?,?,?,?,?,?)', set.id, exercise.id, setPosition, set.weight, set.reps, set.durationSeconds ?? null, set.distanceMeters ?? null);
       }
     }
   }
   async function readWorkout(sessionId: string): Promise<SavedWorkout> {
-    const session = await db.getFirstAsync<Omit<SavedWorkout, 'exercises'>>('SELECT id,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions WHERE id=?', sessionId);
+    const session = await db.getFirstAsync<Omit<SavedWorkout, 'exercises'>>('SELECT id,record_only AS recordOnly,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions WHERE id=?', sessionId);
     if (!session) throw new Error('This workout could not be found.');
-    const rows = await db.getAllAsync<{ id: string; equipmentVariationId: string; catalogId: string; category: ExerciseCategory; subcategory: ExerciseSubcategory; name: string; equipment: string; bodyweight: number; unit: CompletedExercise['unit']; convention: CompletedExercise['convention'] }>('SELECT se.id,se.equipment_variation_id AS equipmentVariationId,se.exercise_id AS catalogId,e.category,e.subcategory,se.exercise_name_snapshot AS name,se.equipment_name_snapshot AS equipment,se.bodyweight,se.load_unit AS unit,se.load_convention AS convention FROM session_exercises se JOIN exercises e ON e.id=se.exercise_id WHERE se.session_id=? ORDER BY se.position', sessionId);
+    const rows = await db.getAllAsync<{ id: string; equipmentVariationId: string; catalogId: string; category: ExerciseCategory; subcategory: ExerciseSubcategory; name: string; equipment: string; bodyweight: number; tracking: CompletedExercise['tracking']; unit: CompletedExercise['unit']; convention: CompletedExercise['convention'] }>(`SELECT se.id,se.equipment_variation_id AS equipmentVariationId,se.exercise_id AS catalogId,e.category,e.subcategory,se.exercise_name_snapshot AS name,se.equipment_name_snapshot AS equipment,se.bodyweight,CASE WHEN e.measurement_mode IN ('duration','distance_duration') THEN e.measurement_mode END AS tracking,se.load_unit AS unit,se.load_convention AS convention FROM session_exercises se JOIN exercises e ON e.id=se.exercise_id WHERE se.session_id=? ORDER BY se.position`, sessionId);
     const exercises: CompletedExercise[] = [];
     for (const exercise of rows) {
-      const sets = await db.getAllAsync<CompletedExercise['sets'][number]>('SELECT id,load_value AS weight,reps FROM sets WHERE session_exercise_id=? ORDER BY position', exercise.id);
-      exercises.push({ ...exercise, bodyweight: Boolean(exercise.bodyweight), sets });
+      const sets = await db.getAllAsync<CompletedExercise['sets'][number]>('SELECT id,load_value AS weight,reps,duration_seconds AS durationSeconds,distance_meters AS distanceMeters FROM sets WHERE session_exercise_id=? ORDER BY position', exercise.id);
+      exercises.push({ ...exercise, tracking: exercise.tracking ?? undefined, bodyweight: Boolean(exercise.bodyweight), sets });
     }
-    return { ...session, exercises };
+    return { ...session, recordOnly: Boolean(session.recordOnly), exercises };
   }
   function routineName(name: string) {
     const clean = cleanExerciseName(name);
@@ -80,8 +81,8 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
   }
   async function readRoutine(row: Omit<Routine, 'exercises'>): Promise<Routine> {
     const rows = await db.getAllAsync<Omit<RoutineExercise, 'bodyweight'> & { bodyweight: number }>(
-      'SELECT exercise_id AS catalogId,name,equipment,bodyweight,unit,convention,category,subcategory,set_count AS setCount FROM routine_slots WHERE routine_id=? ORDER BY position', row.id);
-    return { ...row, exercises: rows.map(exercise => ({ ...exercise, bodyweight: Boolean(exercise.bodyweight) })) };
+      'SELECT exercise_id AS catalogId,name,equipment,bodyweight,unit,convention,category,subcategory,tracking,set_count AS setCount FROM routine_slots WHERE routine_id=? ORDER BY position', row.id);
+    return { ...row, exercises: rows.map(exercise => ({ ...exercise, bodyweight: Boolean(exercise.bodyweight), tracking: exercise.tracking ?? undefined })) };
   }
   async function weeklyInputs(asOf: string) {
     activityDateValue(asOf);
@@ -98,8 +99,8 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
         rows = await tx.getAllAsync<CsvRow>(`SELECT s.id AS sessionId,s.activity_date AS activityDate,s.timezone,s.started_at AS startedAt,s.ended_at AS endedAt,
           s.session_type_name_snapshot AS sessionType,s.location_id AS locationId,s.location_name_snapshot AS locationName,s.location_kind_snapshot AS locationKind,
           se.exercise_id AS exerciseId,se.exercise_name_snapshot AS exerciseName,se.equipment_variation_id AS equipmentId,se.equipment_name_snapshot AS equipmentName,
-          se.bodyweight,se.load_convention AS loadConvention,se.load_unit AS loadUnit,st.id AS setId,st.position AS setPosition,st.load_value AS loadValue,st.reps
-          FROM sessions s LEFT JOIN session_exercises se ON se.session_id=s.id LEFT JOIN sets st ON st.session_exercise_id=se.id
+          ev.measurement_mode AS measurementMode,se.bodyweight,se.load_convention AS loadConvention,se.load_unit AS loadUnit,st.id AS setId,st.position AS setPosition,st.load_value AS loadValue,st.reps,st.duration_seconds AS durationSeconds,st.distance_meters AS distanceMeters
+          FROM sessions s LEFT JOIN session_exercises se ON se.session_id=s.id LEFT JOIN sets st ON st.session_exercise_id=se.id LEFT JOIN equipment_variations ev ON ev.id=se.equipment_variation_id
           WHERE s.status='completed' ${selection.kind === 'range' ? 'AND s.activity_date>=? AND s.activity_date<=?' : ''}
           ORDER BY s.activity_date,s.started_at,s.id,se.position,st.position`, ...(selection.kind === 'range' ? [selection.from, selection.to] : []));
       });
@@ -109,7 +110,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       await db.execAsync('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;');
       await db.transaction(async tx => {
         const version = (await tx.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))?.user_version ?? 0;
-        if (version > 8) throw new Error('This database was created by a newer app. Update the app to open it.');
+        if (version > 9) throw new Error('This database was created by a newer app. Update the app to open it.');
         if (version === 0) await tx.execAsync(schema);
         if (version < 2) await tx.execAsync('ALTER TABLE locations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)); PRAGMA user_version=2;');
         if (version < 3) await tx.execAsync("ALTER TABLE exercises ADD COLUMN category TEXT NOT NULL DEFAULT '' CHECK(category IN ('','Push','Pull','Legs','Core','Cardio','Mobility','Other')); PRAGMA user_version=3;");
@@ -130,6 +131,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
           INSERT OR IGNORE INTO settings VALUES (1,'system');
           ${['INSERT', 'UPDATE', 'DELETE'].map(event => `CREATE TRIGGER IF NOT EXISTS backup_revision_settings_${event.toLowerCase()} AFTER ${event} ON settings BEGIN UPDATE store_metadata SET revision=revision+1 WHERE singleton=1; END;`).join('\n')}
           PRAGMA user_version=8;`);
+        if (version < 9) await migrateFlexibleLogging(tx);
       });
     }),
     getAppearance: () => queue(async (): Promise<AppearancePreference> => {
@@ -159,7 +161,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       const bounds = periodBounds(kind, anchor), end = bounds.end < today ? bounds.end : today;
       const input = await weeklyInputs(today), consistency = consistencyForPeriod(kind, anchor, input.dates, input.goals, today);
       if (bounds.start > today) return { ...summarizePeriod(kind, anchor, today, [], []), consistency };
-      const items = await db.getAllAsync<WorkoutListItem>(`SELECT id,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_id AS locationId,location_kind_snapshot AS locationKind,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions WHERE status='completed' AND activity_date>=? AND activity_date<=?`, bounds.start, end);
+      const items = await db.getAllAsync<WorkoutListItem>(`SELECT id,record_only AS recordOnly,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_id AS locationId,location_kind_snapshot AS locationKind,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions WHERE status='completed' AND activity_date>=? AND activity_date<=?`, bounds.start, end);
       const coverage = await db.getAllAsync<WorkoutCoverage>(`SELECT DISTINCT s.id AS sessionId,CASE WHEN e.subcategory<>'' THEN e.subcategory WHEN e.category<>'' THEN e.category ELSE 'Uncategorized' END AS "group"
         FROM sessions s JOIN session_exercises se ON se.session_id=s.id JOIN exercises e ON e.id=se.exercise_id WHERE s.status='completed' AND s.activity_date>=? AND s.activity_date<=?`, bounds.start, end);
       return { ...summarizePeriod(kind, anchor, today, items, coverage), consistency };
@@ -173,6 +175,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
     saveWorkoutAsRoutine: (workoutId: string, name: string, replaceId?: string) => queue(async (): Promise<Routine> => {
       const clean = routineName(name), routineId = replaceId ?? id();
       const saved = await readWorkout(workoutId);
+      if (!saved.exercises.length) throw new Error('Add completed exercises before saving a routine.');
       const metadata = await db.getFirstAsync<{ locationId: string }>('SELECT location_id AS locationId FROM sessions WHERE id=?', workoutId);
       if (!metadata) throw new Error('This workout could not be found.');
       const routine: Routine = { id: routineId, name: clean, sessionType: saved.sessionType, locationId: metadata.locationId, locationName: saved.locationName, exercises: routineExercises(saved) };
@@ -183,9 +186,9 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
           await tx.runAsync('UPDATE routines SET name=?,session_type=?,location_id=?,location_name_snapshot=? WHERE id=?', clean, routine.sessionType, routine.locationId, routine.locationName, routineId);
           await tx.runAsync('DELETE FROM routine_slots WHERE routine_id=?', routineId);
         } else await tx.runAsync('INSERT INTO routines VALUES (?,?,?,?,?)', routineId, clean, routine.sessionType, routine.locationId, routine.locationName);
-        for (const [position, exercise] of routine.exercises.entries()) await tx.runAsync('INSERT INTO routine_slots VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+        for (const [position, exercise] of routine.exercises.entries()) await tx.runAsync('INSERT INTO routine_slots VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
           routineId, position, exercise.catalogId, exercise.name, exercise.equipment, exercise.bodyweight ? 1 : 0, exercise.unit, exercise.convention,
-          exercise.category ?? '', exercise.subcategory ?? '', exercise.setCount);
+          exercise.category ?? '', exercise.subcategory ?? '', exercise.setCount, exercise.tracking ?? null);
       });
       return routine;
     }),
@@ -197,13 +200,13 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
     }),
     removeRoutine: (routineId: string) => queue(async () => { await db.runAsync('DELETE FROM routines WHERE id=?', routineId); }),
     getRecentSessions: (context: ReferenceContext, sessionType: string) => queue(() => db.getAllAsync<Omit<SavedWorkout, 'exercises'>>(
-      `SELECT id,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions
+      `SELECT id,record_only AS recordOnly,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions
        WHERE status='completed' AND location_id=? AND session_type_name_snapshot=? AND id<>?
        AND (activity_date<? OR (activity_date=? AND started_at<?)) ORDER BY activity_date DESC,started_at DESC,id DESC LIMIT 3`,
       context.locationId, sessionType, context.excludeSessionId, context.activityDate, context.activityDate, context.startedAt)),
     getPreviousExercise: (context: ReferenceContext, exercise: ReferenceExercise) => queue(async (): Promise<PreviousExercise | null> => {
       if (!context.locationId || !exercise.name.trim()) return null;
-      const mode = exercise.bodyweight ? 'reps' : 'load_reps';
+      const mode = trackingOf(exercise);
       const choices = await db.getAllAsync<{ id: string; name: string; category: ExerciseCategory; subcategory: ExerciseSubcategory }>('SELECT id,name,category,subcategory FROM exercises WHERE measurement_mode=? ORDER BY id', mode);
       const sameName = (item: { name: string }) => exerciseNameKey(item.name) === exerciseNameKey(exercise.name);
       const catalog = choices.find(item => item.id === exercise.catalogId && sameName(item)) ?? choices.find(sameName);
@@ -216,13 +219,13 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
          AND s.id<>? AND (s.activity_date<? OR (s.activity_date=? AND s.started_at<?))
          ORDER BY s.activity_date DESC,s.started_at DESC,s.id DESC,se.position DESC LIMIT 1`,
         context.locationId, context.locationId, catalog.id, exercise.equipment.trim() || cleanExerciseName(catalog.name), mode,
-        exercise.bodyweight ? 'total' : exercise.convention, exercise.bodyweight ? 'bodyweight' : exercise.unit === 'plates' ? 'plates' : 'mass',
+        exercise.tracking || exercise.bodyweight ? 'total' : exercise.convention, exercise.tracking ? exercise.tracking === 'duration' ? 'time' : 'distance' : exercise.bodyweight ? 'bodyweight' : exercise.unit === 'plates' ? 'plates' : 'mass',
         context.excludeSessionId, context.activityDate, context.activityDate, context.startedAt);
       if (!row) return null;
-      const sets = await db.getAllAsync<CompletedExercise['sets'][number]>('SELECT id,load_value AS weight,reps FROM sets WHERE session_exercise_id=? ORDER BY position', row.id);
+      const sets = await db.getAllAsync<CompletedExercise['sets'][number]>('SELECT id,load_value AS weight,reps,duration_seconds AS durationSeconds,distance_meters AS distanceMeters FROM sets WHERE session_exercise_id=? ORDER BY position', row.id);
       return { workoutId: row.workoutId, activityDate: row.activityDate, sessionType: row.sessionType, locationName: row.locationName,
         exercise: { id: row.id, catalogId: catalog.id, category: catalog.category, subcategory: catalog.subcategory, name: row.name, equipment: row.equipment,
-          unit: row.unit, convention: row.convention, bodyweight: exercise.bodyweight, sets } };
+          unit: row.unit, convention: row.convention, bodyweight: exercise.bodyweight, tracking: exercise.tracking, sets } };
     }),
     removeLocation: (locationId: string) => queue(async () => {
       const location = await db.getFirstAsync<Location>('SELECT * FROM locations WHERE id=?', locationId);
@@ -235,9 +238,9 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       const exercise = await db.getFirstAsync<{ id: string; name: string }>('SELECT id,name FROM exercises WHERE id=?', exerciseId);
       if (!exercise) throw new Error('This exercise could not be found.');
       const rows = await db.getAllAsync<ProgressRow>(`SELECT e.id AS exerciseId,e.name AS exerciseName,ev.id AS variationId,s.location_id AS locationId,s.location_name_snapshot AS locationName,l.archived,
-        se.equipment_name_snapshot AS equipment,se.bodyweight,ev.load_dimension AS dimension,se.load_convention AS convention,
+        se.equipment_name_snapshot AS equipment,se.bodyweight,ev.measurement_mode AS measurementMode,ev.load_dimension AS dimension,se.load_convention AS convention,
         s.id AS workoutId,s.activity_date AS activityDate,s.started_at AS startedAt,s.session_type_name_snapshot AS sessionType,
-        st.id AS setId,st.load_value AS weight,st.reps,se.load_unit AS unit
+        st.id AS setId,st.load_value AS weight,st.reps,st.duration_seconds AS durationSeconds,st.distance_meters AS distanceMeters,se.load_unit AS unit
         FROM sessions s JOIN session_exercises se ON se.session_id=s.id JOIN sets st ON st.session_exercise_id=se.id
         JOIN equipment_variations ev ON ev.id=se.equipment_variation_id JOIN exercises e ON e.id=se.exercise_id JOIN locations l ON l.id=s.location_id
         WHERE s.status='completed' AND e.id=? AND s.activity_date<=?
@@ -252,7 +255,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
         const key = `${row.measurement_mode}:${exerciseNameKey(row.name)}`;
         if (seen.has(key)) return [];
         seen.add(key);
-        return [{ id: row.id, name: cleanExerciseName(row.name), bodyweight: row.measurement_mode === 'reps', category: row.category, subcategory: row.subcategory }];
+        return [{ id: row.id, name: cleanExerciseName(row.name), bodyweight: row.measurement_mode === 'reps', tracking: row.measurement_mode === 'duration' || row.measurement_mode === 'distance_duration' ? row.measurement_mode : undefined, category: row.category, subcategory: row.subcategory }];
       });
     }),
     addGym: (name: string) => queue(async () => {
@@ -296,7 +299,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
           const location = await tx.getFirstAsync<Location>('SELECT * FROM locations WHERE id=?', draft.locationId);
           if (!location) throw new Error('Choose an existing gym or Home.');
           const times = workoutTimes(draft, now());
-          await tx.runAsync('INSERT INTO sessions VALUES (?,?,?,?,?,?,?,?,?,?)', draft.id, times.activityDate, draft.timezone, times.startedAt, times.endedAt, location.id, location.name, location.kind, draft.sessionType, 'completed');
+          await tx.runAsync('INSERT INTO sessions VALUES (?,?,?,?,?,?,?,?,?,?,?)', draft.id, times.activityDate, draft.timezone, times.startedAt, times.endedAt, location.id, location.name, location.kind, draft.sessionType, 'completed', draft.recordOnly ? 1 : 0);
           await writeExercises(tx, draft.id, location.id, exercises);
           await tx.runAsync('DELETE FROM draft_checkpoint WHERE session_id=?', draft.id);
         });
@@ -307,8 +310,8 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       const saved = await readWorkout(sessionId);
       const metadata = await db.getFirstAsync<{ locationId: string; timezone: string }>('SELECT location_id AS locationId,timezone FROM sessions WHERE id=?', sessionId);
       if (!metadata) throw new Error('This workout could not be found.');
-      return { id: saved.id, startedAt: saved.startedAt, endedAt: saved.endedAt, activityDate: saved.activityDate, ...metadata, sessionType: saved.sessionType,
-        exercises: saved.exercises.map(exercise => ({ ...exercise, sets: exercise.sets.map(set => ({ id: set.id, weight: set.weight === null ? '' : String(set.weight), reps: String(set.reps), completed: true })) })) };
+      return { id: saved.id, recordOnly: saved.recordOnly, startedAt: saved.startedAt, endedAt: saved.endedAt, activityDate: saved.activityDate, ...metadata, sessionType: saved.sessionType,
+        exercises: saved.exercises.map(exercise => ({ ...exercise, sets: exercise.sets.map(set => ({ id: set.id, weight: set.weight === null ? '' : String(set.weight), reps: set.reps === null ? '' : String(set.reps), ...(set.durationSeconds != null ? { duration: String(set.durationSeconds) } : {}), ...(set.distanceMeters != null ? { distance: String(set.distanceMeters / 1000) } : {}), completed: true })) })) };
     }),
     updateWorkout: (draft: WorkoutDraft) => {
       let exercises: CompletedExercise[];
@@ -323,7 +326,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
         const location = await tx.getFirstAsync<Location>('SELECT * FROM locations WHERE id=?', draft.locationId);
         if (!location) throw new Error('Choose an existing gym or Home.');
         const times = workoutTimes(draft, now());
-        await tx.runAsync('UPDATE sessions SET activity_date=?,started_at=?,ended_at=?,location_id=?,location_name_snapshot=?,location_kind_snapshot=?,session_type_name_snapshot=? WHERE id=?', times.activityDate, times.startedAt, times.endedAt, location.id, location.name, location.kind, draft.sessionType, draft.id);
+        await tx.runAsync('UPDATE sessions SET activity_date=?,started_at=?,ended_at=?,location_id=?,location_name_snapshot=?,location_kind_snapshot=?,session_type_name_snapshot=?,record_only=? WHERE id=?', times.activityDate, times.startedAt, times.endedAt, location.id, location.name, location.kind, draft.sessionType, draft.recordOnly ? 1 : 0, draft.id);
         await tx.runAsync('DELETE FROM session_exercises WHERE session_id=?', draft.id);
         await writeExercises(tx, draft.id, location.id, exercises);
       }));
@@ -331,7 +334,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
     deleteWorkout: (sessionId: string) => queue(() => db.transaction(async tx => {
       await tx.runAsync('DELETE FROM sessions WHERE id=?', sessionId);
     })),
-    listWorkouts: () => queue(() => db.getAllAsync<WorkoutListItem>(`SELECT id,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_id AS locationId,location_kind_snapshot AS locationKind,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions WHERE status='completed' ORDER BY activity_date DESC,started_at DESC,id DESC`)),
+    listWorkouts: () => queue(() => db.getAllAsync<WorkoutListItem>(`SELECT id,record_only AS recordOnly,timezone,activity_date AS activityDate,session_type_name_snapshot AS sessionType,location_id AS locationId,location_kind_snapshot AS locationKind,location_name_snapshot AS locationName,started_at AS startedAt,ended_at AS endedAt FROM sessions WHERE status='completed' ORDER BY activity_date DESC,started_at DESC,id DESC`)),
     getDayWorkouts: (date: string, filter: LocationFilter) => queue(async (): Promise<SavedWorkout[]> => {
       activityDateValue(date);
       if (!['all', 'gym', 'home'].includes(filter)) throw new Error('Choose a valid location filter.');

@@ -5,7 +5,8 @@ const empty = () => ({ format: 'workout-journal-backup', formatVersion: 1, expor
 } });
 
 test('empty backup round trips and accepts a UTF-8 BOM', () => {
-  const backup = empty(); expect(parseBackup('\uFEFF' + JSON.stringify(backup))).toEqual(backup);
+  const backup = empty(); expect(parseBackup('\uFEFF' + JSON.stringify(backup))).toEqual({ ...backup, formatVersion: 2 });
+  const normalized = validateBackup(backup); expect(validateBackup(JSON.parse(JSON.stringify(normalized)))).toEqual(normalized);
   expect(utf8Size('aé🏋')).toBe(new TextEncoder().encode('aé🏋').length);
 });
 
@@ -25,7 +26,7 @@ test('unfinished draft preserves blank and invalid pending input, but rejects in
   const backup = { ...empty(), data: { ...empty().data, draft: {
     id: 'draft', startedAt: '2026-11-06T00:00:00.000Z', activityDate: '2026-11-06', timezone: 'Asia/Manila', locationId: '', sessionType: 'Push', exercises: [{ id: 'exercise', name: '', equipment: '', bodyweight: false, unit: 'kg', convention: 'total', category: 'Push', subcategory: 'Triceps', sets: [{ id: 'set', weight: 'oops', reps: '', completed: false }] }],
   } } };
-  expect(validateBackup(backup)).toEqual(backup);
+  expect(validateBackup(backup)).toEqual({ ...backup, formatVersion: 2 });
   backup.data.draft.exercises[0].sets[0].completed = true;
   expect(() => validateBackup(backup)).toThrow(/completed measurements/);
   backup.data.draft.exercises[0].sets[0].completed = false;
