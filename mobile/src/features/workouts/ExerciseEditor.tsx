@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Modal, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import type { Convention, ExerciseDraft, LoadUnit, SetDraft, Tracking } from '../../domain/workout';
-import { canCompleteSet, trackingOf, trackingLabel } from '../../domain/workout';
+import { cardioDefault, canCompleteSet, trackingOf, trackingLabel } from '../../domain/workout';
 import { Button, Choice, Field, styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
 import type { LoggedExercise } from '../../domain/exerciseLibrary';
@@ -64,7 +64,7 @@ export function ExerciseEditor({ exercise, index, theme, disabled, update, remov
     {setup && <View style={{ gap: 16, padding: 12, borderRadius: 12, backgroundColor: theme.soft }}>
     <ExerciseNameField exercise={exercise} index={index} theme={theme} disabled={disabled} items={library} update={update} />
     <ExerciseCategoryField value={exercise.category ?? ''} subcategory={exercise.subcategory ?? ''} theme={theme} disabled={disabled}
-      onChange={category => update({ ...exercise, category, subcategory: category === exercise.category ? exercise.subcategory : '' })}
+      onChange={category => update(cardioDefault({ ...exercise, category, subcategory: category === exercise.category ? exercise.subcategory : '' }))}
       onSubcategoryChange={subcategory => update({ ...exercise, subcategory })} />
     <Field theme={theme} label={`Exercise ${index + 1} equipment label`} caption="Equipment / setup" value={exercise.equipment} placeholder="e.g. Dumbbells or chest machine 1" editable={!disabled}
       onChangeText={equipment => update({ ...exercise, equipment })} />

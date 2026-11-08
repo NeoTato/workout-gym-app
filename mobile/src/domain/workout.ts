@@ -50,6 +50,11 @@ function validLoad(weight: string): boolean {
 export function trackingOf(exercise: { bodyweight: boolean; tracking?: TimedTracking }): Tracking {
   return exercise.tracking ?? (exercise.bodyweight ? 'reps' : 'load_reps');
 }
+export function cardioDefault(exercise: ExerciseDraft): ExerciseDraft {
+  if (exercise.category !== 'Cardio' || exercise.catalogId || exercise.tracking || exercise.bodyweight
+    || exercise.sets.some(set => set.weight || set.reps || set.duration || set.distance || set.completed)) return exercise;
+  return { ...exercise, tracking: 'distance_duration', convention: 'total' };
+}
 export const trackingLabel = (exercise: { bodyweight: boolean; tracking?: TimedTracking }) => ({ load_reps: 'Load + reps', reps: 'Bodyweight reps', duration: 'Duration', distance_duration: 'Distance + duration' })[trackingOf(exercise)];
 
 export function canCompleteSet(set: Pick<SetDraft, 'weight' | 'reps' | 'duration' | 'distance'>, bodyweight: boolean, tracking?: TimedTracking): boolean {

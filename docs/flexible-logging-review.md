@@ -2,6 +2,8 @@
 
 Adds Duration and Distance + duration tracking in each exercise's Setup, alongside Load + reps and Bodyweight reps. Enter positive whole seconds and, for cardio, positive kilometres. Valid required measurements automatically complete a set; clearing or invalidating one makes it incomplete. Added sets copy inputs without copying completion. Changing tracking clears inputs only after confirmation when values exist.
 
+New empty exercises assigned to Cardio default to Distance + duration, both when added and when categorized in Setup. Saved exercise choices, explicit timed modes and existing measurements are preserved. Tracking remains changeable in Setup.
+
 Saved workouts, editing, routine copying, exercise suggestions, previous-session references, progress and CSV retain the selected measurement. Distance is stored in metres and entered/displayed in kilometres; time is stored in seconds. Timed sets have null load and reps. Equipment identities separate measurement modes and locations. Progress shows the longest completed duration/distance per session; these are records, not a score or claim of improved fitness. No stopwatch, GPS, pace calculation or calories.
 
 When a draft has no exercises, **Record workout only** opens a centered confirmation showing the session details. It records attendance with no fabricated sets or muscle coverage. Session counts, active days, streaks, calendar and recorded elapsed time include it. Saved detail labels it explicitly and hides Save as routine until exercises exist. Edit details normally or add completed exercises to turn it into a detailed workout. Converting a detailed workout requires removing exercises and explicitly choosing Workout only in the editor.

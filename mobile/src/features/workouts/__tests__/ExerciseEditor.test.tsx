@@ -11,6 +11,17 @@ function Editor({ weight = '35', reps = '10', bodyweight = false } = {}) {
   return <ExerciseEditor exercise={exercise} index={0} theme={getTheme('light')} disabled={false} update={update} remove={() => undefined} newId={() => `set-${++count}`} />;
 }
 describe('Exercise logging', () => {
+  it('defaults a new empty exercise to distance and duration when assigned to Cardio', async () => {
+    await render(<Editor weight="" reps="" />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Category: Uncategorized' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise category: Cardio' }));
+    expect(screen.getByLabelText('Exercise 1 set 1 distance (km)')).toHaveDisplayValue('');
+    expect(screen.getByLabelText('Exercise 1 set 1 duration (seconds)')).toHaveDisplayValue('');
+    expect(screen.queryByLabelText('Exercise 1 set 1 reps')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Tracking: Duration' }));
+    expect(screen.queryByLabelText('Exercise 1 set 1 distance (km)')).toBeNull();
+  });
   it('tracks duration and distance with automatic completion, without rep/load inputs', async () => {
     await render(<Editor weight="" reps="" />);
     await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));

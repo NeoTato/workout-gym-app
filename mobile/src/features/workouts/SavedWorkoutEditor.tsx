@@ -1,7 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Keyboard, Pressable, Text, View } from 'react-native';
-import { type Location, type WorkoutDraft } from '../../domain/workout';
+import { cardioDefault, type Location, type WorkoutDraft } from '../../domain/workout';
 import { Button, Choice, Screen, styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
 import { ExerciseGroups } from '../exercises/ExerciseGroups';
@@ -56,7 +56,7 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
     <View style={{ flex: 1, display: focused ? 'none' : 'flex' }} accessibilityElementsHidden={Boolean(focused)} importantForAccessibility={focused ? 'no-hide-descendants' : 'auto'}>
       <Screen theme={theme} key={section} footer={focused ? undefined : footer}>
         {pickerOpen && <ExercisePicker theme={theme} {...library} cancel={() => setPickerOpen(false)} add={(name, option, category, subcategory) => {
-          const exercise = { ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, tracking: option?.tracking, category, subcategory };
+          const exercise = cardioDefault({ ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, tracking: option?.tracking, category, subcategory });
           setDraft(value => ({ ...value, exercises: [...value.exercises, exercise] })); setError(''); setPickerOpen(false); setFocusedId(exercise.id);
         }} />}
         <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Edit workout</Text>

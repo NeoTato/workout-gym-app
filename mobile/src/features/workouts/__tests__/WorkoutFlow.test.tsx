@@ -109,7 +109,7 @@ it.each([
   if (subcategory) await fireEvent.press(picker.getByRole('button', { name: `Filter subcategory: ${subcategory}` }));
   await fireEvent.changeText(picker.getByLabelText('Search exercise names'), 'New press');
   await fireEvent.press(picker.getByRole('button', { name: '+ Add exercise' }));
-  expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('');
+  expect(screen.getByLabelText(category === 'Cardio' ? 'Exercise 1 set 1 distance (km)' : 'Exercise 1 set 1 reps')).toHaveDisplayValue('');
   expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
   await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));
   expect(screen.getByRole('button', { name: `Category: ${category || 'Uncategorized'}` })).toBeOnTheScreen();
@@ -119,7 +119,7 @@ it.each([
     expect(screen.queryByRole('button', { name: /^Subcategory:/ })).toBeNull();
   }
   await fireEvent.press(screen.getByRole('button', { name: 'Done setup' }));
-  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 load (lb)'), '35');
-  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '10');
+  await fireEvent.changeText(screen.getByLabelText(category === 'Cardio' ? 'Exercise 1 set 1 distance (km)' : 'Exercise 1 set 1 load (lb)'), category === 'Cardio' ? '1.25' : '35');
+  await fireEvent.changeText(screen.getByLabelText(category === 'Cardio' ? 'Exercise 1 set 1 duration (seconds)' : 'Exercise 1 set 1 reps'), category === 'Cardio' ? '600' : '10');
   expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
 });

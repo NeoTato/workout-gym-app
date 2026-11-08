@@ -2,7 +2,7 @@ import { randomUUID } from 'expo-crypto';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Modal, Text, View } from 'react-native';
-import type { WorkoutDraft } from '../domain/workout';
+import { cardioDefault, type WorkoutDraft } from '../domain/workout';
 import { addRoutineToDraft } from '../domain/routine';
 import { validReferenceContext } from '../domain/workoutReferences';
 import { RecentSessions } from '../features/workouts/WorkoutReferences';
@@ -95,7 +95,7 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
     }} />}
     {status === 'Not saved' && <Button theme={theme} label="Retry save" onPress={() => update(value => ({ ...value }))} />}
     {pickerOpen && <ExercisePicker theme={theme} {...library} cancel={() => setPickerOpen(false)} add={(name, option, category, subcategory) => {
-      const exercise = { ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, tracking: option?.tracking, category, subcategory };
+      const exercise = cardioDefault({ ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, tracking: option?.tracking, category, subcategory });
       requestScroll(exercise.id);
       update(value => ({ ...value, exercises: [...value.exercises, exercise] })); setAddedId(exercise.id); setPickerOpen(false);
     }} />}
