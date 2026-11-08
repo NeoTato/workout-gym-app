@@ -52,10 +52,10 @@ export function useWorkoutDraft() {
     const gym = await store.current.addGym(name);
     setLocations(await store.current.listLocations()); update(value => ({ ...value, locationId: gym.id }));
   }
-  async function finish() {
+  async function finish(recordOnly = false) {
     if (!store.current || !current.current || busyRef.current) return;
     busyRef.current = true; setBusy(true); setError('');
-    try { return await store.current.finish(current.current); }
+    try { return await store.current.finish({ ...current.current, recordOnly }); }
     catch (failure) { setError(failure instanceof Error && /choose|enter|name|mark/i.test(failure.message) ? failure.message : 'Unable to finish. Your draft is still here. Try again.'); }
     finally { busyRef.current = false; if (alive.current) setBusy(false); }
   }

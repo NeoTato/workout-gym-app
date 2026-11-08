@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { matchingExercises, type LoggedExercise } from '../../domain/exerciseLibrary';
-import type { ExerciseDraft } from '../../domain/workout';
+import { trackingLabel, trackingOf, type ExerciseDraft } from '../../domain/workout';
 import { Button, Field } from '../../ui/controls';
 import type { AppTheme } from '../../ui/theme';
 
@@ -18,10 +18,10 @@ export function ExerciseNameField({ exercise, index, theme, disabled, items, upd
     {suggesting && matches.length > 0 && <>
       <Text style={{ color: theme.muted, fontSize: 12 }}>Previously logged</Text>
       {matches.map(item => <Button key={item.id} theme={theme} disabled={disabled}
-        label={`${item.name} · ${item.bodyweight ? 'Bodyweight' : 'Load + reps'}`} accessibilityLabel={`Use ${item.name}, ${item.bodyweight ? 'bodyweight' : 'load and reps'}`}
+        label={`${item.name} · ${trackingLabel(item)}`} accessibilityLabel={`Use ${item.name}, ${item.tracking ? trackingLabel(item).toLowerCase() : item.bodyweight ? 'bodyweight' : 'load and reps'}`}
         onPress={() => {
-          update({ ...exercise, catalogId: item.id, name: item.name, bodyweight: item.bodyweight, category: item.category ?? '', subcategory: item.subcategory ?? '',
-            sets: exercise.bodyweight === item.bodyweight ? exercise.sets : exercise.sets.map(set => ({ ...set, completed: false })) });
+          update({ ...exercise, catalogId: item.id, name: item.name, bodyweight: item.bodyweight, tracking: item.tracking, category: item.category ?? '', subcategory: item.subcategory ?? '',
+            sets: trackingOf(exercise) === trackingOf(item) ? exercise.sets : exercise.sets.map(set => ({ ...set, completed: false })) });
           setSuggesting(false);
         }} />)}
       <Button theme={theme} variant="link" label="Hide suggestions" disabled={disabled} onPress={() => setSuggesting(false)} />

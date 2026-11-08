@@ -6,7 +6,7 @@ export function subcategoriesFor(category: ExerciseCategory): readonly ExerciseS
   if (category === 'Pull') return ['Back', 'Biceps'];
   return [];
 }
-export type LoggedExercise = { id: string; name: string; bodyweight: boolean; category?: ExerciseCategory; subcategory?: ExerciseSubcategory };
+export type LoggedExercise = { id: string; name: string; bodyweight: boolean; tracking?: 'duration' | 'distance_duration'; category?: ExerciseCategory; subcategory?: ExerciseSubcategory };
 
 export function cleanExerciseName(name: string): string {
   return name.trim().replace(/\s+/g, ' ');

@@ -41,6 +41,62 @@ let counter = 0;
 const digest = async text => createHash('sha256').update(text).digest('hex');
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z', digest);
 
+test('timed/cardio/workout-only sessions survive edit, references, routines, CSV, backup restore and deletion', async () => {
+  const source = connect(':memory:'), target = connect(':memory:');
+  try {
+    const store = makeStore(source); await store.initialize();
+    const timed = draft('timed'); timed.sessionType = 'Core';
+    Object.assign(timed.exercises[0], { name: 'Plank', tracking: 'duration', category: 'Core', convention: 'total', sets: [{ id: 'hold', weight: '', reps: '', duration: '45', completed: true }] });
+    await store.saveDraft(timed); await store.finish(timed); await store.finish(timed);
+    const cardio = draft('cardio'); cardio.sessionType = 'Custom';
+    Object.assign(cardio.exercises[0], { name: 'Treadmill', tracking: 'distance_duration', category: 'Cardio', convention: 'total', sets: [{ id: 'run', weight: '', reps: '', duration: '600', distance: '1.25', completed: true }] });
+    await store.finish(cardio);
+    const visit = { ...draft('visit'), recordOnly: true, exercises: [] }; await store.saveDraft(visit); await store.finish(visit); await store.finish(visit);
+    assert.equal((await store.getWorkout('visit')).recordOnly, true); assert.deepEqual((await store.getWorkout('visit')).exercises, []);
+    const summary = await store.getPeriodSummary('month', '2026-11-01', '2026-11-01');
+    assert.equal((await store.listWorkouts()).length, 3); assert.equal((await store.getWeeklyConsistency('2026-11-01')).currentWeek.activeDays, 1);
+    assert.equal(summary.sessions, 3); assert.equal(summary.activeDays, 1); assert.equal(summary.locationCounts.home, 3);
+    assert.equal(summary.exerciseGroups.some(group => group.name === 'Push'), false, 'workout-only Push adds no muscle coverage');
+    const saved = await store.getWorkout('timed'); assert.equal(saved.exercises[0].tracking, 'duration');
+    assert.deepEqual({ ...saved.exercises[0].sets[0] }, { id: 'hold', weight: null, reps: null, durationSeconds: 45, distanceMeters: null });
+    const routine = await store.saveWorkoutAsRoutine('cardio', 'Run'); assert.equal(routine.exercises[0].tracking, 'distance_duration');
+    const copied = addRoutineToDraft({ ...draft('copy'), exercises: [] }, routine, () => `copy-${++counter}`); assert.equal(copied.exercises[0].tracking, 'distance_duration'); assert.equal(copied.exercises[0].sets[0].completed, false);
+    await assert.rejects(store.saveWorkoutAsRoutine('visit', 'Empty'), /completed exercises/);
+    const context = { locationId: 'home', activityDate: '2026-11-02', startedAt: '2026-11-02T01:00:00Z', excludeSessionId: 'new' };
+    assert.equal((await store.getPreviousExercise(context, cardio.exercises[0])).exercise.sets[0].distanceMeters, 1250);
+    assert.equal(await store.getPreviousExercise(context, { ...cardio.exercises[0], tracking: undefined }), null);
+    const progress = await store.getExerciseProgress(saved.exercises[0].catalogId); assert.equal(progress.variations[0].dimension, 'time'); assert.equal(progress.variations[0].sessions[0].sets[0].durationSeconds, 45);
+    const rows = csvRecords((await store.getCsvExport({ kind: 'all' })).text);
+    assert.equal(rows.find(row => row.session_id === 'visit').record_type, 'session');
+    const run = rows.find(row => row.session_id === 'cardio'); assert.equal(run.duration_seconds, '600'); assert.equal(run.distance_meters, '1250'); assert.equal(run.reps, ''); assert.equal(run.load_value, ''); assert.equal(run.measurement_mode, 'distance_duration');
+    const edit = await store.getWorkoutEdit('cardio'); assert.equal(edit.exercises[0].sets[0].distance, '1.25'); edit.exercises[0].sets[0].duration = '720'; await store.updateWorkout(edit);
+    const visitEdit = await store.getWorkoutEdit('visit'); await store.updateWorkout(visitEdit);
+    await store.saveDraft({ ...cardio, id: 'pending', exercises: [{ ...cardio.exercises[0], id: 'pending-e', sets: [{ id: 'pending-s', weight: '', reps: '', duration: 'oops', distance: '', completed: false }] }] });
+    const text = await store.exportBackup('0.1.0'); assert.equal(JSON.parse(text).formatVersion, 2);
+    const other = makeStore(target); await other.initialize(); const inspection = await other.inspectBackup(text); await other.restoreBackup(inspection.token, text);
+    assert.deepEqual((await other.getWorkout('cardio')).exercises, (await store.getWorkout('cardio')).exercises); assert.equal((await other.getWorkout('visit')).recordOnly, true); assert.equal((await other.getDraft()).exercises[0].sets[0].duration, 'oops');
+    const invalid = JSON.parse(text); invalid.data.sets[0].reps = 5; await assert.rejects(other.inspectBackup(JSON.stringify(invalid)), /measurements/);
+    await other.deleteWorkout('timed'); assert.equal((await other.listWorkouts()).length, 2);
+  } finally { source.db.close(); target.db.close(); }
+});
+
+test('v1 backups import with legacy measurement defaults and schema-eight set migration preserves values and revision triggers', async () => {
+  const connection = connect(':memory:');
+  try {
+    let store = makeStore(connection); await store.initialize(); await store.finish(draft('legacy'));
+    const current = JSON.parse(await store.exportBackup('0.1.0')); current.formatVersion = 1;
+    for (const row of current.data.sessions) delete row.recordOnly;
+    for (const row of current.data.sets) { delete row.durationSeconds; delete row.distanceMeters; }
+    for (const row of current.data.routineSlots) delete row.tracking;
+    const text = JSON.stringify(current), inspection = await store.inspectBackup(text); await store.restoreBackup(inspection.token, text);
+    connection.db.exec(`CREATE TABLE old_sets (id TEXT PRIMARY KEY,session_exercise_id TEXT NOT NULL REFERENCES session_exercises(id) ON DELETE CASCADE,position INTEGER NOT NULL,load_value REAL,reps INTEGER NOT NULL CHECK(reps>0),UNIQUE(session_exercise_id,position)); INSERT INTO old_sets SELECT id,session_exercise_id,position,load_value,reps FROM sets; DROP TABLE sets; ALTER TABLE old_sets RENAME TO sets; ALTER TABLE sessions DROP COLUMN record_only; ALTER TABLE routine_slots DROP COLUMN tracking; PRAGMA user_version=8;`);
+    store = makeStore(connection); await store.initialize(); assert.equal((await store.getWorkout('legacy')).exercises[0].sets[0].weight, 35.5);
+    const before = connection.db.prepare('SELECT revision FROM store_metadata').get().revision;
+    connection.db.prepare('UPDATE sets SET reps=12').run(); assert.ok(connection.db.prepare('SELECT revision FROM store_metadata').get().revision > before);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 9); assert.deepEqual(connection.db.prepare('PRAGMA foreign_key_check').all(), []);
+  } finally { connection.db.close(); }
+});
+
 function csvRecords(text) {
   const records = []; let row = [], value = '', quoted = false;
   for (let i = 1; i < text.length; i++) {
@@ -367,7 +423,7 @@ test('version-four migration adds empty routine storage without changing saved w
     assert.deepEqual(await store.listRoutines(), []);
     assert.equal((await store.getWorkout('pre-migration')).exercises[0].sets[0].reps, 10);
     assert.deepEqual(await store.getDraft(), draft('active-migration'));
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 8);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 9);
   } finally { connection.db.close(); }
 });
 
@@ -512,7 +568,7 @@ test('version-one locations migrate without losing gyms or draft checkpoints', a
     const pending = draft(); pending.locationId = 'legacy';
     connection.db.prepare('INSERT INTO draft_checkpoint VALUES (1,?,?)').run(pending.id, JSON.stringify(pending));
     const store = makeStore(connection); await store.initialize(); await store.initialize();
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 8);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 9);
     assert.equal((await store.listLocations()).find(item => item.id === 'legacy').archived, 0);
     assert.deepEqual(await store.getDraft(), pending);
   } finally { connection.db.close(); }
@@ -686,7 +742,7 @@ test('a draft and completed sets survive closing and reopening the real SQLite f
     assert.equal((await store.getWorkout(saved.id)).exercises[0].subcategory, 'Chest', 'completed subcategories persist after reopening');
     assert.equal((await store.listRoutines())[0].name, 'Durable routine', 'routine snapshots survive reopening the real file');
     assert.equal(saved.exercises[0].name, "Press 'n lift");
-    assert.deepEqual(saved.exercises[0].sets.map(set => ({ ...set })), [{ id: 'workout-1-set-1', weight: 35.5, reps: 10 }]);
+    assert.deepEqual(saved.exercises[0].sets.map(set => ({ ...set })), [{ id: 'workout-1-set-1', weight: 35.5, reps: 10, durationSeconds: null, distanceMeters: null }]);
     assert.equal(await store.getDraft(), null);
     await store.saveDraft(draft()); assert.equal(await store.getDraft(), null, 'late autosave cannot resurrect a finished draft');
     const edit = await store.getWorkoutEdit(saved.id);

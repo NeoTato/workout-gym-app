@@ -1,6 +1,6 @@
 # Native implementation milestones
 
-Status: PRs 1-10 are merged, including Settings, persisted appearance and JSON backup/restore. PR 11 implements CSV reporting; see [CSV scope and phone checklist](csv-export-review.md). New CSV native-sharing/spreadsheet review remains pending. Remaining milestone bullets describe the complete target, not claims that all behavior is implemented.
+Status: PRs 1-11 are merged, including Settings, appearance, JSON backup/restore and CSV reporting. PR 12 adds timed/cardio measurements and workout-only recording; see the [scope](pr12-plan.md) and [phone checklist](flexible-logging-review.md). PR 12 remains unmerged for review. Remaining milestone bullets describe the complete target, not claims that all behavior is implemented.
 
 Build in this order, keeping each slice usable and verified before adding the next. Keep prototype fixtures out of the personal database. Native app implementation is the next phase after review of this blueprint.
 

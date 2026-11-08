@@ -1,3 +1,4 @@
+import { trackingLabel } from '../../domain/workout';
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -58,11 +59,11 @@ export function ExercisePicker({ theme, items, loading, error, retry, cancel, ad
               {items.length ? 'No matches. You can add this as a new exercise.' : 'No logged exercises yet. Enter your first exercise name.'}
             </Text>}
             {matches.slice(0, 50).map(item => <Pressable key={item.id} accessibilityRole="button"
-              accessibilityLabel={`Use ${item.name}, ${item.bodyweight ? 'bodyweight' : 'load and reps'}`} accessibilityState={{ selected: selected?.id === item.id }}
+              accessibilityLabel={`Use ${item.name}, ${item.tracking ? trackingLabel(item).toLowerCase() : item.bodyweight ? 'bodyweight' : 'load and reps'}`} accessibilityState={{ selected: selected?.id === item.id }}
               onPress={() => { setName(item.name); setSelected(item); setCategory(item.category ?? ''); setSubcategory(item.subcategory ?? ''); }}
               style={[styles.input, { borderWidth: 1, borderColor: selected?.id === item.id ? theme.primary : theme.border, backgroundColor: selected?.id === item.id ? theme.accentSoft : theme.soft, gap: 4 }]}>
               <Text style={{ color: theme.text, fontFamily: fonts.medium }}>{item.name}</Text>
-              <Text style={{ color: theme.muted, fontSize: 12 }}>{item.bodyweight ? 'Bodyweight reps' : 'Load + reps'}</Text>
+              <Text style={{ color: theme.muted, fontSize: 12 }}>{trackingLabel(item)}</Text>
               <Text style={{ color: theme.muted, fontSize: 12 }}>{[item.category, item.subcategory].filter(Boolean).join(' · ') || 'Uncategorized'}</Text>
             </Pressable>)}
             {matches.length > 50 && <Text style={{ color: theme.muted }}>Showing 50 matches. Keep typing to narrow the list.</Text>}

@@ -1,8 +1,8 @@
 import { randomUUID } from 'expo-crypto';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Text, View } from 'react-native';
-import type { WorkoutDraft } from '../domain/workout';
+import { Alert, Modal, Text, View } from 'react-native';
+import { cardioDefault, type WorkoutDraft } from '../domain/workout';
 import { addRoutineToDraft } from '../domain/routine';
 import { validReferenceContext } from '../domain/workoutReferences';
 import { RecentSessions } from '../features/workouts/WorkoutReferences';
@@ -37,8 +37,15 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
   const [addedId, setAddedId] = useState<string>();
   const [routineOpen, setRoutineOpen] = useState(false), [routineNotice, setRoutineNotice] = useState('');
   const [setupError, setSetupError] = useState(''), [addingGym, setAddingGym] = useState(false);
+  const [quickConfirm, setQuickConfirm] = useState(false);
   const references = validReferenceContext(draft);
   const completedSetCount = draft.exercises.reduce((total, exercise) => total + exercise.sets.filter(set => set.completed).length, 0);
+  function recordWorkoutOnly() {
+    if (!draft.locationId) { setSetupError('Choose your gym or Home before recording a workout.'); return; }
+    try { workoutTimes(draft, new Date().toISOString()); }
+    catch (failure) { setSetupError(failure instanceof Error ? failure.message : 'Check your workout date and time.'); return; }
+    setQuickConfirm(true);
+  }
   const footer = <>
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
       <View style={{ flex: 1, gap: 4 }}>
@@ -63,6 +70,20 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
     </>}
   </>;
   return <Screen theme={theme} key={step} footer={footer} scrollRef={scrollRef}>
+    <Modal visible={quickConfirm} transparent animationType="fade" onRequestClose={() => { if (!busy) setQuickConfirm(false); }}>
+      <View style={{ flex: 1, backgroundColor: '#00000066', justifyContent: 'center', padding: 24 }}>
+        <View accessibilityViewIsModal style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, width: '100%', maxWidth: 440, alignSelf: 'center' }]}>
+          <Text accessibilityRole="header" style={{ color: theme.text, fontSize: 20 }}>Record workout without sets?</Text>
+          <WorkoutSessionSummary draft={draft} locations={locations} theme={theme} />
+          <Text style={{ color: theme.muted }}>This counts toward attendance and streaks. No exercises, sets or muscle coverage will be added.</Text>
+          {!!error && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{error}</Text>}
+          <Button theme={theme} primary label={busy ? 'Recording...' : 'Record workout'} disabled={busy} onPress={async () => {
+            const id = await finish(true); if (id) router.replace({ pathname: '/history/[id]', params: { id } });
+          }} />
+          <Button theme={theme} label="Cancel" disabled={busy} onPress={() => setQuickConfirm(false)} />
+        </View>
+      </View>
+    </Modal>
     <Button theme={theme} variant="link" label="‹ Home" accessibilityLabel="Home - keep draft" disabled={busy || addingGym} onPress={() => router.replace('/')} />
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>{step === 'details' ? 'Set up workout' : 'Your workout'}</Text>
     {!!error && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{error}</Text>}
@@ -74,7 +95,7 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
     }} />}
     {status === 'Not saved' && <Button theme={theme} label="Retry save" onPress={() => update(value => ({ ...value }))} />}
     {pickerOpen && <ExercisePicker theme={theme} {...library} cancel={() => setPickerOpen(false)} add={(name, option, category, subcategory) => {
-      const exercise = { ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, category, subcategory };
+      const exercise = cardioDefault({ ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, tracking: option?.tracking, category, subcategory });
       requestScroll(exercise.id);
       update(value => ({ ...value, exercises: [...value.exercises, exercise] })); setAddedId(exercise.id); setPickerOpen(false);
     }} />}
@@ -103,6 +124,11 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
       <WorkoutLoggingHelp theme={theme} />
 
       </>}
+      {!draft.exercises.length && <View style={[styles.card, { backgroundColor: theme.infoSoft, borderColor: theme.infoBorder }]}>
+        <Text style={{ color: theme.text }}>Just recording a visit?</Text>
+        <Text style={{ color: theme.muted }}>Save the session type, location and time without logging individual sets.</Text>
+        <Button theme={theme} variant="info" label="Record workout only" disabled={busy || addingGym} onPress={recordWorkoutOnly} />
+      </View>}
 
     </>}
   </Screen>;

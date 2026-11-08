@@ -7,7 +7,7 @@ export function routineExercises(workout: SavedWorkout): RoutineExercise[] {
   return workout.exercises.map(exercise => {
     if (!exercise.catalogId) throw new Error('This saved exercise identity could not be read.');
     return { catalogId: exercise.catalogId, name: exercise.name, equipment: exercise.equipment, bodyweight: exercise.bodyweight,
-      unit: exercise.unit, convention: exercise.convention, category: exercise.category, subcategory: exercise.subcategory, setCount: exercise.sets.length };
+      tracking: exercise.tracking, unit: exercise.unit, convention: exercise.convention, category: exercise.category, subcategory: exercise.subcategory, setCount: exercise.sets.length };
   });
 }
 

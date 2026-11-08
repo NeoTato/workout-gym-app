@@ -4,10 +4,10 @@ export const backupTables = [
   { key: 'exercises', table: 'exercises', fields: 'id,name,measurement_mode,category,subcategory' },
   { key: 'equipmentVariations', table: 'equipment_variations', fields: 'id,exercise_id,location_id,name,measurement_mode,load_convention,load_dimension' },
   { key: 'routines', table: 'routines', fields: 'id,name,session_type,location_id,location_name_snapshot' },
-  { key: 'routineSlots', table: 'routine_slots', fields: 'routine_id,position,exercise_id,name,equipment,bodyweight,unit,convention,category,subcategory,set_count', booleans: ['bodyweight'] },
-  { key: 'sessions', table: 'sessions', fields: 'id,activity_date,timezone,started_at,ended_at,location_id,location_name_snapshot,location_kind_snapshot,session_type_name_snapshot,status' },
+  { key: 'routineSlots', table: 'routine_slots', fields: 'routine_id,position,exercise_id,name,equipment,bodyweight,unit,convention,category,subcategory,set_count,tracking', booleans: ['bodyweight'] },
+  { key: 'sessions', table: 'sessions', fields: 'id,activity_date,timezone,started_at,ended_at,location_id,location_name_snapshot,location_kind_snapshot,session_type_name_snapshot,status,record_only', booleans: ['recordOnly'] },
   { key: 'sessionExercises', table: 'session_exercises', fields: 'id,session_id,exercise_id,equipment_variation_id,position,exercise_name_snapshot,equipment_name_snapshot,bodyweight,load_unit,load_convention', booleans: ['bodyweight'] },
-  { key: 'sets', table: 'sets', fields: 'id,session_exercise_id,position,load_value,reps' },
+  { key: 'sets', table: 'sets', fields: 'id,session_exercise_id,position,load_value,reps,duration_seconds,distance_meters' },
   { key: 'weeklyGoals', table: 'weekly_goals', fields: 'effective_week_start,target_days' },
 ] as const;
 

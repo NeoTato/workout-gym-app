@@ -33,7 +33,7 @@ export function createBackupOperations(db: SqlDatabase, queue: Queue, id: () => 
     const draft = await tx.getFirstAsync<{ payload: string }>('SELECT payload FROM draft_checkpoint WHERE singleton=1');
     data.draft = draft ? JSON.parse(draft.payload) as unknown : null;
     data.settings = await tx.getFirstAsync('SELECT appearance FROM settings WHERE singleton=1');
-    return validateBackup({ format: 'workout-journal-backup', formatVersion: 1, exportedAt: now(), appVersion, data });
+    return validateBackup({ format: 'workout-journal-backup', formatVersion: 2, exportedAt: now(), appVersion, data });
   }
   return {
     exportBackup: (appVersion: string) => queue(async () => {

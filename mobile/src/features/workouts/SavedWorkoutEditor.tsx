@@ -1,7 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Keyboard, Pressable, Text, View } from 'react-native';
-import { type Location, type WorkoutDraft } from '../../domain/workout';
+import { cardioDefault, type Location, type WorkoutDraft } from '../../domain/workout';
 import { Button, Choice, Screen, styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
 import { ExerciseGroups } from '../exercises/ExerciseGroups';
@@ -39,14 +39,14 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
   const footer = <>
     <Button theme={theme} primary label={busy ? 'Saving changes...' : 'Save changes'} disabled={busy} onPress={async () => {
       if (saving.current) return;
-      if (!draft.exercises.length) { setError('Add an exercise with completed sets before saving.'); setSection('exercises'); return; }
+      if (!draft.exercises.length && !draft.recordOnly) { setError('Add an exercise with completed sets before saving, or choose workout-only recording.'); setSection('exercises'); return; }
       const incomplete = draft.exercises.find(exercise => !exercise.sets.length || exercise.sets.some(set => !set.completed));
       if (incomplete) {
         setError('Mark each set done, or remove the unfinished set or empty exercise, before saving.');
         setSection('exercises'); setFocusedId(incomplete.id); return;
       }
       saving.current = true; setBusy(true); setError('');
-      try { await save(draft); }
+      try { await save({ ...draft, recordOnly: draft.exercises.length ? false : draft.recordOnly }); }
       catch (failure) { setError(failure instanceof Error && /choose|enter|name|mark|found/i.test(failure.message) ? failure.message : 'Unable to save changes. Your original workout is unchanged. Try again.'); }
       finally { saving.current = false; setBusy(false); }
     }} />
@@ -56,7 +56,7 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
     <View style={{ flex: 1, display: focused ? 'none' : 'flex' }} accessibilityElementsHidden={Boolean(focused)} importantForAccessibility={focused ? 'no-hide-descendants' : 'auto'}>
       <Screen theme={theme} key={section} footer={focused ? undefined : footer}>
         {pickerOpen && <ExercisePicker theme={theme} {...library} cancel={() => setPickerOpen(false)} add={(name, option, category, subcategory) => {
-          const exercise = { ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, category, subcategory };
+          const exercise = cardioDefault({ ...newExercise(), name, catalogId: option?.id, bodyweight: option?.bodyweight ?? false, tracking: option?.tracking, category, subcategory });
           setDraft(value => ({ ...value, exercises: [...value.exercises, exercise] })); setError(''); setPickerOpen(false); setFocusedId(exercise.id);
         }} />}
         <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Edit workout</Text>
@@ -79,6 +79,8 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
             </Pressable>;
           }} />
           {!draft.exercises.length && <Text style={{ color: theme.muted }}>No exercises in this workout. Add an exercise or cancel your changes.</Text>}
+          {!draft.exercises.length && <Choice theme={theme} label="Recording" value={draft.recordOnly ? 'visit' : 'sets'} disabled={busy}
+            options={[{ value: 'sets', label: 'Log exercises' }, { value: 'visit', label: 'Workout only' }]} onChange={value => setDraft(current => ({ ...current, recordOnly: value === 'visit' }))} />}
           <Button theme={theme} variant="add" label="+ Add exercise" disabled={busy} onPress={() => setPickerOpen(true)} />
         </>}
         {!!error && !focused && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{error}</Text>}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import type { CompletedExercise } from '../../domain/workout';
+import { formatCompletedSet, type CompletedExercise } from '../../domain/workout';
 import { Button, styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
 
@@ -20,9 +20,9 @@ export function CompletedExerciseSummary({ exercise, theme, onProgress }: { exer
     </Pressable>
     {expanded && <>
       {!!exercise.equipment && <Text style={{ color: theme.muted }}>{exercise.equipment}</Text>}
-      {!exercise.bodyweight && <Text style={{ color: theme.muted }}>{exercise.unit === 'lb' ? 'lbs' : exercise.unit} · {exercise.convention.replace('_', ' ')}</Text>}
+      {!exercise.bodyweight && !exercise.tracking && <Text style={{ color: theme.muted }}>{exercise.unit === 'lb' ? 'lbs' : exercise.unit} · {exercise.convention.replace('_', ' ')}</Text>}
       {exercise.sets.map((set, index) => <Text key={set.id} style={[styles.subtitle, { color: theme.text }]}>
-        Set {index + 1}: {exercise.bodyweight ? 'Bodyweight' : `${set.weight} ${exercise.unit === 'lb' ? 'lbs' : exercise.unit}`} × {set.reps} reps
+        Set {index + 1}: {formatCompletedSet(exercise, set)}
       </Text>)}
       {onProgress && <Button theme={theme} variant="info" label="View exercise progress" onPress={onProgress} />}
     </>}

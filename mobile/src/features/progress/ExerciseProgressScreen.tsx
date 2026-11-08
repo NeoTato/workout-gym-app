@@ -1,3 +1,4 @@
+import { formatCompletedSet } from '../../domain/workout';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { formatProgressValue, progressMetrics, type ProgressSession, type ProgressVariation } from '../../domain/exerciseProgress';
@@ -5,14 +6,14 @@ import { Button, Screen, styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
 import { ProgressChart } from './ProgressChart';
 
-function SessionCard({ session, bodyweight, theme, openWorkout }: { session: ProgressSession; bodyweight: boolean; theme: AppTheme; openWorkout: (id: string) => void }) {
+function SessionCard({ session, variation, theme, openWorkout }: { session: ProgressSession; variation: ProgressVariation; theme: AppTheme; openWorkout: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
   return <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
     <Pressable accessibilityRole="button" accessibilityLabel={`${session.activityDate}, ${session.sessionType}, ${session.sets.length} ${session.sets.length === 1 ? 'set' : 'sets'}`} accessibilityState={{ expanded }} onPress={() => setExpanded(value => !value)} style={{ minHeight: 48, justifyContent: 'center', gap: 6 }}>
       <Text style={{ color: theme.text, fontFamily: fonts.bold }}>{session.activityDate} / {session.sessionType}</Text>
       <Text style={{ color: theme.muted }}>{session.sets.length} {session.sets.length === 1 ? 'set' : 'sets'} / {expanded ? 'Hide sets' : 'Show sets'}</Text>
     </Pressable>
-    {expanded && <>{session.sets.map((set, index) => <Text key={set.id} style={{ color: theme.text }}>Set {index + 1}: {bodyweight ? 'Bodyweight' : `${set.weight} ${set.unit}`} × {set.reps} reps</Text>)}<Button theme={theme} variant="info" label="Open workout" onPress={() => openWorkout(session.workoutId)} /></>}
+    {expanded && <>{session.sets.map((set, index) => <Text key={set.id} style={{ color: theme.text }}>Set {index + 1}: {formatCompletedSet({ bodyweight: variation.bodyweight, tracking: variation.dimension === 'time' ? 'duration' : variation.dimension === 'distance' ? 'distance_duration' : undefined, unit: set.unit }, set)}</Text>)}<Button theme={theme} variant="info" label="Open workout" onPress={() => openWorkout(session.workoutId)} /></>}
   </View>;
 }
 
@@ -24,7 +25,8 @@ export function ExerciseProgressScreen({ name, variations, theme, back, openWork
   const variation = variations.find(item => item.variationId === selection) ?? variations[0];
   const card = [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }];
   const count = history.id === variation?.variationId ? history.count : 10;
-  const description = (item: ProgressVariation) => `${item.locationName} / ${item.equipment} / ${item.bodyweight ? 'bodyweight reps' : `${item.dimension === 'mass' ? 'lb / kg' : 'plates'}, ${item.convention.replaceAll('_', ' ')}`}${item.archived ? ' / removed location' : ''}`;
+  const trackingDescription = (item: ProgressVariation) => item.dimension === 'time' ? 'Duration / seconds' : item.dimension === 'distance' ? 'Distance + duration / km' : item.bodyweight ? 'Bodyweight reps' : `${item.convention.replaceAll('_', ' ')} / ${item.dimension === 'mass' ? 'weight' : 'plates'}`;
+  const description = (item: ProgressVariation) => `${item.locationName} / ${item.equipment} / ${trackingDescription(item)}${item.archived ? ' / removed location' : ''}`;
   const metrics = variation ? progressMetrics(variation, unit) : null;
   const metadata = (label: string, value: string) => <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: 8 }}>
     <Text style={{ color: theme.muted, width: 76, fontSize: 12 }}>{label}</Text>
@@ -44,18 +46,18 @@ export function ExerciseProgressScreen({ name, variations, theme, back, openWork
         </View>
         {metadata('Location', variation.locationName)}
         {metadata('Equipment', variation.equipment)}
-        {metadata('Tracking', variation.bodyweight ? 'Bodyweight reps' : `${variation.convention.replaceAll('_', ' ')} / ${variation.dimension === 'mass' ? 'weight' : 'plates'}`)}
+        {metadata('Tracking', trackingDescription(variation))}
         {variation.archived && <Text style={{ color: theme.muted, fontSize: 12 }}>Removed location / history preserved</Text>}
         {choosing && variations.map(item => <Pressable key={item.variationId} accessibilityRole="button" accessibilityLabel={`Compare ${description(item)}`} accessibilityState={{ selected: item.variationId === variation.variationId }} onPress={() => { setSelection(item.variationId); setChoosing(false); }} style={{ padding: 12, minHeight: 48, gap: 4, borderRadius: 12, borderWidth: 1, borderColor: item.variationId === variation.variationId ? theme.infoBorder : theme.border, backgroundColor: item.variationId === variation.variationId ? theme.infoSoft : theme.soft }}>
           <Text style={{ color: theme.text, fontFamily: fonts.bold }}>{item.equipment}</Text>
           <Text style={{ color: theme.muted, fontSize: 12 }}>{item.locationName}{item.archived ? ' / removed location' : ''}</Text>
-          <Text style={{ color: theme.muted, fontSize: 12 }}>{item.bodyweight ? 'Bodyweight reps' : `${item.convention.replaceAll('_', ' ')} / ${item.dimension === 'mass' ? 'weight' : 'plates'}`}</Text>
+          <Text style={{ color: theme.muted, fontSize: 12 }}>{trackingDescription(item)}</Text>
         </Pressable>)}
       </View>
       <View style={[styles.card, { backgroundColor: theme.successSoft, borderColor: theme.successBorder }]}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
           <View style={{ flex: 1, minWidth: 140, gap: 6 }}>
-            <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 14 }}>{variation.bodyweight ? 'Highest reps per set' : 'Heaviest completed load'}</Text>
+            <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 14 }}>{variation.dimension === 'time' ? 'Longest completed duration' : variation.dimension === 'distance' ? 'Longest completed distance' : variation.bodyweight ? 'Highest reps per set' : 'Heaviest completed load'}</Text>
             <Text style={{ color: theme.success, fontFamily: fonts.bold, fontSize: 32 }}>{metrics.best === null ? 'No record' : `${formatProgressValue(metrics.best)} ${metrics.unit}`}</Text>
             <Text style={{ color: theme.muted, fontSize: 12 }}>{variation.sessions.length} {variation.sessions.length === 1 ? 'session recorded' : 'sessions recorded'}</Text>
           </View>
@@ -74,12 +76,12 @@ export function ExerciseProgressScreen({ name, variations, theme, back, openWork
         {explanationOpen && <View style={{ gap: 12 }}>
           <Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>The recorded best uses all sessions on this equipment. Each chart bar is one session, spaced equally; only the latest 12 are shown.</Text>
           <Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>Other gyms, machines, load conventions, plate counts and bodyweight modes stay separate.</Text>
-          <Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>{variation.bodyweight ? 'Reps are shown per completed set.' : 'Loads are compared regardless of reps; this is not a strength score.'}</Text>
+          <Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>{variation.dimension === 'time' || variation.dimension === 'distance' ? 'Each bar shows the longest completed set in that session. More time or distance does not necessarily mean better performance. Original duration and distance remain in the set history.' : variation.bodyweight ? 'Reps are shown per completed set.' : 'Loads are compared regardless of reps; this is not a strength score.'}</Text>
           {variation.dimension === 'mass' && <Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>Display values convert lb/kg and round to two decimals. Saved sets keep their original units and {variation.convention.replaceAll('_', ' ')} convention.</Text>}
         </View>}
       </View>
       <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold }}>Session history / newest first</Text>
-      {variation.sessions.slice(0, count).map(session => <SessionCard key={`${variation.variationId}:${session.workoutId}`} session={session} bodyweight={variation.bodyweight} theme={theme} openWorkout={openWorkout} />)}
+      {variation.sessions.slice(0, count).map(session => <SessionCard key={`${variation.variationId}:${session.workoutId}`} session={session} variation={variation} theme={theme} openWorkout={openWorkout} />)}
       {count < variation.sessions.length && <Button theme={theme} label="Show 10 more sessions" onPress={() => setHistory({ id: variation.variationId, count: count + 10 })} />}
     </>}
   </Screen>;
