@@ -41,6 +41,47 @@ let counter = 0;
 const digest = async text => createHash('sha256').update(text).digest('hex');
 const makeStore = connection => createWorkoutStore(connection.adapter, () => `id-${++counter}`, () => '2026-11-01T02:00:00.000Z', digest);
 
+function csvRecords(text) {
+  const records = []; let row = [], value = '', quoted = false;
+  for (let i = 1; i < text.length; i++) {
+    const char = text[i];
+    if (char === '"') { if (quoted && text[i + 1] === '"') { value += '"'; i++; } else quoted = !quoted; }
+    else if (!quoted && char === ',') { row.push(value); value = ''; }
+    else if (!quoted && char === '\r' && text[i + 1] === '\n') { row.push(value); records.push(row); row = []; value = ''; i++; }
+    else value += char;
+  }
+  assert.equal(quoted, false); assert.deepEqual(row, []); assert.equal(value, '');
+  const [header, ...data] = records; return data.map(values => Object.fromEntries(header.map((key, index) => [key, values[index]])));
+}
+
+test('CSV exports a read-only ordered snapshot, inclusive recorded dates, archived labels and original measurements', async () => {
+  const connection = connect(':memory:');
+  try {
+    const store = makeStore(connection); await store.initialize(); const gym = await store.addGym('CSV café, "Gym"');
+    const loaded = draft('csv-b'); loaded.locationId = gym.id; loaded.exercises[0].unit = 'kg'; loaded.exercises[0].name = '=Press, "left"\n右';
+    loaded.exercises[0].sets.push({ id: 'csv-zero', weight: '0', reps: '5', completed: true }); await store.finish(loaded);
+    const bodyweight = draft('csv-a'); bodyweight.locationId = gym.id; bodyweight.exercises[0].bodyweight = true; await store.finish(bodyweight);
+    const old = draft('csv-old'); Object.assign(old, { activityDate: '2026-10-31', startedAt: '2026-10-31T01:00:00.000Z', endedAt: '2026-10-31T02:00:00.000Z' }); old.exercises[0].unit = 'plates'; await store.finish(old);
+    await store.removeLocation(gym.id); await store.saveDraft(draft('csv-pending'));
+    const before = await store.exportBackup('0.1.0'), revision = connection.db.prepare('SELECT revision FROM store_metadata').get().revision;
+    const result = await store.getCsvExport({ kind: 'all' }), rows = csvRecords(result.text);
+    assert.deepEqual(result.summary, { workouts: 3, sets: 4, activeDays: 2, firstDate: '2026-10-31', lastDate: '2026-11-01' });
+    assert.deepEqual(rows.map(row => row.session_id), ['csv-old','csv-a','csv-b','csv-b']);
+    assert.deepEqual(rows.map(row => row.set_number), ['1','1','1','2']);
+    assert.deepEqual(rows.map(row => row.load_unit), ['plates','','kg','kg']); assert.deepEqual(rows.map(row => row.load_value), ['35.5','','35.5','0']);
+    assert.equal(rows[1].measurement_mode, 'reps'); assert.equal(rows[1].load_convention, ''); assert.equal(rows[2].gym_or_home, gym.name);
+    assert.equal(rows[2].exercise, "'=Press, \"left\" 右"); assert.equal(rows[2].session_type_id, ''); assert.equal(rows[2].routine, '');
+    assert.equal(rows[2].session_duration_seconds, '3600');
+    const range = await store.getCsvExport({ kind: 'range', from: '2026-11-01', to: '2026-11-01' }); assert.equal(range.summary.workouts, 2); assert.equal(range.summary.sets, 3);
+    assert.equal(csvRecords((await store.getCsvExport({ kind: 'range', from: '2026-09-01', to: '2026-09-30' })).text).length, 0);
+    await assert.rejects(store.getCsvExport({ kind: 'range', from: '2026-11-02', to: '2026-11-01' }), /end date/);
+    assert.equal(await store.exportBackup('0.1.0'), before); assert.equal(connection.db.prepare('SELECT revision FROM store_metadata').get().revision, revision);
+    const edit = await store.getWorkoutEdit('csv-b'); edit.exercises[0].sets[0].weight = '42'; await store.updateWorkout(edit);
+    assert.equal(csvRecords((await store.getCsvExport({ kind: 'all' })).text)[2].load_value, '42');
+    await store.deleteWorkout('csv-a'); assert.equal((await store.getCsvExport({ kind: 'all' })).summary.workouts, 2);
+  } finally { connection.db.close(); }
+});
+
 test('appearance defaults to system, persists, invalidates inspections and round trips in backups', async () => {
   const folder = mkdtempSync(join(tmpdir(), 'workout-appearance-')), file = join(folder, 'workouts.db'); let connection = connect(file);
   try {

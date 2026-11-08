@@ -1,6 +1,6 @@
 import { getDocumentAsync } from 'expo-document-picker';
-import { Directory, File, Paths } from 'expo-file-system';
-import { isAvailableAsync, shareAsync } from 'expo-sharing';
+import { File, Paths } from 'expo-file-system';
+import { saveTextFile } from '../export/saveTextFile';
 import { backupFilename, checkBackupSize, readBackupBytes } from './backupBytes';
 import type { BackupFiles } from './backupFiles.types';
 
@@ -13,11 +13,5 @@ export const backupFiles: BackupFiles = {
     try { checkBackupSize(asset.size ?? file.size); } catch (error) { dispose(); throw error; }
     return { name: asset.name, dispose, read: async () => { checkBackupSize(file.size); return readBackupBytes(new Uint8Array(await file.arrayBuffer())); } };
   },
-  async save(text) {
-    if (!await isAvailableAsync()) throw new Error('Sharing is not available on this device. Try again on a device with a share destination.');
-    const folder = new Directory(Paths.cache, 'workout-backups'); folder.create({ idempotent: true });
-    const file = new File(folder, backupFilename()); file.create(); file.write(text);
-    await shareAsync(file.uri, { mimeType: 'application/json', UTI: 'public.json', dialogTitle: 'Save your workout backup' });
-    return 'Share sheet closed. Make sure you saved a copy to Files or another destination.';
-  },
+  save: text => saveTextFile({ text, filename: backupFilename(), mimeType: 'application/json', uti: 'public.json', title: 'Save your workout backup' }),
 };
