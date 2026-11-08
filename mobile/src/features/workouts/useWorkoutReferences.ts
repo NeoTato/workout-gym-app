@@ -25,8 +25,8 @@ export function useRecentSessions(context: ReferenceContext | null, sessionType:
 
 export function usePreviousExercise(context: ReferenceContext | null, exercise: ReferenceExercise) {
   const { locationId = '', activityDate = '', startedAt = '', excludeSessionId = '' } = context ?? {};
-  const { catalogId, name, equipment, bodyweight, unit, convention } = exercise;
-  const load = useCallback(async () => (await openStore()).getPreviousExercise({ locationId, activityDate, startedAt, excludeSessionId }, { catalogId, name, equipment, bodyweight, unit, convention }),
-    [locationId, activityDate, startedAt, excludeSessionId, catalogId, name, equipment, bodyweight, unit, convention]);
+  const { catalogId, name, equipment, bodyweight, tracking, unit, convention } = exercise;
+  const load = useCallback(async () => (await openStore()).getPreviousExercise({ locationId, activityDate, startedAt, excludeSessionId }, { catalogId, name, equipment, bodyweight, tracking, unit, convention }),
+    [locationId, activityDate, startedAt, excludeSessionId, catalogId, name, equipment, bodyweight, tracking, unit, convention]);
   return useFocusedReference(load, Boolean(context && name.trim()));
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatCompletedSet } from '../../domain/workout';
 import { Text, View } from 'react-native';
 import type { ReferenceContext, ReferenceExercise } from '../../domain/workoutReferences';
 import { Button, styles } from '../../ui/controls';
@@ -35,7 +36,7 @@ export function PreviousExerciseSets({ context, exercise, theme }: { context: Re
       {expanded && <View style={{ backgroundColor: theme.soft, padding: 12, borderRadius: 10, gap: 6 }}>
         <Text style={{ color: theme.muted, fontSize: 12 }}>{previous.locationName} · {previous.exercise.equipment} · reference only</Text>
         {previous.exercise.sets.map((set, index) => <Text key={set.id} style={{ color: theme.text, fontFamily: fonts.medium }}>
-          {index + 1}. {previous.exercise.bodyweight ? 'Bodyweight' : `${set.weight} ${previous.exercise.unit === 'lb' ? 'lbs' : previous.exercise.unit}`} × {set.reps} reps
+          {index + 1}. {formatCompletedSet(previous.exercise, set)}
         </Text>)}
       </View>}
     </>}

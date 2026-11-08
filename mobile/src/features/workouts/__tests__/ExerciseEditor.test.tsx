@@ -11,6 +11,23 @@ function Editor({ weight = '35', reps = '10', bodyweight = false } = {}) {
   return <ExerciseEditor exercise={exercise} index={0} theme={getTheme('light')} disabled={false} update={update} remove={() => undefined} newId={() => `set-${++count}`} />;
 }
 describe('Exercise logging', () => {
+  it('tracks duration and distance with automatic completion, without rep/load inputs', async () => {
+    await render(<Editor weight="" reps="" />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Tracking: Duration' }));
+    expect(screen.queryByLabelText('Exercise 1 set 1 reps')).toBeNull();
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done' })).toBeDisabled();
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 duration (seconds)'), '45');
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Tracking: Distance + duration' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Clear inputs and change tracking' }));
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done' })).toBeDisabled();
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 duration (seconds)'), '600');
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 distance (km)'), '1.25');
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: true })).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 duration (seconds)'), '1.5');
+    expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeDisabled();
+  });
   it('allows more than three sets and copies values without copying completion', async () => {
     await render(<Editor />);
     await fireEvent.press(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done' }));
@@ -42,6 +59,7 @@ describe('Exercise logging', () => {
     expect(screen.getByRole('checkbox', { name: 'Exercise 1 set 1 done', checked: false })).toBeEnabled();
     await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Tracking: Bodyweight reps' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Clear inputs and change tracking' }));
     expect(screen.queryByLabelText('Exercise 1 set 1 load (lb)')).toBeNull();
   });
   it('requires both fields for loaded sets but only reps for bodyweight', async () => {

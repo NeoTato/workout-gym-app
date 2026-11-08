@@ -16,18 +16,32 @@ jest.mock('../useWorkoutDraft', () => ({ useWorkoutDraft: jest.fn(), newExercise
 jest.mock('@react-native-community/datetimepicker', () => ({ __esModule: true, default: () => null }));
 
 let seed: WorkoutDraft;
+const finish = jest.fn();
 function useTestDraft() {
   const [draft, setDraft] = useState(seed);
   return { draft, locations: [{ id: 'home', name: 'Home', kind: 'home' as const }], status: 'Saved on this phone', error: '',
-    busy: false, update: setDraft, addGym: jest.fn(), removeLocation: jest.fn(), finish: jest.fn(), discard: jest.fn() };
+    busy: false, update: setDraft, addGym: jest.fn(), removeLocation: jest.fn(), finish, discard: jest.fn() };
 }
 beforeEach(() => {
+  finish.mockReset();
   seed = { id: 'session', setupComplete: false, startedAt: '2026-11-01T01:00:00Z', activityDate: '2026-11-01', timezone: 'Asia/Manila',
     locationId: '', sessionType: 'Push', exercises: [{ id: 'exercise', name: 'Press', equipment: '', bodyweight: false,
       unit: 'lb', convention: 'total', sets: [{ id: 'set', weight: '35', reps: '10', completed: true }] }] };
   jest.mocked(useWorkoutDraft).mockImplementation(useTestDraft);
   jest.mocked(newExercise).mockReturnValue({ id: 'added', name: '', equipment: '', bodyweight: false, unit: 'lb', convention: 'total',
     sets: [{ id: 'new-set', weight: '', reps: '', completed: false }] });
+});
+
+it('records attendance only after explicit confirmation and keeps populated workouts out of quick entry', async () => {
+  seed.locationId = 'home'; seed.exercises = [];
+  await render(<WorkoutRoute />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Record workout only' }));
+  expect(finish).not.toHaveBeenCalled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+  expect(finish).not.toHaveBeenCalled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Record workout only' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Record workout' }));
+  expect(finish).toHaveBeenCalledWith(true);
 });
 
 it('starts with setup, keeps dates collapsed, and requires a location before logging', async () => {

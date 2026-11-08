@@ -10,6 +10,7 @@ export function WorkoutLoggingHelp({ theme, editing = false }: { theme: AppTheme
     </Pressable>
     {expanded && <>
       <Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>Valid load and reps mark a set done automatically. Bodyweight sets need reps only. Copied sets stay incomplete until edited or marked done.</Text>
+      <Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>Choose Duration or Distance + duration in exercise Setup for holds and cardio. Enter whole seconds and kilometres. Changing tracking clears the set inputs; choose it before logging.</Text>
       <Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>{editing ? 'Complete or remove every set before saving changes.' : 'Only completed sets are saved when you finish. There is no required exercise or set count.'}</Text>
     </>}
   </View>;

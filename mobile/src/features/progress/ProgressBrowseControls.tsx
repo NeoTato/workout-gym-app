@@ -4,7 +4,7 @@ import { exerciseCategories, subcategoriesFor, type ExerciseCategory, type Exerc
 import { Button, Choice, styles } from '../../ui/controls';
 import { fonts, type AppTheme } from '../../ui/theme';
 
-export type ProgressFilters = { category: ExerciseCategory | 'All'; subcategory: ExerciseSubcategory | 'All'; mode: 'all' | 'loaded' | 'bodyweight' };
+export type ProgressFilters = { category: ExerciseCategory | 'All'; subcategory: ExerciseSubcategory | 'All'; mode: 'all' | 'loaded' | 'bodyweight' | 'timed' };
 export const emptyProgressFilters: ProgressFilters = { category: 'All', subcategory: 'All', mode: 'all' };
 
 export function ProgressBrowseControls({ theme, search, onSearch, filters, onFilters, count, ready }: {
@@ -36,7 +36,7 @@ export function ProgressBrowseControls({ theme, search, onSearch, filters, onFil
         <View accessibilityViewIsModal style={[styles.card, { gap: 16, backgroundColor: theme.surface, borderColor: theme.border, width: '100%', maxWidth: 520, maxHeight: '90%', alignSelf: 'center' }]}>
           <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Filter exercises</Text>
           <ScrollView contentContainerStyle={{ gap: 16 }} style={{ flexShrink: 1 }} keyboardShouldPersistTaps="handled">
-            <Choice<ProgressFilters['mode']> theme={theme} label="Exercise type" value={filters.mode} options={[{ value: 'all', label: 'All' }, { value: 'loaded', label: 'Loaded' }, { value: 'bodyweight', label: 'Bodyweight' }]} onChange={mode => onFilters({ ...filters, mode })} />
+            <Choice<ProgressFilters['mode']> theme={theme} label="Exercise type" value={filters.mode} options={[{ value: 'all', label: 'All' }, { value: 'loaded', label: 'Loaded' }, { value: 'bodyweight', label: 'Bodyweight' }, { value: 'timed', label: 'Timed / cardio' }]} onChange={mode => onFilters({ ...filters, mode })} />
             <Choice<ExerciseCategory | 'All'> theme={theme} label="Category" value={filters.category} options={[{ value: 'All', label: 'All' }, ...exerciseCategories.map(value => ({ value, label: value })), { value: '', label: 'Uncategorized' }]} onChange={category => onFilters({ ...filters, category, subcategory: 'All' })} />
             {groups.length > 0 && <Choice<ExerciseSubcategory | 'All'> theme={theme} label="Subcategory" value={filters.subcategory} options={[{ value: 'All', label: 'All' }, ...groups.map(value => ({ value, label: value })), { value: '', label: 'Not assigned' }]} onChange={subcategory => onFilters({ ...filters, subcategory })} />}
           </ScrollView>

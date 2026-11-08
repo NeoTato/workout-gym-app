@@ -20,12 +20,24 @@ it('converts chart units, preserves original sets, and changes equipment explici
   await fireEvent.press(screen.getByRole('button', { name: 'Chart unit: kg' }));
   expect(screen.getByText('45.36 kg')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: '2026-11-01, Push, 1 set' }));
-  expect(screen.getByText('Set 1: 100 lb × 8 reps')).toBeOnTheScreen();
+  expect(screen.getByText('Set 1: 100 lbs × 8 reps')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Open workout' })); expect(openWorkout).toHaveBeenCalledWith('workout');
   await fireEvent.press(screen.getByRole('button', { name: 'Change equipment' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Compare Gym B / Dumbbells / lb / kg, per hand / removed location' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Compare Gym B / Dumbbells / per hand / weight / removed location' }));
   expect(screen.getByText('20 kg')).toBeOnTheScreen();
   expect(screen.queryByText('Set 1: 100 lb × 8 reps')).toBeNull();
+});
+
+it.each([
+  { dimension: 'time' as const, title: 'Longest completed duration', value: '600 sec', set: 'Set 1: 600 sec' },
+  { dimension: 'distance' as const, title: 'Longest completed distance', value: '1.25 km', set: 'Set 1: 1.25 km / 600 sec' },
+])('shows $dimension records and original completed measurements without load labels', async ({ dimension, title, value, set }) => {
+  await render(<ExerciseProgressScreen name="Cardio" variations={buildExerciseProgress([{ ...row, dimension, reps: null, weight: null, durationSeconds: 600, distanceMeters: dimension === 'distance' ? 1250 : null }])} theme={getTheme('light')} back={jest.fn()} openWorkout={jest.fn()} />);
+  expect(screen.getByText(title)).toBeOnTheScreen(); expect(screen.getByText(value)).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Chart unit: kg' })).toBeNull();
+  expect(screen.queryByText('Heaviest completed load')).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: '2026-11-01, Push, 1 set' }));
+  expect(screen.getByText(set)).toBeOnTheScreen();
 });
 
 it('shows bodyweight reps, limits initial history, and handles empty completed history', async () => {
