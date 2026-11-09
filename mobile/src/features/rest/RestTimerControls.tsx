@@ -47,8 +47,10 @@ function RestTimerDialogContent() {
     <View style={{ flex: 1, gap: 4 }}><Text style={{ color: theme.text, fontFamily: fonts.medium }}>{title}</Text><Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>{hint}</Text></View>
     <Pressable accessibilityRole="switch" accessibilityLabel={title} accessibilityState={{ checked: Boolean(rest.state?.[key]), disabled: rest.busy || !available }} disabled={rest.busy || !available}
       onPress={() => rest.preference(key, !rest.state?.[key])}
-      style={{ minWidth: 64, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 8, borderColor: rest.state?.[key] ? theme.info : theme.border, backgroundColor: theme.surface, opacity: rest.busy || !available ? 0.5 : 1 }}>
-      <Text style={{ color: rest.state?.[key] ? theme.info : theme.muted, fontFamily: fonts.medium }}>{rest.state?.[key] ? 'On' : 'Off'}</Text>
+      style={{ minWidth: 56, minHeight: 48, alignItems: 'center', justifyContent: 'center', opacity: rest.busy || !available ? 0.5 : 1 }}>
+      <View pointerEvents="none" style={{ width: 52, height: 32, borderRadius: 16, padding: 3, backgroundColor: rest.state?.[key] ? theme.info : theme.border, alignItems: rest.state?.[key] ? 'flex-end' : 'flex-start', justifyContent: 'center' }}>
+        <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: theme.surface }} />
+      </View>
     </Pressable>
   </View>;
   return <Modal visible={rest.visible} transparent animationType="fade" onRequestClose={rest.close}>
