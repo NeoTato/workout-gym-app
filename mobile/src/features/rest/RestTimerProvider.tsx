@@ -1,7 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 import { usePathname } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Keyboard } from 'react-native';
 import { newRestState, startRest, pauseRest, resumeRest, extendRest, type RestState } from '../../domain/restTimer';
 import { openStore } from '../../storage/openStore';
 import { RestContext } from './restContext';
@@ -40,7 +40,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
     if (!await (await openStore()).saveRestTimer(value)) { assign(null); await sync(null); return false; }
     assign(value); await sync(value); return true;
   };
-  const open = (nextLabel = current.current?.timer?.label ?? 'Between exercises') => { void run(async () => {
+  const open = (nextLabel = current.current?.timer?.label ?? 'Between exercises') => { Keyboard.dismiss(); void run(async () => {
     const db = await openStore(), draft = await db.getDraft();
     if (!draft) { assign(null); setVisible(false); await sync(null); return false; }
     const saved = await db.getRestTimer(), value = saved ?? newRestState(draft.id, await db.getRestTimerEpoch());
@@ -58,7 +58,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
       if (!current.current?.autoStart) return true;
       return save(startRest(current.current, nextLabel, Date.now(), randomUUID()));
     }); },
-    quickStart: nextLabel => { void run(async () => {
+    quickStart: nextLabel => { Keyboard.dismiss(); void run(async () => {
       const db = await openStore(), draft = await db.getDraft(); if (!draft) { assign(null); await sync(null); return false; }
       const value = await db.getRestTimer() ?? newRestState(draft.id, await db.getRestTimerEpoch());
       return save(startRest(value, nextLabel, Date.now(), randomUUID()));
