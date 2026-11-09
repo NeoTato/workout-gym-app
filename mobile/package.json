@@ -5,17 +5,20 @@
   "dependencies": {
     "@react-native-community/datetimepicker": "9.2.1",
     "expo": "~58.0.23",
+    "expo-audio": "~58.0.11",
     "expo-constants": "~58.0.15",
     "expo-crypto": "~58.0.7",
     "expo-document-picker": "~58.0.4",
     "expo-file-system": "~58.0.13",
     "expo-font": "~58.0.11",
     "expo-linking": "~58.0.16",
+    "expo-notifications": "~58.1.8",
     "expo-router": "~58.0.30",
     "expo-sharing": "~58.0.22",
     "expo-sqlite": "~58.0.15",
     "expo-status-bar": "~58.0.4",
     "expo-system-ui": "~58.0.7",
+    "expo-updates": "~58.0.21",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
@@ -39,6 +42,7 @@
   },
   "scripts": {
     "start": "expo start --go",
+    "publish:expo-go:ios": "npx --yes eas-cli@27.5.0 update --branch expo-go --environment preview --platform ios",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
@@ -46,7 +50,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest --ci --runInBand",
     "build": "expo export --platform all",
-    "test:storage": "node --experimental-strip-types --test tests/storage.test.mjs tests/readiness.test.mjs"
+    "test:storage": "node --experimental-strip-types --test tests/storage.test.mjs tests/readiness.test.mjs tests/restTimer.test.mjs"
   },
   "private": true,
   "engines": {

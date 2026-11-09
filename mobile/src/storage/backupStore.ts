@@ -71,6 +71,8 @@ export function createBackupOperations(db: SqlDatabase, queue: Queue, id: () => 
       await db.transaction(async tx => {
         if (await revision(tx) !== inspection.revision) throw stale();
         await tx.runAsync('DELETE FROM draft_checkpoint');
+        await tx.runAsync('DELETE FROM rest_timer');
+        await tx.runAsync('UPDATE store_metadata SET rest_epoch=rest_epoch+1 WHERE singleton=1');
         await tx.runAsync('DELETE FROM settings');
         for (const item of [...backupTables].reverse()) await tx.runAsync(`DELETE FROM ${item.table}`);
         for (const item of backupTables) {

@@ -26,7 +26,20 @@
       "expo-router",
       "expo-font",
       "expo-sqlite",
-      "@react-native-community/datetimepicker"
-    ]
+      "@react-native-community/datetimepicker",
+      ["expo-audio", { "microphonePermission": false, "recordAudioAndroid": false, "enableBackgroundPlayback": false, "enableBackgroundRecording": false }]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f9e71877-6a1a-410c-91c1-74593c6b70d7"
+      }
+    },
+    "owner": "neotato",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f9e71877-6a1a-410c-91c1-74593c6b70d7"
+    }
   }
 }

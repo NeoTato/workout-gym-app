@@ -22,6 +22,8 @@ The matching [history, summary, and consistency preview](previews/ui-overhaul/ac
 
 ## Run the mobile foundation
 
+For opening the iPhone preview away from the computer, see [hosted Expo Go setup and database transfer](docs/hosted-expo-go.md). Hosting delivers code/assets, not workout storage or cloud sync. Export JSON from the existing preview before switching; Expo Go may use a separate project storage scope.
+
 Use Node 22.17.0 (CI's version), then run:
 
 ```powershell
@@ -39,6 +41,8 @@ The app uses React 19.3.0 and React Native 0.88.1; exact resolved versions are i
 Preview and review images are organized in [`screenshots/`](screenshots/). Verification scripts save regenerated screenshots there.
 
 ## Repository layout
+
+Live workout rest timer: [preview, behavior and phone review steps](docs/rest-timer-review.md).
 
 ```text
 assets/                       Shared preview fonts and icon metadata

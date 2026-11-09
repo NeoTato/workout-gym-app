@@ -5,6 +5,7 @@ import type { WorkoutDraft } from '../../../domain/workout';
 import { newExercise, useWorkoutDraft } from '../useWorkoutDraft';
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
+jest.mock('../../rest/restContext', () => ({ useRestTimer: () => ({ open: jest.fn(), autoStart: jest.fn(), quickStart: jest.fn() }) }));
 jest.mock('../useExerciseLibrary', () => ({ useExerciseLibrary: () => ({ items: [], loading: false, error: '', retry: jest.fn() }) }));
 jest.mock('../WorkoutReferences', () => ({ RecentSessions: () => null, PreviousExerciseSets: () => null }));
 jest.mock('../useRoutines', () => ({ useRoutines: () => ({ items: [{ id: 'routine', name: 'Push A', sessionType: 'Push', locationId: 'home', locationName: 'Home', exercises: [
