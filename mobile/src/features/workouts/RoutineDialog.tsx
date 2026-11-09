@@ -56,7 +56,6 @@ export function RoutineDialog(props: Props) {
                   ]);
                 }} />
               <Text style={{ color: theme.muted, fontSize: 12 }}>{routine.sessionType} · {routine.locationName} · {routine.exercises.length} exercises</Text>
-              {props.mode === 'choose' && props.locationId !== routine.locationId && <Text style={{ color: theme.muted, fontSize: 12 }}>Different location: equipment labels will be cleared. Check each exercise’s Setup.</Text>}
               {managing && <View style={{ flexDirection: 'row', gap: 20 }}>
                 <Button theme={theme} variant="link" label="Rename" accessibilityLabel={`Rename routine ${routine.name}`} disabled={blocked} onPress={() => { setRename(routine); setName(routine.name); }} />
                 <Button theme={theme} variant="danger" label="Remove" accessibilityLabel={`Remove routine ${routine.name}`} disabled={blocked} onPress={() => Alert.alert(`Remove ${routine.name}?`, 'This removes only the routine. Completed workouts and active drafts will be kept.', [

@@ -37,10 +37,10 @@ it('requires confirmation before replacing a routine and cancels without writing
   } finally { alert.mockRestore(); }
 });
 
-it('warns about equipment when choosing a routine at another location', async () => {
+it('allows choosing a routine at another location without a repeated equipment description', async () => {
   const choose = jest.fn();
   await render(<RoutineDialog mode="choose" theme={getTheme('light')} locationId="gym" close={jest.fn()} choose={choose} />);
-  expect(screen.getByText(/Different location/)).toBeOnTheScreen();
+  expect(screen.queryByText(/Different location/)).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Use routine Push A' }));
   expect(choose).toHaveBeenCalledWith(expect.objectContaining({ id: 'routine' }));
 });

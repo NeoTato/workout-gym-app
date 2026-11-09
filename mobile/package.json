@@ -46,7 +46,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest --ci --runInBand",
     "build": "expo export --platform all",
-    "test:storage": "node --experimental-strip-types --test tests/storage.test.mjs"
+    "test:storage": "node --experimental-strip-types --test tests/storage.test.mjs tests/readiness.test.mjs"
   },
   "private": true,
   "engines": {
