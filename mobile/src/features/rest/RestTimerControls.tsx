@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { customRestSeconds, restClock, restRemaining } from '../../domain/restTimer';
 import { Button, Choice, Field, styles } from '../../ui/controls';
@@ -45,7 +45,11 @@ function RestTimerDialogContent() {
   const duration = Number(minutes) * 60 + Number(seconds);
   const option = (key: 'autoStart' | 'reminders', title: string, hint: string, available = true) => <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 48 }}>
     <View style={{ flex: 1, gap: 4 }}><Text style={{ color: theme.text, fontFamily: fonts.medium }}>{title}</Text><Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>{hint}</Text></View>
-    <Switch accessibilityLabel={title} value={Boolean(rest.state?.[key])} disabled={rest.busy || !available} trackColor={{ false: theme.border, true: theme.success }} onValueChange={value => rest.preference(key, value)} />
+    <Pressable accessibilityRole="switch" accessibilityLabel={title} accessibilityState={{ checked: Boolean(rest.state?.[key]), disabled: rest.busy || !available }} disabled={rest.busy || !available}
+      onPress={() => rest.preference(key, !rest.state?.[key])}
+      style={{ minWidth: 64, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 8, borderColor: rest.state?.[key] ? theme.info : theme.border, backgroundColor: theme.surface, opacity: rest.busy || !available ? 0.5 : 1 }}>
+      <Text style={{ color: rest.state?.[key] ? theme.info : theme.muted, fontFamily: fonts.medium }}>{rest.state?.[key] ? 'On' : 'Off'}</Text>
+    </Pressable>
   </View>;
   return <Modal visible={rest.visible} transparent animationType="fade" onRequestClose={rest.close}>
     <SafeAreaView style={{ flex: 1, backgroundColor: '#00000066', justifyContent: 'center', padding: 16 }}>

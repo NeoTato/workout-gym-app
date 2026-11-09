@@ -44,7 +44,7 @@ test('manual start validates input; pause, extend, resume and end retain the cor
 });
 test('notification denial does not block the visual timer or silently enable reminders', async () => {
   jest.mocked(restNotifications.enable).mockResolvedValue(false); await show();
-  await fireEvent(screen.getByLabelText('Notify when rest ends'), 'valueChange', true);
+  await fireEvent.press(screen.getByLabelText('Notify when rest ends'));
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/Notifications are off/));
   expect(saved?.reminders ?? false).toBe(false);
   await fireEvent.press(screen.getByRole('button', { name: 'Reload timer' })); await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
