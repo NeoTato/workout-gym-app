@@ -1,8 +1,8 @@
 # Native implementation milestones
 
-Status: PRs 1-11 are merged, including Settings, appearance, JSON backup/restore and CSV reporting. PR 12 adds timed/cardio measurements and workout-only recording; see the [scope](pr12-plan.md) and [phone checklist](flexible-logging-review.md). PR 12 remains unmerged for review. Remaining milestone bullets describe the complete target, not claims that all behavior is implemented.
+Status: PRs 1–12 are merged, including timed/cardio measurements, workout-only recording, Settings, appearance, JSON backup/restore and CSV reporting. PR 13 adds five-year consistency verification and a [first-version readiness checklist](first-version-readiness.md). Combined physical iOS/Android review remains pending. Remaining milestone bullets describe the complete target, not claims that all behavior is implemented.
 
-Build in this order, keeping each slice usable and verified before adding the next. Keep prototype fixtures out of the personal database. Native app implementation is the next phase after review of this blueprint.
+Use these milestones to assess remaining scope and verification. Keep prototype and readiness fixtures out of the personal database. The app is implemented; readiness evidence and remaining device checks are documented separately.
 
 ## 1. Mobile foundation and saved first set
 
