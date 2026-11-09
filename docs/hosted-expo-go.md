@@ -4,6 +4,14 @@ Project: [@neotato/workout-gym-app](https://expo.dev/accounts/neotato/projects/w
 Stable project ID: `f9e71877-6a1a-410c-91c1-74593c6b70d7`.
 Update branch: `expo-go`; environment: `preview`; initial publication: iOS only. Android testing remains deferred.
 
+Initial hosted update, published November 9, 2026:
+
+- [Update page](https://expo.dev/accounts/neotato/projects/workout-gym-app/updates/9147f905-a720-488b-9832-95234e281b7e)
+- [Official Expo Go QR code](https://qr.expo.dev/eas-update?projectId=f9e71877-6a1a-410c-91c1-74593c6b70d7&groupId=9147f905-a720-488b-9832-95234e281b7e)
+- iOS update ID: `01a1be40-26c5-7772-90fb-d1980066348b`; source commit: `e32b17ae9b11d385e64a614c7824cd434f36a378`.
+
+The hosted manifest was fetched successfully and checked for SDK 58.0.0, owner `neotato`, slug `workout-gym-app` and scope key `@neotato/workout-gym-app`. This checks publication metadata; actual launch and database continuity still require the phone checks below.
+
 The hosted preview downloads app code/assets from Expo instead of the computer's Metro server. It still runs inside Expo Go; it is not a signed standalone app or a cloud database. The physical iPhone must use compatible SDK 58 Expo Go and sign in as `neotato`, the account that owns this project. Expo restricts hosted Expo Go updates to the owner or members of the owning organization. See [Expo's project loading rules](https://expo.dev/changelog/expo-go-loading-changes-may-2026) and [SDK 58 update documentation](https://docs.expo.dev/versions/v58.0.0/sdk/updates/).
 
 ## Keep existing workouts when switching
@@ -35,5 +43,7 @@ Publication is manual, not an automatic effect of merging a PR or running `npm s
 ## Validation and phone review
 
 Required checks are the existing unit/component tests, actual SQLite tests, types, lint, SDK dependency alignment, audit gate and platform JavaScript exports. Configuration inspection confirms SDK 58, owner/slug/project ID and matching update URL. No database migration is introduced.
+
+Local checks on November 9, 2026: 142 domain/component/adapter tests and 36 actual SQLite tests pass, along with types, lint, SDK alignment and iOS/Android/web JavaScript exports. Audit remains 1 low/30 moderate with zero high/critical findings. The new app dependency is `expo-updates ~58.0.21`, resolved through Expo's SDK-aware installer with its lockfile committed. No storage or backup implementation changed.
 
 Pending physical iPhone checks: open the published update in Expo Go with Metro stopped; confirm the installed SDK matches; compare history or restore JSON; save/reopen a test workout; and check the behavior without a network after the update has loaded. Only those checks can confirm storage continuity and launch behavior on the user's phone. Android publication/testing is deferred.

@@ -22,6 +22,8 @@ The matching [history, summary, and consistency preview](previews/ui-overhaul/ac
 
 ## Run the mobile foundation
 
+For opening the iPhone preview away from the computer, see [hosted Expo Go setup and database transfer](docs/hosted-expo-go.md). Hosting delivers code/assets, not workout storage or cloud sync. Export JSON from the existing preview before switching; Expo Go may use a separate project storage scope.
+
 Use Node 22.17.0 (CI's version), then run:
 
 ```powershell
