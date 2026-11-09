@@ -16,6 +16,7 @@
     "expo-sqlite": "~58.0.15",
     "expo-status-bar": "~58.0.4",
     "expo-system-ui": "~58.0.7",
+    "expo-updates": "~58.0.21",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
@@ -39,6 +40,7 @@
   },
   "scripts": {
     "start": "expo start --go",
+    "publish:expo-go:ios": "npx --yes eas-cli@27.5.0 update --branch expo-go --environment preview --platform ios",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
