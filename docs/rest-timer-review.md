@@ -1,5 +1,11 @@
 # PR 15: Live logging and rest timer
 
+## Hosted phone preview
+
+Export a fresh JSON backup first. Open the [timer preview QR](https://qr.expo.dev/eas-update?projectId=f9e71877-6a1a-410c-91c1-74593c6b70d7&groupId=0872e63b-8920-454a-bd06-9867733fb9e1) in SDK 58 Expo Go. [Published update](https://expo.dev/accounts/neotato/projects/workout-gym-app/updates/0872e63b-8920-454a-bd06-9867733fb9e1), branch `rest-timer-preview`, source `ef5e357`. Manifest verified HTTP 200, SDK 58 and scope `@neotato/workout-gym-app`.
+
+After opening this build, keep using this newer preview: the older pinned preview cannot open the upgraded schema 10 database. Workout records are preserved; timer state is excluded from backups.
+
 PR 15 is stacked on hosted-preview PR 14. Neither PR is merged automatically. This is a rest timer for an active workout; timed exercise measurements such as plank duration remain separate.
 
 ## Interaction

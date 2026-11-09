@@ -1,5 +1,7 @@
 # Hosted Expo Go preview
 
+For the newer live rest timer, use the [PR 15 preview and migration notes](rest-timer-review.md#hosted-phone-preview). After that preview upgrades the local database, this older pinned preview cannot open it. Export JSON before switching and continue with the newer preview.
+
 Project: [@neotato/workout-gym-app](https://expo.dev/accounts/neotato/projects/workout-gym-app).
 Stable project ID: `f9e71877-6a1a-410c-91c1-74593c6b70d7`.
 Update branch: `expo-go`; environment: `preview`; initial publication: iOS only. Android testing remains deferred.

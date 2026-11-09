@@ -42,6 +42,8 @@ Preview and review images are organized in [`screenshots/`](screenshots/). Verif
 
 ## Repository layout
 
+Live workout rest timer: [preview, behavior and phone review steps](docs/rest-timer-review.md).
+
 ```text
 assets/                       Shared preview fonts and icon metadata
 docs/                         Requirements, architecture, and design notes
