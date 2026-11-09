@@ -6,6 +6,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppearanceProvider } from '../ui/AppearanceProvider';
 import { useAppearance } from '../ui/appearanceContext';
+import { RestTimerProvider } from '../features/rest/RestTimerProvider';
+import { RestTimerDock, RestTimerDialog } from '../features/rest/RestTimerControls';
 
 export default function RootLayout() {
   return <AppearanceProvider><AppLayout /></AppearanceProvider>;
@@ -32,7 +34,10 @@ function AppLayout() {
           )}
         </View>
       ) : (
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }} />
+        <RestTimerProvider><View style={{ flex: 1 }}>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }} />
+          <RestTimerDock /><RestTimerDialog />
+        </View></RestTimerProvider>
       )}
     </SafeAreaProvider>
   );

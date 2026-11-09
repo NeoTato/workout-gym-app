@@ -2,9 +2,10 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { canCompleteSet, type TimedTracking, type SetDraft } from '../../domain/workout';
 import { fonts, type AppTheme } from '../../ui/theme';
 
-export function SetRow({ set, index, exerciseIndex, unit, bodyweight, tracking, theme, disabled, largeText, change, remove }: {
+export function SetRow({ set, index, exerciseIndex, unit, bodyweight, tracking, theme, disabled, largeText, change, remove, onInputEnd }: {
   set: SetDraft; index: number; exerciseIndex: number; unit: string; bodyweight: boolean; tracking?: TimedTracking; theme: AppTheme; disabled: boolean; largeText: boolean;
   change: (patch: Partial<SetDraft>) => void; remove: () => void;
+  onInputEnd?: () => void;
 }) {
   const valid = canCompleteSet(set, bodyweight, tracking);
   const prefix = `Exercise ${exerciseIndex + 1} set ${index + 1}`;
@@ -18,21 +19,21 @@ export function SetRow({ set, index, exerciseIndex, unit, bodyweight, tracking, 
         {!bodyweight && !tracking && <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
           {largeText && <Text style={{ color: theme.muted }}>Load ({unit === 'lb' ? 'lbs' : unit})</Text>}
           <TextInput accessibilityLabel={`${prefix} load (${unit})`} value={set.weight} placeholder="—" placeholderTextColor={theme.muted}
-            editable={!disabled} keyboardType="decimal-pad" style={inputStyle} onChangeText={weight => change({ weight })} />
+            editable={!disabled} keyboardType="decimal-pad" style={inputStyle} onBlur={onInputEnd} onChangeText={weight => change({ weight })} />
         </View>}
         {!tracking && <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
           {largeText && <Text style={{ color: theme.muted }}>Reps</Text>}
           <TextInput accessibilityLabel={`${prefix} reps`} value={set.reps} placeholder="—" placeholderTextColor={theme.muted}
-            editable={!disabled} keyboardType="number-pad" style={inputStyle} onChangeText={reps => change({ reps })} />
+            editable={!disabled} keyboardType="number-pad" style={inputStyle} onBlur={onInputEnd} onChangeText={reps => change({ reps })} />
         </View>}
         {tracking && <>
           {tracking === 'distance_duration' && <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
             <Text style={{ color: theme.muted, fontSize: 12 }}>km</Text>
-            <TextInput accessibilityLabel={`${prefix} distance (km)`} value={set.distance ?? ''} placeholder="0.0" placeholderTextColor={theme.muted} editable={!disabled} keyboardType="decimal-pad" style={inputStyle} onChangeText={distance => change({ distance })} />
+            <TextInput accessibilityLabel={`${prefix} distance (km)`} value={set.distance ?? ''} placeholder="0.0" placeholderTextColor={theme.muted} editable={!disabled} keyboardType="decimal-pad" style={inputStyle} onBlur={onInputEnd} onChangeText={distance => change({ distance })} />
           </View>}
           <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
             <Text style={{ color: theme.muted, fontSize: 12 }}>seconds</Text>
-            <TextInput accessibilityLabel={`${prefix} duration (seconds)`} value={set.duration ?? ''} placeholder="0" placeholderTextColor={theme.muted} editable={!disabled} keyboardType="number-pad" style={inputStyle} onChangeText={duration => change({ duration })} />
+            <TextInput accessibilityLabel={`${prefix} duration (seconds)`} value={set.duration ?? ''} placeholder="0" placeholderTextColor={theme.muted} editable={!disabled} keyboardType="number-pad" style={inputStyle} onBlur={onInputEnd} onChangeText={duration => change({ duration })} />
           </View>
         </>}
       </View>

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { restClock } from '../../domain/restTimer';
 import { Alert, Modal, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import type { Convention, ExerciseDraft, LoadUnit, SetDraft, Tracking } from '../../domain/workout';
 import { cardioDefault, canCompleteSet, trackingOf, trackingLabel } from '../../domain/workout';
@@ -11,12 +12,19 @@ import { ExerciseCategoryField } from './ExerciseCategoryField';
 import type { ReferenceContext } from '../../domain/workoutReferences';
 import { PreviousExerciseSets } from './WorkoutReferences';
 
-export function ExerciseEditor({ exercise, index, theme, disabled, update, remove, newId, library = [], initiallyExpanded = index === 0, references }: {
+export function ExerciseEditor({ exercise, index, theme, disabled, update, remove, newId, library = [], initiallyExpanded = index === 0, references, onRest, onSetLogged, restSeconds = 90 }: {
   exercise: ExerciseDraft; index: number; theme: AppTheme; disabled: boolean;
   update: (exercise: ExerciseDraft) => void; remove: () => void; newId: () => string;
   library?: LoggedExercise[]; initiallyExpanded?: boolean;
   references?: ReferenceContext | null;
+  onRest?: (label: string) => void; onSetLogged?: (label: string) => void;
+  restSeconds?: number;
 }) {
+  const announced = useRef(new Set(exercise.sets.filter(set => set.completed).map(set => set.id)));
+  function announceSet(set: SetDraft, setIndex: number) {
+    if (!set.completed || !canCompleteSet(set, exercise.bodyweight, exercise.tracking) || announced.current.has(set.id)) return;
+    announced.current.add(set.id); onSetLogged?.(`${exercise.name || 'Exercise'} / set ${setIndex + 1}`);
+  }
   const [expanded, setExpanded] = useState(initiallyExpanded);
   const [setup, setSetup] = useState(!exercise.name);
   const [pendingTracking, setPendingTracking] = useState<Tracking | null>(null);
@@ -33,6 +41,7 @@ export function ExerciseEditor({ exercise, index, theme, disabled, update, remov
       if (set.id !== id) return set;
       const next = { ...set, ...patch };
       const valid = canCompleteSet(next, exercise.bodyweight, exercise.tracking);
+      if (patch.completed === true && valid) announceSet({ ...next, completed: true }, exercise.sets.findIndex(item => item.id === id));
       return { ...next, completed: valid && (patch.weight !== undefined || patch.reps !== undefined || patch.duration !== undefined || patch.distance !== undefined ? true : next.completed) };
     }) });
   }
@@ -99,12 +108,14 @@ export function ExerciseEditor({ exercise, index, theme, disabled, update, remov
     </View>}
     {exercise.tracking && <Text style={{ color: theme.muted, fontSize: 12 }}>Enter whole seconds{exercise.tracking === 'distance_duration' ? ' and kilometres' : ''}. Valid measurements mark the set done.</Text>}
     <View>{exercise.sets.map((set, setIndex) => <SetRow key={set.id} set={set} index={setIndex} exerciseIndex={index} theme={theme} unit={exercise.unit}
-      bodyweight={exercise.bodyweight} tracking={exercise.tracking} disabled={disabled} largeText={largeText} change={patch => changeSet(set.id, patch)}
+      bodyweight={exercise.bodyweight} tracking={exercise.tracking} disabled={disabled} largeText={largeText} change={patch => changeSet(set.id, patch)} onInputEnd={() => announceSet(set, setIndex)}
       remove={() => confirmRemove(() => update({ ...exercise, sets: exercise.sets.filter(item => item.id !== set.id) }), set.completed)} />)}</View>
-    <Button theme={theme} variant="add" label="+ Add set" disabled={disabled} onPress={() => {
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+    {onRest && completed > 0 && <View style={{ flex: 1, minWidth: 110 }}><Button theme={theme} variant="info" label={`Rest ${restClock(restSeconds * 1000)}`} accessibilityLabel={`Rest after ${exercise.name}`} disabled={disabled} onPress={() => onRest(`${exercise.name} / set ${exercise.sets.findLastIndex(set => set.completed) + 1}`)} /></View>}
+    <View style={{ flex: 1, minWidth: 110 }}><Button theme={theme} variant="add" label="+ Add set" disabled={disabled} onPress={() => {
       const last = exercise.sets.at(-1);
       update({ ...exercise, sets: [...exercise.sets, { id: newId(), weight: last?.weight ?? '', reps: last?.reps ?? '', ...(last?.duration !== undefined ? { duration: last.duration } : {}), ...(last?.distance !== undefined ? { distance: last.distance } : {}), completed: false }] });
-    }} />
+    }} /></View></View>
 
     </>}
   </View>;
