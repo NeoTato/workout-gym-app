@@ -11,7 +11,7 @@ beforeEach(() => {
   jest.useFakeTimers({ now: 100000 }); jest.clearAllMocks();
   Object.defineProperty(AppState, 'currentState', { configurable: true, value: 'active' });
   jest.spyOn(Vibration, 'vibrate').mockImplementation(() => undefined); jest.spyOn(Vibration, 'cancel').mockImplementation(() => undefined);
-  rest = { alarmEnabled: true, setAlarmEnabled: jest.fn(), state: { workoutId: 'workout', epoch: 0, seconds: 1, autoStart: false, reminders: false, timer: { id: 'timer', label: 'Press / set 1', endsAt: 101000, remainingMs: 1000 } }, busy: false, error: '', visible: false, label: '', remindersAvailable: true, open: jest.fn(), close: jest.fn(), reload: jest.fn(), start: jest.fn(), autoStart: jest.fn(), quickStart: jest.fn(), change: jest.fn(), preference: jest.fn() };
+  rest = { alarmSound: 'beep', setAlarmSound: jest.fn(), alarmEnabled: true, setAlarmEnabled: jest.fn(), state: { workoutId: 'workout', epoch: 0, seconds: 1, autoStart: false, reminders: false, timer: { id: 'timer', label: 'Press / set 1', endsAt: 101000, remainingMs: 1000 } }, busy: false, error: '', visible: false, label: '', remindersAvailable: true, open: jest.fn(), close: jest.fn(), reload: jest.fn(), start: jest.fn(), autoStart: jest.fn(), quickStart: jest.fn(), change: jest.fn(), preference: jest.fn() };
   jest.mocked(useRestTimer).mockImplementation(() => rest);
 });
 afterEach(() => { jest.useRealTimers(); jest.restoreAllMocks(); });

@@ -33,6 +33,8 @@ SDK 58 expo-notifications was installed with Expo's version-aware installer. Loc
 
 ### Optional foreground alarm
 
+**Alarm sound** offers Digital beep, Gentle chime and Ringing. **Preview sound** plays one short sample and becomes **Stop preview** while playing. Changing selection, closing the dialog or backgrounding stops the sample. The selected in-app sound is shared with the completion alarm and lasts for this app run, resetting to Digital beep on reopening. This does not customize OS notification audio.
+
 Enable **In-app alarm** in Rest timer. This preference lasts for the current app run and defaults off on reopening. Future rests observed while the app is active show a centered Rest complete popup and loop an original bundled tone with vibration. **Stop alarm** silences it immediately and clears the rest; **Rest 30 sec more** silences it and extends the expired countdown by thirty seconds. Android Back acts as Stop. No swipe or animated dismissal is required.
 
 Backgrounding, unmounting or removing the active rest stops playback/vibration. Returning to an already expired timer does not start a late alarm. Background/locked-screen reminders continue using the existing notification option. The foreground sound uses media volume and may route to connected headphones. SDK-matched expo-audio uses playback only; microphone and background audio configuration are explicitly disabled. No new database migration or backup format change.

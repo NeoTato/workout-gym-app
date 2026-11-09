@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, styles } from '../../ui/controls';
 import { useAppTheme } from '../../ui/appearanceContext';
 import { useRestTimer } from './restContext';
+import { alarmSource } from './alarmSounds';
 
 export function RestAlarm() {
   const rest = useRestTimer();
@@ -33,7 +34,8 @@ export function RestAlarm() {
 
 function AlarmPresentation({ label, stop, snooze }: { label: string; stop: () => void; snooze: () => void }) {
   const theme = useAppTheme();
-  const player = useAudioPlayer(require('../../../assets/sounds/rest-alarm.wav'));
+  const { alarmSound } = useRestTimer();
+  const player = useAudioPlayer(alarmSource(alarmSound));
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let cancelled = false;

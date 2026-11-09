@@ -7,6 +7,7 @@ import { useAppTheme } from '../../ui/appearanceContext';
 import { fonts } from '../../ui/theme';
 import { useRestTimer } from './restContext';
 import { useRestClock } from './useRestClock';
+import { AlarmSoundPicker } from './AlarmSoundPicker';
 
 export function RestTimerDock() {
   const rest = useRestTimer(), theme = useAppTheme(), timer = rest.state?.timer ?? null;
@@ -73,6 +74,7 @@ function RestTimerDialogContent() {
                 <View pointerEvents="none" style={{ width: 52, height: 32, borderRadius: 16, padding: 3, backgroundColor: rest.alarmEnabled ? theme.info : theme.border, alignItems: rest.alarmEnabled ? 'flex-end' : 'flex-start', justifyContent: 'center' }}><View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: theme.surface }} /></View>
               </Pressable>
             </View>
+            <AlarmSoundPicker />
             {option('autoStart', 'Auto-start after a new set', 'Starts when you leave valid set inputs, not while typing. Existing sets do not restart rest.')}
             {option('reminders', 'Notify when rest ends', rest.remindersAvailable ? 'Optional local reminder. Sound and lock-screen delivery depend on your phone settings.' : 'Reminders are unavailable in the web preview. The countdown still works.', rest.remindersAvailable)}
             {!!rest.state?.timer && <>

@@ -9,6 +9,8 @@ import { useRestTimer } from '../restContext';
 import { restNotifications } from '../restNotifications';
 
 jest.mock('expo-router', () => ({ usePathname: () => '/workout' }));
+const mockPreviewPlayer = { play: jest.fn(), pause: jest.fn(), loop: false };
+jest.mock('expo-audio', () => ({ useAudioPlayer: () => mockPreviewPlayer, setAudioModeAsync: async () => undefined }));
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'timer-id' }));
 jest.mock('../../../storage/openStore', () => ({ openStore: jest.fn() }));
 jest.mock('../restNotifications', () => ({ restNotifications: { available: true, enable: jest.fn(), sync: jest.fn() } }));
@@ -19,6 +21,7 @@ function Controls() {
   return <><Button title="Open timer" onPress={() => rest.open('Press / set 1')} /><Button title="Reload timer" onPress={rest.reload} /><RestTimerDialog /><RestTimerDock /></>;
 }
 beforeEach(() => {
+  mockPreviewPlayer.play.mockClear(); mockPreviewPlayer.pause.mockClear();
   saved = null; save.mockClear(); jest.useFakeTimers({ now: 100000 });
   jest.mocked(restNotifications.enable).mockReset().mockResolvedValue(true); jest.mocked(restNotifications.sync).mockReset().mockResolvedValue(undefined);
   jest.mocked(openStore).mockResolvedValue({ getDraft: async () => ({ id: 'workout' }), getRestTimerEpoch: async () => 0, getRestTimer: async () => saved, saveRestTimer: save } as unknown as WorkoutStore);
@@ -29,6 +32,21 @@ async function show() {
   await fireEvent.press(screen.getByRole('button', { name: 'Open timer' }));
   await waitFor(() => expect(screen.getByRole('header', { name: 'Rest timer' })).toBeOnTheScreen());
 }
+
+test('sound choice previews once, stops on selection change and closes cleanly', async () => {
+  await show();
+  await fireEvent.press(screen.getByRole('button', { name: 'Alarm sound: Gentle chime' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Preview sound' }));
+  expect(mockPreviewPlayer.play).toHaveBeenCalledTimes(1); expect(mockPreviewPlayer.loop).toBe(false);
+  await fireEvent.press(screen.getByRole('button', { name: 'Alarm sound: Ringing' }));
+  expect(mockPreviewPlayer.pause).toHaveBeenCalled(); expect(screen.getByRole('button', { name: 'Preview sound' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Preview sound' }));
+  await act(async () => { jest.advanceTimersByTime(2200); });
+  expect(screen.getByRole('button', { name: 'Preview sound' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Preview sound' }));
+  mockPreviewPlayer.pause.mockClear(); await fireEvent.press(screen.getByRole('button', { name: 'Close timer' }));
+  expect(mockPreviewPlayer.pause).toHaveBeenCalled();
+});
 test('manual start validates input; pause, extend, resume and end retain the correct countdown', async () => {
   await show(); expect(restNotifications.enable).not.toHaveBeenCalled();
   await fireEvent.changeText(screen.getByLabelText('Rest minutes'), '0'); await fireEvent.changeText(screen.getByLabelText('Rest seconds'), '0');
