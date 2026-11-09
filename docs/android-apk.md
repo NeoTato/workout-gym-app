@@ -2,6 +2,8 @@
 
 First build: [EAS build and installation page](https://expo.dev/accounts/neotato/projects/workout-gym-app/builds/550effb7-6e73-4135-9d21-1caad614fd38), source `d8dc0b7`, version 0.1.0 (1). Submitted November 9, 2026. The page shows queue/progress and provides the APK once the build finishes. A queued build is not installation evidence.
 
+Build result: **FINISHED**. [Download signed APK](https://expo.dev/artifacts/eas/nlukeDMJswpVLX8vYmVD6rWq6ZLBt-QHv7QQy_DZ9Vc.apk). Expo completed native compilation, release packaging, signing and artifact upload. PR #16 quality and dependency-audit CI checks pass. Physical installation, sound, notifications and data-transfer checks remain pending.
+
 The `preview` EAS profile produces a signed, standalone Android APK for direct installation. It bundles the JavaScript, fonts and alarm sounds; Expo Go and a development server are not needed. This is an internal test build, not a Google Play release.
 
 Package identity: `com.neotato.workoutjournal`. Preserve this ID and the Expo-managed signing keystore for future updates. The initial Android versionCode is 1; increase it for subsequent distributed builds. Do not commit signing keys or credentials.
