@@ -42,8 +42,13 @@ export function RestTimerDialog() {
 function RestTimerDialogContent() {
   const rest = useRestTimer(), theme = useAppTheme();
   const initial = rest.state?.seconds ?? 90;
+  const [section, setSection] = useState<'alerts' | 'automation' | null>(null);
   const [minutes, setMinutes] = useState(() => String(Math.floor(initial / 60))), [seconds, setSeconds] = useState(() => String(initial % 60)), [error, setError] = useState('');
   const duration = Number(minutes) * 60 + Number(seconds);
+  const disclosure = (key: 'alerts' | 'automation', title: string, summary: string) => <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ expanded: section === key }} onPress={() => setSection(value => value === key ? null : key)} style={{ minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 8 }}>
+    <View style={{ flex: 1, gap: 4 }}><Text style={{ color: theme.text, fontFamily: fonts.medium }}>{title}</Text><Text style={{ color: theme.muted, fontSize: 12 }}>{summary}</Text></View>
+    <Text style={{ color: theme.info, fontSize: 20 }}>{section === key ? '−' : '+'}</Text>
+  </Pressable>;
   const option = (key: 'autoStart' | 'reminders', title: string, hint: string, available = true) => <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 48 }}>
     <View style={{ flex: 1, gap: 4 }}><Text style={{ color: theme.text, fontFamily: fonts.medium }}>{title}</Text><Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>{hint}</Text></View>
     <Pressable accessibilityRole="switch" accessibilityLabel={title} accessibilityState={{ checked: Boolean(rest.state?.[key]), disabled: rest.busy || !available }} disabled={rest.busy || !available}
@@ -67,16 +72,19 @@ function RestTimerDialogContent() {
               <Field theme={theme} label="Rest minutes" caption="Minutes" value={minutes} keyboardType="number-pad" maxLength={2} editable={!rest.busy} onChangeText={value => { setMinutes(value); setError(''); }} />
               <Field theme={theme} label="Rest seconds" caption="Seconds" value={seconds} keyboardType="number-pad" maxLength={2} editable={!rest.busy} onChangeText={value => { setSeconds(value); setError(''); }} />
             </View>
-            <Text style={{ color: theme.muted, fontSize: 12 }}>Options for this workout</Text>
+            {disclosure('alerts', 'Sound & alerts', `${rest.alarmEnabled ? 'In-app alarm on' : 'In-app alarm off'} · ${rest.state?.reminders ? 'Notifications on' : 'Notifications off'}`)}
+            {section === 'alerts' && <View style={{ gap: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-              <View style={{ flex: 1, gap: 4 }}><Text style={{ color: theme.text, fontFamily: fonts.medium }}>In-app alarm</Text><Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>Loops a sound with a Stop button while the app is open. Enable each time you reopen the app. Uses media volume; locked-screen alerts use notifications.</Text></View>
+              <View style={{ flex: 1, gap: 4 }}><Text style={{ color: theme.text, fontFamily: fonts.medium }}>In-app alarm</Text><Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>Loops until stopped while the app is open. Enable again after reopening.</Text></View>
               <Pressable accessibilityRole="switch" accessibilityLabel="In-app alarm" accessibilityState={{ checked: rest.alarmEnabled }} onPress={() => rest.setAlarmEnabled(!rest.alarmEnabled)} style={{ minWidth: 56, minHeight: 48, justifyContent: 'center', alignItems: 'center' }}>
                 <View pointerEvents="none" style={{ width: 52, height: 32, borderRadius: 16, padding: 3, backgroundColor: rest.alarmEnabled ? theme.info : theme.border, alignItems: rest.alarmEnabled ? 'flex-end' : 'flex-start', justifyContent: 'center' }}><View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: theme.surface }} /></View>
               </Pressable>
             </View>
             <AlarmSoundPicker />
-            {option('autoStart', 'Auto-start after a new set', 'Starts when you leave valid set inputs, not while typing. Existing sets do not restart rest.')}
-            {option('reminders', 'Notify when rest ends', rest.remindersAvailable ? 'Optional local reminder. Sound and lock-screen delivery depend on your phone settings.' : 'Reminders are unavailable in the web preview. The countdown still works.', rest.remindersAvailable)}
+            {option('reminders', 'Notify when rest ends', rest.remindersAvailable ? 'For background and locked-screen alerts. Uses your phone’s notification settings.' : 'Unavailable in the web preview.', rest.remindersAvailable)}
+            </View>}
+            {disclosure('automation', 'Auto-start', rest.state?.autoStart ? 'On after a new set' : 'Off · Start rest manually')}
+            {section === 'automation' && option('autoStart', 'Auto-start after a new set', 'Starts when you leave valid set inputs. Editing existing sets does not restart rest.')}
             {!!rest.state?.timer && <>
               <Text style={{ color: theme.muted, fontSize: 12 }}>Starting a new rest replaces the current countdown.</Text>
               <Button theme={theme} variant="info" label="Restart current rest" disabled={rest.busy} onPress={() => { rest.change('restart'); rest.close(); }} />
@@ -86,7 +94,7 @@ function RestTimerDialogContent() {
           <Button theme={theme} primary label={rest.state?.timer ? 'Start new rest' : 'Start rest'} disabled={rest.busy} onPress={() => {
             try { const value = customRestSeconds(minutes, seconds); void rest.start(value); } catch (failure) { setError(failure instanceof Error ? failure.message : 'Check your rest time.'); }
           }} />
-          <Button theme={theme} label="Close timer" disabled={rest.busy} onPress={rest.close} />
+          <Button theme={theme} variant="link" label="Close timer" disabled={rest.busy} onPress={rest.close} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

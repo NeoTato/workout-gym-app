@@ -35,9 +35,16 @@ async function show() {
 
 test('sound choice previews once, stops on selection change and closes cleanly', async () => {
   await show();
+  expect(screen.queryByRole('button', { name: 'Preview sound' })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Sound & alerts' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Alarm sound: Gentle chime' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Preview sound' }));
   expect(mockPreviewPlayer.play).toHaveBeenCalledTimes(1); expect(mockPreviewPlayer.loop).toBe(false);
+  await fireEvent.press(screen.getByRole('button', { name: 'Auto-start' }));
+  expect(mockPreviewPlayer.pause).toHaveBeenCalled(); expect(screen.queryByRole('button', { name: 'Stop preview' })).toBeNull();
+  expect(screen.getByRole('switch', { name: 'Auto-start after a new set' })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Sound & alerts' }));
+  expect(screen.queryByRole('switch', { name: 'Auto-start after a new set' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Alarm sound: Ringing' }));
   expect(mockPreviewPlayer.pause).toHaveBeenCalled(); expect(screen.getByRole('button', { name: 'Preview sound' })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Preview sound' }));
@@ -62,6 +69,7 @@ test('manual start validates input; pause, extend, resume and end retain the cor
 });
 test('notification denial does not block the visual timer or silently enable reminders', async () => {
   jest.mocked(restNotifications.enable).mockResolvedValue(false); await show();
+  await fireEvent.press(screen.getByRole('button', { name: 'Sound & alerts' }));
   await fireEvent.press(screen.getByLabelText('Notify when rest ends'));
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/Notifications are off/));
   expect(saved?.reminders ?? false).toBe(false);
