@@ -1,5 +1,7 @@
 # Hosted Expo Go preview
 
+Latest merged iPhone preview (November 9, 2026): [open QR](https://qr.expo.dev/eas-update?projectId=f9e71877-6a1a-410c-91c1-74593c6b70d7&groupId=f710c375-27c6-43e5-80d2-b52d7f51abf1), [update page](https://expo.dev/accounts/neotato/projects/workout-gym-app/updates/f710c375-27c6-43e5-80d2-b52d7f51abf1). Published from merged main `6fac841`; includes the latest alarm sounds, simplified popup and default-on in-app alarm. Export a fresh JSON backup before switching from an older local preview.
+
 For the newer live rest timer, use the [PR 15 preview and migration notes](rest-timer-review.md#hosted-phone-preview). After that preview upgrades the local database, this older pinned preview cannot open it. Export JSON before switching and continue with the newer preview.
 
 Project: [@neotato/workout-gym-app](https://expo.dev/accounts/neotato/projects/workout-gym-app).

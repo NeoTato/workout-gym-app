@@ -42,6 +42,8 @@ Preview and review images are organized in [`screenshots/`](screenshots/). Verif
 
 ## Repository layout
 
+Android standalone preview: [APK build, installation and data transfer](docs/android-apk.md).
+
 Live workout rest timer: [preview, behavior and phone review steps](docs/rest-timer-review.md).
 
 ```text

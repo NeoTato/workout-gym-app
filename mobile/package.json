@@ -42,6 +42,7 @@
   },
   "scripts": {
     "start": "expo start --go",
+    "build:apk": "npx --yes eas-cli@27.5.0 build --platform android --profile preview",
     "publish:expo-go:ios": "npx --yes eas-cli@27.5.0 update --branch expo-go --environment preview --platform ios",
     "android": "expo start --android",
     "ios": "expo start --ios",
