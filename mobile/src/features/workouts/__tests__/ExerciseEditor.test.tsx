@@ -5,12 +5,22 @@ import type { ExerciseDraft } from '../../../domain/workout';
 import { getTheme } from '../../../ui/theme';
 import { ExerciseEditor } from '../ExerciseEditor';
 
-function Editor({ weight = '35', reps = '10', bodyweight = false } = {}) {
+function Editor({ weight = '35', reps = '10', bodyweight = false, logged, rest }: { weight?: string; reps?: string; bodyweight?: boolean; logged?: (label: string) => void; rest?: (label: string) => void } = {}) {
   const [exercise, update] = useState<ExerciseDraft>({ id: 'exercise', name: 'Press', equipment: '', bodyweight, unit: 'lb', convention: 'total', sets: [{ id: 'set-1', weight, reps, completed: false }] });
   let count = exercise.sets.length;
-  return <ExerciseEditor exercise={exercise} index={0} theme={getTheme('light')} disabled={false} update={update} remove={() => undefined} newId={() => `set-${++count}`} />;
+  return <ExerciseEditor exercise={exercise} index={0} theme={getTheme('light')} disabled={false} update={update} remove={() => undefined} newId={() => `set-${++count}`} onSetLogged={logged} onRest={rest} />;
 }
 describe('Exercise logging', () => {
+  it('offers rest after logging and commits auto-rest once after editing, never per keystroke', async () => {
+    const logged = jest.fn(), rest = jest.fn(); await render(<Editor weight="" reps="" logged={logged} rest={rest} />);
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 load (lb)'), '35');
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '1');
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '10'); expect(logged).not.toHaveBeenCalled();
+    await fireEvent(screen.getByLabelText('Exercise 1 set 1 reps'), 'blur'); expect(logged).toHaveBeenCalledTimes(1);
+    await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12'); await fireEvent(screen.getByLabelText('Exercise 1 set 1 reps'), 'blur'); expect(logged).toHaveBeenCalledTimes(1);
+    await fireEvent.press(screen.getByRole('button', { name: '+ Add set' })); await fireEvent.press(screen.getByRole('checkbox', { name: 'Exercise 1 set 2 done' })); expect(logged).toHaveBeenCalledTimes(2);
+    await fireEvent.press(screen.getByRole('button', { name: 'Rest after Press' })); expect(rest).toHaveBeenCalledWith('Press / set 2');
+  });
   it('defaults a new empty exercise to distance and duration when assigned to Cardio', async () => {
     await render(<Editor weight="" reps="" />);
     await fireEvent.press(screen.getByRole('button', { name: 'Exercise 1 settings' }));

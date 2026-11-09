@@ -17,6 +17,7 @@ import { WorkoutSessionDetails, WorkoutSessionSummary } from '../features/workou
 import { newExercise, useWorkoutDraft } from '../features/workouts/useWorkoutDraft';
 import { Button, Screen, styles } from '../ui/controls';
 import { useAppTheme } from '../ui/appearanceContext';
+import { useRestTimer } from '../features/rest/restContext';
 
 export default function WorkoutRoute() {
   const model = useWorkoutDraft();
@@ -30,6 +31,7 @@ export default function WorkoutRoute() {
 
 function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, removeLocation, finish, discard }: ReturnType<typeof useWorkoutDraft> & { draft: WorkoutDraft }) {
   const theme = useAppTheme();
+  const rest = useRestTimer();
   const [step, setStep] = useState<'details' | 'exercises'>(() => (draft.setupComplete ?? Boolean(draft.locationId)) ? 'exercises' : 'details');
   const library = useExerciseLibrary();
   const { scrollRef, requestScroll, onExerciseLayout } = useExerciseScroll();
@@ -86,6 +88,7 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
     </Modal>
     <Button theme={theme} variant="link" label="‹ Home" accessibilityLabel="Home - keep draft" disabled={busy || addingGym} onPress={() => router.replace('/')} />
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>{step === 'details' ? 'Set up workout' : 'Your workout'}</Text>
+    {step === 'exercises' && <Text style={{ color: theme.muted }}>Log each set as you go. Finish workout when your session ends.</Text>}
     {!!error && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{error}</Text>}
     {!!setupError && <Text accessibilityRole="alert" style={{ color: theme.danger }}>{setupError}</Text>}
     {!!routineNotice && <Text accessibilityLiveRegion="polite" style={{ color: theme.muted }}>{routineNotice}</Text>}
@@ -113,8 +116,11 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
           <View style={{ flex: 1 }}><WorkoutSessionSummary draft={draft} locations={locations} theme={theme} /></View>
           <Button theme={theme} label="Edit details" disabled={busy} onPress={() => { setSetupError(''); setStep('details'); }} />
         </View>
-      <Text accessibilityRole="header" style={{ color: theme.text, fontSize: 18 }}>{draft.exercises.length} {draft.exercises.length === 1 ? 'exercise' : 'exercises'}</Text>
-      {draft.exercises.map((exercise, index) => <View key={exercise.id} testID={`exercise-card-${exercise.id}`} onLayout={event => onExerciseLayout(exercise.id, event)}><ExerciseEditor references={references} library={library.items} initiallyExpanded={index === 0 || exercise.id === addedId} exercise={exercise} index={index} theme={theme} disabled={busy} newId={randomUUID}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <Text accessibilityRole="header" style={{ color: theme.text, fontSize: 18, flex: 1 }}>{draft.exercises.length} {draft.exercises.length === 1 ? 'exercise' : 'exercises'}</Text>
+        <Button theme={theme} variant="info" label="Rest timer" disabled={busy} onPress={() => rest.open('Between exercises')} />
+      </View>
+      {draft.exercises.map((exercise, index) => <View key={exercise.id} testID={`exercise-card-${exercise.id}`} onLayout={event => onExerciseLayout(exercise.id, event)}><ExerciseEditor references={references} library={library.items} initiallyExpanded={index === 0 || exercise.id === addedId} exercise={exercise} index={index} theme={theme} disabled={busy} newId={randomUUID} restSeconds={rest.state?.seconds ?? 90} onRest={rest.quickStart} onSetLogged={rest.autoStart}
         update={next => update(value => ({ ...value, exercises: value.exercises.map(item => item.id === next.id ? next : item) }))}
         remove={() => update(value => ({ ...value, exercises: value.exercises.filter(item => item.id !== exercise.id) }))} /></View>)}
       {!draft.exercises.length && <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>

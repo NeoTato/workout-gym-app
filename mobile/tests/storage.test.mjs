@@ -93,7 +93,7 @@ test('v1 backups import with legacy measurement defaults and schema-eight set mi
     store = makeStore(connection); await store.initialize(); assert.equal((await store.getWorkout('legacy')).exercises[0].sets[0].weight, 35.5);
     const before = connection.db.prepare('SELECT revision FROM store_metadata').get().revision;
     connection.db.prepare('UPDATE sets SET reps=12').run(); assert.ok(connection.db.prepare('SELECT revision FROM store_metadata').get().revision > before);
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 9); assert.deepEqual(connection.db.prepare('PRAGMA foreign_key_check').all(), []);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 10); assert.deepEqual(connection.db.prepare('PRAGMA foreign_key_check').all(), []);
   } finally { connection.db.close(); }
 });
 
@@ -423,7 +423,7 @@ test('version-four migration adds empty routine storage without changing saved w
     assert.deepEqual(await store.listRoutines(), []);
     assert.equal((await store.getWorkout('pre-migration')).exercises[0].sets[0].reps, 10);
     assert.deepEqual(await store.getDraft(), draft('active-migration'));
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 9);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 10);
   } finally { connection.db.close(); }
 });
 
@@ -568,7 +568,7 @@ test('version-one locations migrate without losing gyms or draft checkpoints', a
     const pending = draft(); pending.locationId = 'legacy';
     connection.db.prepare('INSERT INTO draft_checkpoint VALUES (1,?,?)').run(pending.id, JSON.stringify(pending));
     const store = makeStore(connection); await store.initialize(); await store.initialize();
-    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 9);
+    assert.equal(connection.db.prepare('PRAGMA user_version').get().user_version, 10);
     assert.equal((await store.listLocations()).find(item => item.id === 'legacy').archived, 0);
     assert.deepEqual(await store.getDraft(), pending);
   } finally { connection.db.close(); }
