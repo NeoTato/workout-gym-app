@@ -9,7 +9,7 @@ import { restNotifications } from './restNotifications';
 import type { AlarmSound } from './alarmSounds';
 
 export function RestTimerProvider({ children }: { children: ReactNode }) {
-  const [alarmEnabled, setAlarmEnabled] = useState(false);
+  const [alarmEnabled, setAlarmEnabled] = useState(true);
   const [alarmSound, setAlarmSound] = useState<AlarmSound>('beep');
   const [state, setState] = useState<RestState | null>(null), current = useRef<RestState | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');

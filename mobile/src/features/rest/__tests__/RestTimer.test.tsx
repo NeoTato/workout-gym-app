@@ -37,6 +37,7 @@ test('sound choice previews once, stops on selection change and closes cleanly',
   await show();
   expect(screen.queryByRole('button', { name: 'Preview sound' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Sound & alerts' }));
+  expect(screen.getByRole('switch', { name: 'In-app alarm', checked: true })).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Alarm sound: Gentle chime' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Preview sound' }));
   expect(mockPreviewPlayer.play).toHaveBeenCalledTimes(1); expect(mockPreviewPlayer.loop).toBe(false);
