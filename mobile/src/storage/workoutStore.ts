@@ -7,6 +7,7 @@ import { calculateConsistency, consistencyForPeriod, effectiveWeeklyTarget, type
 import type { PreviousExercise, ReferenceContext, ReferenceExercise } from '../domain/workoutReferences.ts';
 import { routineExercises, type Routine, type RoutineExercise } from '../domain/routine.ts';
 import { schema } from './schema.ts';
+import { restTimerOperations } from './restTimerStore.ts';
 import { migrateFlexibleLogging } from './flexibleLoggingMigration.ts';
 import { createBackupOperations } from './backupStore.ts';
 import { revisionSchema } from './backupTables.ts';
@@ -92,6 +93,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
   }
   return {
     ...createBackupOperations(db, queue, id, now, digest),
+    ...restTimerOperations(db, queue),
     getCsvExport: (input: CsvSelection) => queue(async () => {
       const selection = validateCsvSelection(input);
       let rows: CsvRow[] = [];
@@ -110,7 +112,7 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
       await db.execAsync('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;');
       await db.transaction(async tx => {
         const version = (await tx.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))?.user_version ?? 0;
-        if (version > 9) throw new Error('This database was created by a newer app. Update the app to open it.');
+        if (version > 10) throw new Error('This database was created by a newer app. Update the app to open it.');
         if (version === 0) await tx.execAsync(schema);
         if (version < 2) await tx.execAsync('ALTER TABLE locations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)); PRAGMA user_version=2;');
         if (version < 3) await tx.execAsync("ALTER TABLE exercises ADD COLUMN category TEXT NOT NULL DEFAULT '' CHECK(category IN ('','Push','Pull','Legs','Core','Cardio','Mobility','Other')); PRAGMA user_version=3;");
@@ -132,6 +134,10 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
           ${['INSERT', 'UPDATE', 'DELETE'].map(event => `CREATE TRIGGER IF NOT EXISTS backup_revision_settings_${event.toLowerCase()} AFTER ${event} ON settings BEGIN UPDATE store_metadata SET revision=revision+1 WHERE singleton=1; END;`).join('\n')}
           PRAGMA user_version=8;`);
         if (version < 9) await migrateFlexibleLogging(tx);
+        if (version < 10) {
+          if (!(await tx.getAllAsync<{ name: string }>('PRAGMA table_info(store_metadata)')).some(column => column.name === 'rest_epoch')) await tx.execAsync('ALTER TABLE store_metadata ADD COLUMN rest_epoch INTEGER NOT NULL DEFAULT 0;');
+          await tx.execAsync('CREATE TABLE IF NOT EXISTS rest_timer (singleton INTEGER PRIMARY KEY CHECK(singleton=1),session_id TEXT NOT NULL,payload TEXT NOT NULL); PRAGMA user_version=10;');
+        }
       });
     }),
     getAppearance: () => queue(async (): Promise<AppearancePreference> => {
@@ -287,9 +293,11 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
         await db.runAsync('INSERT INTO draft_checkpoint(singleton,session_id,payload) VALUES (1,?,?) ON CONFLICT(singleton) DO UPDATE SET session_id=excluded.session_id,payload=excluded.payload', draft.id, snapshot);
       });
     },
-    discardDraft: (sessionId: string) => queue(async () => {
-      await db.runAsync('DELETE FROM draft_checkpoint WHERE session_id=?', sessionId);
-    }),
+    discardDraft: (sessionId: string) => queue(() => db.transaction(async tx => {
+      await tx.runAsync('UPDATE store_metadata SET rest_epoch=rest_epoch+1 WHERE singleton=1 AND EXISTS(SELECT 1 FROM draft_checkpoint WHERE session_id=?)', sessionId);
+      await tx.runAsync('DELETE FROM draft_checkpoint WHERE session_id=?', sessionId);
+      await tx.runAsync('DELETE FROM rest_timer WHERE session_id=?', sessionId);
+    })),
     finish: (draft: WorkoutDraft) => {
       let exercises: CompletedExercise[];
       try { exercises = completedExercises(draft); } catch (error) { return Promise.reject(error); }
@@ -301,7 +309,9 @@ export function createWorkoutStore(db: SqlDatabase, id: () => string, now: () =>
           const times = workoutTimes(draft, now());
           await tx.runAsync('INSERT INTO sessions VALUES (?,?,?,?,?,?,?,?,?,?,?)', draft.id, times.activityDate, draft.timezone, times.startedAt, times.endedAt, location.id, location.name, location.kind, draft.sessionType, 'completed', draft.recordOnly ? 1 : 0);
           await writeExercises(tx, draft.id, location.id, exercises);
+          await tx.runAsync('UPDATE store_metadata SET rest_epoch=rest_epoch+1 WHERE singleton=1 AND EXISTS(SELECT 1 FROM draft_checkpoint WHERE session_id=?)', draft.id);
           await tx.runAsync('DELETE FROM draft_checkpoint WHERE session_id=?', draft.id);
+          await tx.runAsync('DELETE FROM rest_timer WHERE session_id=?', draft.id);
         });
         return draft.id;
       });

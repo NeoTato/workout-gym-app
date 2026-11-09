@@ -15,7 +15,7 @@ export const camelCase = (column: string) => column.replace(/_([a-z])/g, (_, let
 
 export const revisionSchema = `
   CREATE TABLE IF NOT EXISTS store_metadata (singleton INTEGER PRIMARY KEY CHECK(singleton=1),revision INTEGER NOT NULL);
-  INSERT OR IGNORE INTO store_metadata VALUES (1,0);
+  INSERT OR IGNORE INTO store_metadata(singleton,revision) VALUES (1,0);
   ${[...backupTables.map(item => item.table), 'draft_checkpoint'].flatMap(table => ['INSERT', 'UPDATE', 'DELETE'].map(event => `
     CREATE TRIGGER IF NOT EXISTS backup_revision_${table}_${event.toLowerCase()} AFTER ${event} ON ${table}
     BEGIN UPDATE store_metadata SET revision=revision+1 WHERE singleton=1; END;`)).join('\n')}
