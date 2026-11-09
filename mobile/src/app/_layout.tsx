@@ -8,6 +8,7 @@ import { AppearanceProvider } from '../ui/AppearanceProvider';
 import { useAppearance } from '../ui/appearanceContext';
 import { RestTimerProvider } from '../features/rest/RestTimerProvider';
 import { RestTimerDock, RestTimerDialog } from '../features/rest/RestTimerControls';
+import { RestAlarm } from '../features/rest/RestAlarm';
 
 export default function RootLayout() {
   return <AppearanceProvider><AppLayout /></AppearanceProvider>;
@@ -36,7 +37,7 @@ function AppLayout() {
       ) : (
         <RestTimerProvider><View style={{ flex: 1 }}>
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }} />
-          <RestTimerDock /><RestTimerDialog />
+          <RestTimerDock /><RestTimerDialog /><RestAlarm />
         </View></RestTimerProvider>
       )}
     </SafeAreaProvider>

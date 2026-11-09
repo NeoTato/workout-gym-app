@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 import type { RestState } from '../../domain/restTimer';
 
 export type RestContextValue = {
+  alarmEnabled: boolean; setAlarmEnabled: (value: boolean) => void;
   state: RestState | null; busy: boolean; error: string; visible: boolean; label: string; remindersAvailable: boolean;
   open: (label?: string) => void; close: () => void; reload: () => void;
   start: (seconds: number) => Promise<boolean>; autoStart: (label: string) => void;

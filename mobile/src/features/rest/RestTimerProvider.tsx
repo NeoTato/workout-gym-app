@@ -8,6 +8,7 @@ import { RestContext } from './restContext';
 import { restNotifications } from './restNotifications';
 
 export function RestTimerProvider({ children }: { children: ReactNode }) {
+  const [alarmEnabled, setAlarmEnabled] = useState(false);
   const [state, setState] = useState<RestState | null>(null), current = useRef<RestState | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [visible, setVisible] = useState(false), [label, setLabel] = useState('Between exercises');
@@ -47,7 +48,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
     if (!saved && !await db.saveRestTimer(value)) { assign(null); await sync(null); return false; }
     assign(value); setLabel(nextLabel); setVisible(true); return true;
   }); };
-  return <RestContext value={{ state, busy, error, visible, label, remindersAvailable: restNotifications.available,
+  return <RestContext value={{ alarmEnabled, setAlarmEnabled, state, busy, error, visible, label, remindersAvailable: restNotifications.available,
     open, close: () => { if (!busy) setVisible(false); }, reload,
     start: seconds => run(async () => {
       if (!current.current) return false;

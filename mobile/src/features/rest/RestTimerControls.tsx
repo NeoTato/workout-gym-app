@@ -67,6 +67,12 @@ function RestTimerDialogContent() {
               <Field theme={theme} label="Rest seconds" caption="Seconds" value={seconds} keyboardType="number-pad" maxLength={2} editable={!rest.busy} onChangeText={value => { setSeconds(value); setError(''); }} />
             </View>
             <Text style={{ color: theme.muted, fontSize: 12 }}>Options for this workout</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+              <View style={{ flex: 1, gap: 4 }}><Text style={{ color: theme.text, fontFamily: fonts.medium }}>In-app alarm</Text><Text style={{ color: theme.muted, fontSize: 12, lineHeight: 18 }}>Loops a sound with a Stop button while the app is open. Enable each time you reopen the app. Uses media volume; locked-screen alerts use notifications.</Text></View>
+              <Pressable accessibilityRole="switch" accessibilityLabel="In-app alarm" accessibilityState={{ checked: rest.alarmEnabled }} onPress={() => rest.setAlarmEnabled(!rest.alarmEnabled)} style={{ minWidth: 56, minHeight: 48, justifyContent: 'center', alignItems: 'center' }}>
+                <View pointerEvents="none" style={{ width: 52, height: 32, borderRadius: 16, padding: 3, backgroundColor: rest.alarmEnabled ? theme.info : theme.border, alignItems: rest.alarmEnabled ? 'flex-end' : 'flex-start', justifyContent: 'center' }}><View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: theme.surface }} /></View>
+              </Pressable>
+            </View>
             {option('autoStart', 'Auto-start after a new set', 'Starts when you leave valid set inputs, not while typing. Existing sets do not restart rest.')}
             {option('reminders', 'Notify when rest ends', rest.remindersAvailable ? 'Optional local reminder. Sound and lock-screen delivery depend on your phone settings.' : 'Reminders are unavailable in the web preview. The countdown still works.', rest.remindersAvailable)}
             {!!rest.state?.timer && <>

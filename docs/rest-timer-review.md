@@ -31,6 +31,14 @@ SDK 58 expo-notifications was installed with Expo's version-aware installer. Loc
 
 ## Phone review
 
+### Optional foreground alarm
+
+Enable **In-app alarm** in Rest timer. This preference lasts for the current app run and defaults off on reopening. Future rests observed while the app is active show a centered Rest complete popup and loop an original bundled tone with vibration. **Stop alarm** silences it immediately and clears the rest; **Rest 30 sec more** silences it and extends the expired countdown by thirty seconds. Android Back acts as Stop. No swipe or animated dismissal is required.
+
+Backgrounding, unmounting or removing the active rest stops playback/vibration. Returning to an already expired timer does not start a late alarm. Background/locked-screen reminders continue using the existing notification option. The foreground sound uses media volume and may route to connected headphones. SDK-matched expo-audio uses playback only; microphone and background audio configuration are explicitly disabled. No new database migration or backup format change.
+
+Phone check: enable the alarm, choose two seconds, confirm looping sound and Stop; repeat with thirty-second snooze; lock/background during ringing and verify it stops without replaying on return. Check both light/dark layouts, silent mode, media volume and headphones. Physical sound delivery remains a phone review item. Hosted preview above predates this addition; use the development server until a new preview is published.
+
 1. Export a fresh JSON backup. Use this feature branch locally with `npm ci` and `npm start`, or the timer-specific hosted preview recorded below. Keep using the updated timer build after schema 10 is initialized.
 2. Start/resume a workout, add Rope pushdown and enter one set's load/reps. Check completion turns on but no rest starts while typing. Tap Rest and verify the one-tap countdown. Add the next set without losing access to the timer or Finish workout.
 3. Pause, wait, extend by 30 seconds, resume, end and restart. Choose a 2-second custom rest and check expiration/Done. Check invalid/zero/fractional duration input and narrow/large-text layouts.

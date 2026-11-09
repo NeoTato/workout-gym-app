@@ -1,0 +1,1 @@
+`rest-alarm.wav` is an original synthesized two-second, mono PCM tone created for this project. It alternates 660 Hz and 880 Hz pulses with short fade envelopes. No external recording or licensed sample is used.
