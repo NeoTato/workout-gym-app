@@ -10,6 +10,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.neotato.workoutjournal",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FFEBE8",
         "foregroundImage": "./assets/android-icon-foreground.png",
