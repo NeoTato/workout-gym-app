@@ -18,6 +18,7 @@ import { newExercise, useWorkoutDraft } from '../features/workouts/useWorkoutDra
 import { Button, Screen, styles } from '../ui/controls';
 import { useAppTheme } from '../ui/appearanceContext';
 import { useRestTimer } from '../features/rest/restContext';
+import { NotesImportDialog } from '../features/workouts/NotesImportDialog';
 
 export default function WorkoutRoute() {
   const model = useWorkoutDraft();
@@ -36,6 +37,7 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
   const library = useExerciseLibrary();
   const { scrollRef, requestScroll, onExerciseLayout } = useExerciseScroll();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [addedId, setAddedId] = useState<string>();
   const [routineOpen, setRoutineOpen] = useState(false), [routineNotice, setRoutineNotice] = useState('');
   const [setupError, setSetupError] = useState(''), [addingGym, setAddingGym] = useState(false);
@@ -72,6 +74,11 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
     </>}
   </>;
   return <Screen theme={theme} key={step} footer={footer} scrollRef={scrollRef}>
+    {notesOpen && <NotesImportDialog library={library.items} busy={busy} close={() => setNotesOpen(false)} importExercises={exercises => {
+      update(value => ({ ...value, exercises: [...value.exercises, ...exercises] }));
+      setNotesOpen(false); setAddedId(exercises[0]?.id); if (exercises[0]) requestScroll(exercises[0].id);
+      setRoutineNotice(`Added ${exercises.length} exercises from notes. Review equipment and categories before finishing.`);
+    }} />}
     <Modal visible={quickConfirm} transparent animationType="fade" onRequestClose={() => { if (!busy) setQuickConfirm(false); }}>
       <View style={{ flex: 1, backgroundColor: '#00000066', justifyContent: 'center', padding: 24 }}>
         <View accessibilityViewIsModal style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, width: '100%', maxWidth: 440, alignSelf: 'center' }]}>
@@ -127,6 +134,7 @@ function WorkoutFlow({ draft, locations, status, error, busy, update, addGym, re
         <Text style={{ color: theme.text }}>Add your first exercise</Text><Text style={[styles.subtitle, { color: theme.muted }]}>Choose a familiar exercise or start with a new one.</Text>
       </View>}
       <Button theme={theme} variant="add" label="+ Add exercise" disabled={busy} onPress={() => setPickerOpen(true)} />
+      <Button theme={theme} variant="info" label="Paste workout notes" disabled={busy} onPress={() => setNotesOpen(true)} />
       <WorkoutLoggingHelp theme={theme} />
 
       </>}
