@@ -33,6 +33,20 @@ beforeEach(() => {
     sets: [{ id: 'new-set', weight: '', reps: '', completed: false }] });
 });
 
+it('appends pasted exercises without replacing existing work or finishing history', async () => {
+  seed.locationId = 'home'; seed.setupComplete = true;
+  await render(<WorkoutRoute />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Paste workout notes' }));
+  await fireEvent.changeText(screen.getByLabelText('Workout notes'), 'pull ups 5reps 2reps');
+  await fireEvent.press(screen.getByRole('button', { name: 'Review detected workout' }));
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'I reviewed the detected sets and assumptions' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Add 1 exercise to draft' }));
+  expect(screen.getByText('Press')).toBeOnTheScreen(); expect(screen.getByText('pull ups')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('10');
+  expect(screen.getByLabelText('Exercise 2 set 1 reps')).toHaveDisplayValue('5');
+  expect(finish).not.toHaveBeenCalled();
+});
+
 it('records attendance only after explicit confirmation and keeps populated workouts out of quick entry', async () => {
   seed.locationId = 'home'; seed.exercises = [];
   await render(<WorkoutRoute />);
