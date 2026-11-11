@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { useState } from 'react';
 import WorkoutRoute from '../../../app/workout';
-import type { WorkoutDraft } from '../../../domain/workout';
+import { completedExercises, type WorkoutDraft } from '../../../domain/workout';
 import { newExercise, useWorkoutDraft } from '../useWorkoutDraft';
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
@@ -45,6 +45,41 @@ it('appends pasted exercises without replacing existing work or finishing histor
   expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('10');
   expect(screen.getByLabelText('Exercise 2 set 1 reps')).toHaveDisplayValue('5');
   expect(finish).not.toHaveBeenCalled();
+});
+
+it('keeps imported curls complete after editing load convention, unit, equipment and category', async () => {
+  seed.locationId = 'home'; seed.setupComplete = true; seed.exercises = [];
+  const saved = jest.fn();
+  function useSavingDraft() {
+    const model = useTestDraft();
+    return { ...model, finish: async () => { saved(completedExercises(model.draft)); return undefined; } };
+  }
+  jest.mocked(useWorkoutDraft).mockImplementation(useSavingDraft);
+  await render(<WorkoutRoute />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Paste workout notes' }));
+  await fireEvent.changeText(screen.getByLabelText('Workout notes'), 'preacher curl 12.5kgx4 10kgx8 10kgx8\nhammer dumbbell curl 5kgx12 5kgx12 7.5kgx10');
+  await fireEvent.press(screen.getByRole('button', { name: 'Review detected workout' }));
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'I reviewed the detected sets and assumptions' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Add 2 exercises to draft' }));
+  for (const index of [1, 2]) {
+    await fireEvent.press(screen.getByRole('button', { name: `Exercise ${index} settings` }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Load means: Per hand' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Load unit: lbs' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Load unit: kg' }));
+    await fireEvent.changeText(screen.getByLabelText(`Exercise ${index} equipment label`), 'Dumbbells');
+    await fireEvent.press(screen.getByRole('button', { name: 'Category: Uncategorized' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise category: Pull' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Subcategory: Not assigned' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise subcategory: Biceps' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Done setup' }));
+    expect(screen.getByRole('checkbox', { name: `Exercise ${index} set 1 done`, checked: true })).toBeOnTheScreen();
+  }
+  expect(screen.getByText('6 sets done')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Finish workout' }));
+  expect(saved).toHaveBeenCalledWith([
+    expect.objectContaining({ name: 'preacher curl', category: 'Pull', subcategory: 'Biceps', convention: 'per_hand', unit: 'kg', sets: expect.arrayContaining([expect.objectContaining({ weight: 12.5, reps: 4 })]) }),
+    expect.objectContaining({ name: 'hammer dumbbell curl', category: 'Pull', subcategory: 'Biceps', convention: 'per_hand', unit: 'kg', sets: expect.arrayContaining([expect.objectContaining({ weight: 7.5, reps: 10 })]) }),
+  ]);
 });
 
 it('records attendance only after explicit confirmation and keeps populated workouts out of quick entry', async () => {

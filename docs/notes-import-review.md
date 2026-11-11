@@ -20,6 +20,8 @@ An omitted unit after an explicit weighted set inherits only within that same li
 
 Check **I reviewed the detected sets and assumptions**, then **Add N exercises to draft**. All unreadable lines must first be corrected or explicitly excluded. Import appends new exercises and completed sets without replacing existing draft work, changing date/location, starting a rest alarm or finishing the workout. Corrections are available in the normal editor before Finish workout. Repeated lines stay separate; importing the same notes again creates duplicates. Leaving the import with text asks for confirmation; pasted text is not persisted until added to the draft. Imported drafts use existing SQLite persistence and backup/restore. No dependency, schema migration or backup format change.
 
+Unit and total/per-hand/per-side corrections preserve the set values and current Done state; no numeric conversion is applied. A regression previously unchecked all sets on those setup edits, causing exercises with no remaining completed sets to be omitted on Finish. The regression test imports both curl exercises, edits units/conventions/equipment and Pull/Biceps categorization, then verifies both exercises and their six sets survive the completion filter. Tracking-mode changes still require confirmation and clear incompatible measurements as before.
+
 ## Evidence
 
 - Exact example: seven exercises, twenty sets, bodyweight reps, decimal kg and inferred pounds verified in domain tests and isolated Chrome.
