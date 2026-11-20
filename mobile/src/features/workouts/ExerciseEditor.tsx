@@ -86,9 +86,10 @@ export function ExerciseEditor({ exercise, index, theme, disabled, update, remov
       }} />
     {!exercise.bodyweight && !exercise.tracking && <>
       <Choice<LoadUnit> theme={theme} label="Load unit" value={exercise.unit} disabled={disabled} options={[{ value: 'lb', label: 'lbs' }, { value: 'kg', label: 'kg' }, { value: 'plates', label: 'Plates' }]}
-        onChange={unit => update({ ...exercise, unit, sets: exercise.sets.map(set => ({ ...set, completed: false })) })} />
+        onChange={unit => update({ ...exercise, unit })} />
       <Choice<Convention> theme={theme} label="Load means" value={exercise.convention} disabled={disabled} options={[{ value: 'total', label: 'Total' }, { value: 'per_hand', label: 'Per hand' }, { value: 'per_side', label: 'Per side' }]}
-        onChange={convention => update({ ...exercise, convention, sets: exercise.sets.map(set => ({ ...set, completed: false })) })} />
+        onChange={convention => update({ ...exercise, convention })} />
+      <Text style={{ color: theme.muted, fontSize: 12 }}>Changing the unit or load meaning keeps your set values and Done status. Loads are not converted.</Text>
     </>}
     <Button theme={theme} variant="danger" label={`Remove exercise ${index + 1}`} disabled={disabled} onPress={() => confirmRemove(remove, exercise.sets.some(set => set.completed))} />
     <Button theme={theme} variant="info" label="Done setup" disabled={disabled} onPress={() => setSetup(false)} />
