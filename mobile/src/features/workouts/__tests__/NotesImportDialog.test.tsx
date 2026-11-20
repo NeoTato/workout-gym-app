@@ -9,7 +9,7 @@ test('requires explicit review and exclusion; choosing saved identity preserves 
   await fireEvent.press(screen.getByRole('button', { name: 'Review detected workout' }));
   const add = () => screen.getByRole('button', { name: 'Add 1 exercise to draft' });
   expect(add()).toBeDisabled(); expect(screen.getByText(/Unit inferred: kg/)).toBeOnTheScreen();
-  await fireEvent.press(screen.getByRole('button', { name: 'Review line 1: curl' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Review line 1: Curl' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Use Preacher curl' }));
   await fireEvent.press(screen.getByRole('checkbox', { name: 'I reviewed the detected sets and assumptions' }));
   expect(add()).toBeDisabled();

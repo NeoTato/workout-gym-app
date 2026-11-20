@@ -41,7 +41,7 @@ it('appends pasted exercises without replacing existing work or finishing histor
   await fireEvent.press(screen.getByRole('button', { name: 'Review detected workout' }));
   await fireEvent.press(screen.getByRole('checkbox', { name: 'I reviewed the detected sets and assumptions' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Add 1 exercise to draft' }));
-  expect(screen.getByText('Press')).toBeOnTheScreen(); expect(screen.getByText('pull ups')).toBeOnTheScreen();
+  expect(screen.getByText('Press')).toBeOnTheScreen(); expect(screen.getByText('Pull Ups')).toBeOnTheScreen();
   expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('10');
   expect(screen.getByLabelText('Exercise 2 set 1 reps')).toHaveDisplayValue('5');
   expect(finish).not.toHaveBeenCalled();
@@ -77,8 +77,8 @@ it('keeps imported curls complete after editing load convention, unit, equipment
   expect(screen.getByText('6 sets done')).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole('button', { name: 'Finish workout' }));
   expect(saved).toHaveBeenCalledWith([
-    expect.objectContaining({ name: 'preacher curl', category: 'Pull', subcategory: 'Biceps', convention: 'per_hand', unit: 'kg', sets: expect.arrayContaining([expect.objectContaining({ weight: 12.5, reps: 4 })]) }),
-    expect.objectContaining({ name: 'hammer dumbbell curl', category: 'Pull', subcategory: 'Biceps', convention: 'per_hand', unit: 'kg', sets: expect.arrayContaining([expect.objectContaining({ weight: 7.5, reps: 10 })]) }),
+    expect.objectContaining({ name: 'Preacher Curl', category: 'Pull', subcategory: 'Biceps', convention: 'per_hand', unit: 'kg', sets: expect.arrayContaining([expect.objectContaining({ weight: 12.5, reps: 4 })]) }),
+    expect.objectContaining({ name: 'Hammer Dumbbell Curl', category: 'Pull', subcategory: 'Biceps', convention: 'per_hand', unit: 'kg', sets: expect.arrayContaining([expect.objectContaining({ weight: 7.5, reps: 10 })]) }),
   ]);
 });
 

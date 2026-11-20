@@ -50,7 +50,8 @@ function parseLine(source: string, line: number): NotesExercise {
     if (remaining && !/^[\s,;|]/.test(remaining)) throw new Error('Separate sets with spaces or commas and check the numbers.');
     remaining = remaining.replace(/^[\s,;|]+/, '');
   }
-  return { line, source, name, unit: unit ?? 'lb', bodyweight: Boolean(bodyweight), sets, inferredUnit };
+  const titleName = name.toLowerCase().replace(/\p{L}[\p{L}\p{M}]*(?:['’][\p{L}\p{M}]+)*/gu, word => word[0].toUpperCase() + word.slice(1));
+  return { line, source, name: titleName, unit: unit ?? 'lb', bodyweight: Boolean(bodyweight), sets, inferredUnit };
 }
 
 export function compatibleNoteMatches(note: NotesExercise, library: LoggedExercise[]): LoggedExercise[] {

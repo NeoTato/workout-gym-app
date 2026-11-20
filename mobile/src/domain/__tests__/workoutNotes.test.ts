@@ -16,6 +16,8 @@ test('reads the full notes example without dropping sets or decimal loads', () =
   expect(result.exercises[0]).toMatchObject({ bodyweight: true, sets: [{ weight: '', reps: '5' }, { weight: '', reps: '5' }, { weight: '', reps: '2' }] });
   expect(result.exercises[2]).toMatchObject({ unit: 'lb', inferredUnit: true, sets: [{ weight: '85', reps: '12' }, { weight: '85', reps: '6' }, { weight: '85', reps: '8' }] });
   expect(result.exercises[3].sets[0]).toEqual({ weight: '12.5', reps: '4' });
+  expect(result.exercises.map(exercise => exercise.name)).toEqual(['Pull Ups', 'Lateral Pulldowns', 'Close Grip Horizontal Pull', 'Preacher Curl', 'Hammer Dumbbell Curl', 'Inclined Situps', 'Halos']);
+  expect(result.exercises[0].source).toBe('pull ups 5reps 5reps 2reps');
 });
 test.each(['curl 85x6', 'curl 10kgx8 20lbsx6', 'curl 10kgx8 nonsense', 'curl -5kgx8', 'curl 5kgx0', 'curl 5kgx1.5', 'curl 5kgx8 8reps', 'plank 45 seconds', 'run 2km 15min', 'curl 5kgx8 + drop set'])('keeps unsupported or partial lines as issues: %s', text => {
   const result = parseWorkoutNotes(text); expect(result.exercises).toHaveLength(0); expect(result.issues).toHaveLength(1); expect(result.issues[0].source).toBe(text);
