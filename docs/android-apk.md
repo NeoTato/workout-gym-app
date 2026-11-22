@@ -1,5 +1,9 @@
 # Android APK preview
 
+Updated preview submitted November 22, 2026: [build and installation page](https://expo.dev/accounts/neotato/projects/workout-gym-app/builds/32351b48-1ed4-4b16-814e-8b55742d1f34), source `7a5579e`, version 0.1.0 (2). Includes the approved Home/bottom navigation, persistent saved-workout editing, notes import and SDK-matched SVG native module. Uses the existing package and signing keystore, allowing an in-place update. Build completion does not establish physical-device correctness; review the new navigation and saved edits on the installed app.
+
+[Download updated signed APK](https://expo.dev/artifacts/eas/A93Zm9cVJD92k2t5oO6LbOB_X65sS8tu0e2aGwE_P1A.apk). The artifact endpoint returned HTTP 200. Install over the existing app; do not uninstall to update.
+
 First build: [EAS build and installation page](https://expo.dev/accounts/neotato/projects/workout-gym-app/builds/550effb7-6e73-4135-9d21-1caad614fd38), source `d8dc0b7`, version 0.1.0 (1). Submitted November 9, 2026. The page shows queue/progress and provides the APK once the build finishes. A queued build is not installation evidence.
 
 Build result: **FINISHED**. [Download signed APK](https://expo.dev/artifacts/eas/nlukeDMJswpVLX8vYmVD6rWq6ZLBt-QHv7QQy_DZ9Vc.apk). Expo completed native compilation, release packaging, signing and artifact upload. PR #16 quality and dependency-audit CI checks pass. Physical installation, sound, notifications and data-transfer checks remain pending.

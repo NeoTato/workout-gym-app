@@ -2,9 +2,11 @@ import type { ComponentRef, ReactNode, Ref } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { fonts, type AppTheme } from './theme';
+import { useBottomNavigationVisible } from '../features/navigation/navigationContext';
 
 export function Screen({ theme, children, footer, scrollRef }: { theme: AppTheme; children: ReactNode; footer?: ReactNode; scrollRef?: Ref<ComponentRef<typeof ScrollView>> }) {
-  return <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+  const navigationVisible = useBottomNavigationVisible();
+  return <SafeAreaView edges={navigationVisible ? ['top', 'left', 'right'] : undefined} style={{ flex: 1, backgroundColor: theme.background }}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.page}>{children}</ScrollView>
       {footer && <View style={{ borderTopWidth: 1, borderTopColor: theme.border, backgroundColor: theme.background }}>

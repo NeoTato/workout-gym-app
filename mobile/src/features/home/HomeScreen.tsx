@@ -1,84 +1,56 @@
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 import { fonts, type AppTheme } from '../../ui/theme';
-import { Button } from '../../ui/controls';
-import type { WorkoutListItem } from '../../domain/workout';
-import type { LocationFilter } from '../../domain/workoutCalendar';
-import { WorkoutCalendar } from './WorkoutCalendar';
-import { HomeNavigationCard } from './HomeNavigationCard';
+import { Button, styles } from '../../ui/controls';
+import { activityDateValue } from '../../domain/workoutCalendar';
+import { localDate, type SavedWorkout, type WorkoutListItem } from '../../domain/workout';
 
-export function HomeScreen({ theme, workouts = [], hasDraft = false, onStart, onOpen, onOpenDay, onSummary, onProgress, onSettings, weeklyProgress, refreshing = false, error = '', onRetry }: {
-  theme: AppTheme; workouts?: WorkoutListItem[]; hasDraft?: boolean;
-  onStart?: () => void; onOpen?: (id: string) => void;
-  onOpenDay?: (date: string, filter: LocationFilter) => void; refreshing?: boolean; error?: string; onRetry?: () => void;
-  onSummary?: () => void; onProgress?: () => void; onSettings?: () => void; weeklyProgress?: ReactNode;
+export function HomeScreen({ theme, workouts = [], latestWorkout, hasDraft = false, onStart, onOpen, onHistory, weeklyProgress, refreshing = false, error = '', onRetry }: {
+  theme: AppTheme; workouts?: WorkoutListItem[]; latestWorkout?: SavedWorkout | null; hasDraft?: boolean;
+  onStart?: () => void; onOpen?: (id: string) => void; onHistory?: () => void;
+  weeklyProgress?: ReactNode; refreshing?: boolean; error?: string; onRetry?: () => void;
 }) {
-  return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.background }]}
-      edges={onStart ? ['top', 'left', 'right'] : undefined}
-      testID="home-screen"
-    >
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
-        <Text style={[styles.eyebrow, { color: theme.muted }]}>WORKOUT JOURNAL</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-          <Text accessibilityRole="header" style={[styles.title, { color: theme.text, flexShrink: 1 }]}>Today</Text>
-          {onSettings && <Pressable accessibilityRole="button" accessibilityLabel="Settings" accessibilityHint="Open app settings and backups" onPress={onSettings}
-            style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 14, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.75 : 1 })}>
-            <Text accessible={false} style={{ color: theme.text, fontSize: 27, lineHeight: 34 }}>{'\u2699\uFE0E'}</Text>
-          </Pressable>}
+  const latest = workouts[0];
+  const details = latestWorkout?.id === latest?.id ? latestWorkout : null;
+  const setCount = details?.exercises.reduce((total, exercise) => total + exercise.sets.length, 0) ?? 0;
+  const today = localDate(new Date()), yesterday = activityDateValue(today); yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const dateLabel = latest ? latest.activityDate === today ? 'Today' : latest.activityDate === yesterday.toISOString().slice(0,10) ? 'Yesterday' : new Intl.DateTimeFormat('en', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }).format(activityDateValue(latest.activityDate)) : '';
+  return <SafeAreaView testID="home-screen" edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: theme.background }}>
+    <ScrollView contentContainerStyle={[styles.page, { paddingTop: 24, gap: 16 }]}>
+      <Text style={{ color: theme.muted, fontFamily: fonts.bold, fontSize: 11, letterSpacing: 1.2 }}>WORKOUT JOURNAL</Text>
+      <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Your training</Text>
+      <Text style={[styles.subtitle, { color: theme.muted }]}>A little stronger, one session at a time.</Text>
+      {weeklyProgress}
+      {hasDraft && onStart && <View testID="resume-workout-card" style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.accent }]}>
+        <Text style={{ color: theme.accent, fontFamily: fonts.bold, fontSize: 12 }}>IN PROGRESS</Text>
+        <Text style={{ color: theme.text }}>Your unfinished workout is ready when you are.</Text>
+        <Button theme={theme} variant="info" label="Resume workout" onPress={onStart} />
+      </View>}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 18 }}>Latest workout</Text>
+        {onHistory && <Button theme={theme} variant="link" label="View history" onPress={onHistory} />}
+      </View>
+      {refreshing && <Text style={{ color: theme.muted }}>Updating history...</Text>}
+      {!!error && <><Text accessibilityRole="alert" style={{ color: theme.danger }}>{error} Showing the last loaded view.</Text>{onRetry && <Button theme={theme} label="Retry history" onPress={onRetry} />}</>}
+      {latest && <Pressable testID="latest-workout-card" accessibilityRole="button" accessibilityLabel={'View latest workout, ' + latest.sessionType + ', ' + dateLabel + ', ' + latest.locationName} disabled={!onOpen || refreshing || Boolean(error)} onPress={() => onOpen?.(latest.id)}
+        style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.8 : 1 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <Text style={{ color: theme.info, backgroundColor: theme.infoSoft, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, fontSize: 12 }}>{latest.locationKind === 'home' ? 'Home' : 'Gym'}</Text>
+          <Text style={{ color: theme.muted, fontSize: 12 }}>{dateLabel}</Text>
         </View>
-        <Text style={[styles.body, { color: theme.muted }]}>
-          A little progress, at your pace.
-        </Text>
-
-        {(onSummary || onProgress) && <View style={{ gap: 8 }}>
-          {onSummary && <HomeNavigationCard theme={theme} kind="summary" onPress={onSummary} />}
-          {onProgress && <HomeNavigationCard theme={theme} kind="progress" onPress={onProgress} />}
+        <Text style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 22 }}>{latest.sessionType} {latest.recordOnly ? 'visit' : 'workout'}</Text>
+        <Text style={{ color: theme.muted }}>{latest.locationName}</Text>
+        {latest.recordOnly ? <Text style={{ color: theme.muted, fontSize: 12 }}>Workout-only entry</Text> : details && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 24 }}>
+          <Text style={{ color: theme.text }}>{details.exercises.length} {details.exercises.length === 1 ? 'exercise' : 'exercises'}</Text>
+          <Text style={{ color: theme.text }}>{setCount} {setCount === 1 ? 'set' : 'sets'}</Text>
         </View>}
-        {weeklyProgress}
-        {refreshing && <Text style={{ color: theme.muted }}>Updating history…</Text>}
-        {!!error && <><Text accessibilityRole="alert" style={{ color: theme.danger }}>{error} Showing the last loaded view.</Text>{onRetry && <Button theme={theme} label="Retry history" onPress={onRetry} />}</>}
-        {!workouts.length && !error && <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={[styles.badge, { backgroundColor: theme.accentSoft }]}>
-            <Text style={[styles.badgeLabel, { color: theme.accent }]}>A FRESH START</Text>
-          </View>
-          <Text accessibilityRole="header" style={[styles.cardTitle, { color: theme.text }]}>
-            No workouts yet
-          </Text>
-          <Text style={[styles.body, { color: theme.muted }]}>
-            Your completed workouts will appear here.
-          </Text>
-        </View>}
-        <WorkoutCalendar workouts={workouts} theme={theme} openDay={onOpenDay} openWorkout={onOpen} disabled={refreshing || Boolean(error)} />
-      </ScrollView>
-      {onStart && <SafeAreaView edges={['bottom']} style={[styles.actionBar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
-        <View style={styles.actionDock}>
-          <Button theme={theme} primary label={hasDraft ? 'Resume workout' : 'Start workout'} onPress={onStart} />
-        </View>
-      </SafeAreaView>}
-    </SafeAreaView>
-  );
+        <View style={{ borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 12, flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: theme.info, fontFamily: fonts.medium }}>View workout</Text><Text accessible={false} style={{ color: theme.info }}>›</Text></View>
+      </Pressable>}
+      {!latest && !error && <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: fonts.bold, fontSize: 20 }}>No workouts yet</Text>
+        <Text style={{ color: theme.muted }}>Your latest completed workout will appear here. Use the + Workout button below to begin.</Text>
+      </View>}
+    </ScrollView>
+  </SafeAreaView>;
 }
-
-const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  content: { padding: 24, paddingTop: 40, gap: 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  actionBar: { borderTopWidth: 1 },
-  actionDock: { paddingHorizontal: 24, paddingVertical: 16, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  eyebrow: { fontFamily: fonts.bold, fontSize: 12, letterSpacing: 1.44 },
-  title: { fontFamily: fonts.bold, fontSize: 30, letterSpacing: -0.6 },
-  body: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 22 },
-  card: {
-    marginTop: 12,
-    padding: 20,
-    borderRadius: 20,
-    gap: 12,
-    borderWidth: 1,
-  },
-  badge: { alignSelf: 'flex-start', borderRadius: 9999, paddingHorizontal: 12, paddingVertical: 8 },
-  badgeLabel: { fontFamily: fonts.bold, fontSize: 10, letterSpacing: 1.2 },
-  cardTitle: { fontFamily: fonts.bold, fontSize: 20, letterSpacing: -0.2 },
-});

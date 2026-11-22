@@ -110,6 +110,21 @@ it('edits one exercise at a time and retains pending values and expanded groups 
   expect(workout.exercises[0].sets[0].reps).toBe('10');
 });
 
+it('saves back to the same expanded chooser, supports another edit, and exits only on Done editing', async () => {
+  const save = jest.fn().mockResolvedValue(undefined), cancel = jest.fn();
+  await render(<SavedWorkoutEditor initial={initial} locations={locations} theme={getTheme('light')} save={save} cancel={cancel} />);
+  await openPress(); await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '12');
+  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  expect(screen.getByRole('header', { name: 'Edit workout' })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Uncategorized, 1 exercise', expanded: true })).toBeOnTheScreen();
+  expect(screen.getByText('Changes saved')).toBeOnTheScreen(); expect(cancel).not.toHaveBeenCalled();
+  await openPress(); expect(screen.getByLabelText('Exercise 1 set 1 reps')).toHaveDisplayValue('12');
+  await fireEvent.changeText(screen.getByLabelText('Exercise 1 set 1 reps'), '13');
+  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  expect(save).toHaveBeenCalledTimes(2); expect(save.mock.calls[1][0].exercises[0].sets[0].reps).toBe('13');
+  await fireEvent.press(screen.getByRole('button', { name: 'Done editing' })); expect(cancel).toHaveBeenCalledTimes(1);
+});
+
 it('opens newly added exercises directly and directs incomplete-save errors to their editor', async () => {
   const save = jest.fn().mockResolvedValue(undefined);
   await render(<SavedWorkoutEditor initial={initial} locations={locations} theme={getTheme('light')} save={save} cancel={jest.fn()} />);

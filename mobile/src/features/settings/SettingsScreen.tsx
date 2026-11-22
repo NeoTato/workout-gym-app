@@ -3,9 +3,9 @@ import { Button, Choice, Screen, styles } from '../../ui/controls';
 import type { AppearanceState } from '../../ui/appearanceContext';
 import { fonts, type AppTheme } from '../../ui/theme';
 
-export function SettingsScreen({ theme, appearance, onBack, onBackup, onExport }: { theme: AppTheme; appearance: AppearanceState; onBack: () => void; onBackup: () => void; onExport: () => void }) {
+export function SettingsScreen({ theme, appearance, onBack, onBackup, onExport }: { theme: AppTheme; appearance: AppearanceState; onBack?: () => void; onBackup: () => void; onExport: () => void }) {
   return <Screen theme={theme}>
-    <Button theme={theme} variant="link" label="Back to Home" onPress={onBack} />
+    {onBack && <Button theme={theme} variant="link" label="Back to Home" onPress={onBack} />}
     <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Settings</Text>
     <Text style={[styles.subtitle, { color: theme.muted }]}>Manage your workout journal.</Text>
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
