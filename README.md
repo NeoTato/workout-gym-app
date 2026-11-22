@@ -10,6 +10,8 @@ Open [design preview](previews/coral-daylight/design-preview.html) directly in a
 
 ## Native app blueprint
 
+The latest [Home and bottom-navigation study](previews/navigation/index.html) previews a compact Home screen, latest workout, central Workout action and an edit flow that returns to the exercise chooser after saving. Light/dark and unfinished-draft scenarios are interactive. Fictional data only; no native app changes. Run `node scripts/verify-navigation-preview.mjs` for browser checks and screenshots.
+
 Before the next native UI change, open [the interactive UI-overhaul preview](previews/ui-overhaul/ui-overhaul-preview.html) in a browser. It compares the proposed action-color hierarchy on setup, logging, and saved-workout screens, with light/dark appearance and fictional sample data. Run `node scripts/verify-ui-overhaul.mjs` for its Chrome interaction/responsive checks. This preview does not modify the Expo app.
 
 The matching [history, summary, and consistency preview](previews/ui-overhaul/activity-preview.html) shows calendars, day details, weekly/monthly/annual reporting, and weekly goals/streaks using one fictional history. Run `node scripts/verify-activity-preview.mjs` to verify its interactions and shared counts.
