@@ -78,8 +78,8 @@ try {
   const screen=()=>evaluate('document.querySelector("[data-screen]:not([hidden])").dataset.screen');
   const phoneShot=async name=>{await settle();const clip=await evaluate('(()=>{const r=document.querySelector(".phone").getBoundingClientRect();return {x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height,scale:1}})()');const {data}=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip});await mkdir(fromRoot('screenshots'),{recursive:true});await writeFile(fromRoot('screenshots',name),Buffer.from(data,'base64'));};
   assert.equal(await screen(),'home');assert.equal(await evaluate('document.querySelectorAll(".bottom-nav>button").length'),5);
-  const floatingGap=()=>evaluate('(()=>{const bar=document.querySelector(".bottom-nav").getBoundingClientRect(),button=document.querySelector(".plus-disc").getBoundingClientRect();return bar.top-button.bottom})()');
-  assert.equal(await floatingGap()>=8,true);
+  const sitsInNotch=()=>evaluate('(()=>{const bar=document.querySelector(".bottom-nav").getBoundingClientRect(),button=document.querySelector(".plus-disc").getBoundingClientRect();return Math.abs(button.x+button.width/2-bar.x-bar.width/2)<1&&button.top<bar.top&&button.bottom>bar.top&&getComputedStyle(document.querySelector(".bottom-nav"),"::before").maskImage.includes("radial-gradient")&&getComputedStyle(document.querySelector(".plus-disc")).borderRadius==="50%"})()');
+  assert.equal(await sitsInNotch(),true);
   await screenshot('navigation-preview-desktop.png');await phoneShot('navigation-preview-home.png');
   await click('.latest');await settle();await click('#edit-workout');await settle();assert.equal(await screen(),'edit');
   for(const group of ['back','biceps','core'])await click('#edit-groups [aria-controls="edit-'+group+'"]');
@@ -101,6 +101,6 @@ try {
   await click('#workout-action');await settle();assert.equal(await screen(),'workout');assert.equal(await evaluate('document.querySelector("#workout-title").textContent'),'Your workout');
   await click('[data-screen=workout] [data-go=home]');await settle();assert.equal(await evaluate('document.querySelector(".bottom-nav [aria-current=page]").dataset.nav'),'home');
   await click('#theme');await settle();await phoneShot('navigation-preview-resume.png');
-  for(const width of [320,390]){await command('Emulation.setDeviceMetricsOverride',{width,height:1100,deviceScaleFactor:1,mobile:true});await settle();assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);assert.equal(await evaluate('[...document.querySelectorAll(".bottom-nav>button")].every(n=>n.getBoundingClientRect().width>=44&&n.getBoundingClientRect().height>=44)'),true);assert.equal(await floatingGap()>=8,true);}
+  for(const width of [320,390]){await command('Emulation.setDeviceMetricsOverride',{width,height:1100,deviceScaleFactor:1,mobile:true});await settle();assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);assert.equal(await evaluate('[...document.querySelectorAll(".bottom-nav>button")].every(n=>n.getBoundingClientRect().width>=44&&n.getBoundingClientRect().height>=44)'),true);assert.equal(await sitsInNotch(),true);}
   assert.deepEqual(errors,[]);console.log('PASS: navigation, latest workout, focused editing, saved exercise returns to chooser with categories/scroll/focus intact, persisted preview edits, draft resume, light/dark and 320/390px layouts.');
 } finally { if(socket?.readyState===WebSocket.OPEN)socket.close();browser.kill(); }
