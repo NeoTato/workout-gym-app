@@ -12,12 +12,17 @@ import { ExercisePicker } from './ExercisePicker';
 import { useExerciseLibrary } from './useExerciseLibrary';
 import { WorkoutSessionDetails, WorkoutSessionSummary } from './WorkoutSessionDetails';
 import { WorkoutLoggingHelp } from './WorkoutLoggingHelp';
+import { useHideBottomNavigation } from '../navigation/navigationContext';
 
 export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: {
   initial: WorkoutDraft; locations: Location[]; theme: AppTheme;
   save: (draft: WorkoutDraft) => Promise<void>; cancel: () => void;
 }) {
+  useHideBottomNavigation();
   const [draft, setDraft] = useState(initial);
+  const [lastSaved, setLastSaved] = useState(initial);
+  const [saved, setSaved] = useState(false);
+  const dirty = draft !== lastSaved;
   const [section, setSection] = useState<'details' | 'exercises'>('exercises');
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -37,7 +42,8 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
     return () => subscription.remove();
   }, [focusedId]);
   const footer = <>
-    <Button theme={theme} primary label={busy ? 'Saving changes...' : 'Save changes'} disabled={busy} onPress={async () => {
+    {saved && !dirty && <Text accessibilityLiveRegion="polite" style={{ color: theme.success, fontSize: 12 }}>Changes saved</Text>}
+    <Button theme={theme} primary={dirty || Boolean(focused)} label={busy ? 'Saving changes...' : 'Save changes'} disabled={busy} onPress={async () => {
       if (saving.current) return;
       if (!draft.exercises.length && !draft.recordOnly) { setError('Add an exercise with completed sets before saving, or choose workout-only recording.'); setSection('exercises'); return; }
       const incomplete = draft.exercises.find(exercise => !exercise.sets.length || exercise.sets.some(set => !set.completed));
@@ -46,11 +52,15 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
         setSection('exercises'); setFocusedId(incomplete.id); return;
       }
       saving.current = true; setBusy(true); setError('');
-      try { await save({ ...draft, recordOnly: draft.exercises.length ? false : draft.recordOnly }); }
+      try {
+        const committed = { ...draft, recordOnly: draft.exercises.length ? false : draft.recordOnly };
+        await save(committed);
+        setLastSaved(committed); setDraft(committed); setSaved(true); Keyboard.dismiss(); setFocusedId(null); setSection('exercises');
+      }
       catch (failure) { setError(failure instanceof Error && /choose|enter|name|mark|found/i.test(failure.message) ? failure.message : 'Unable to save changes. Your original workout is unchanged. Try again.'); }
       finally { saving.current = false; setBusy(false); }
     }} />
-    <Button theme={theme} label="Cancel changes" disabled={busy} onPress={cancel} />
+    <Button theme={theme} primary={!dirty && !focused} label={dirty ? 'Cancel changes' : 'Done editing'} disabled={busy} onPress={cancel} />
   </>;
   return <View style={{ flex: 1 }}>
     <View style={{ flex: 1, display: focused ? 'none' : 'flex' }} accessibilityElementsHidden={Boolean(focused)} importantForAccessibility={focused ? 'no-hide-descendants' : 'auto'}>
@@ -60,7 +70,7 @@ export function SavedWorkoutEditor({ initial, locations, theme, save, cancel }: 
           setDraft(value => ({ ...value, exercises: [...value.exercises, exercise] })); setError(''); setPickerOpen(false); setFocusedId(exercise.id);
         }} />}
         <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Edit workout</Text>
-        <Text style={[styles.subtitle, { color: theme.muted }]}>Changes stay pending until you tap Save changes.</Text>
+        <Text style={[styles.subtitle, { color: theme.muted }]}>Save changes keeps you here. Done editing returns to the workout summary.</Text>
         <Choice theme={theme} label="Edit section" value={section} disabled={busy}
           options={[{ value: 'details', label: 'Session details' }, { value: 'exercises', label: 'Exercises' }]} onChange={value => { setSection(value); setFocusedId(null); }} />
         {section === 'details' ? <WorkoutSessionDetails draft={draft} locations={locations} theme={theme} busy={busy} update={change => { setError(''); setDraft(change); }} /> : <>

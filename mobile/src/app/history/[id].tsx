@@ -13,7 +13,7 @@ import { fonts } from '../../ui/theme';
 import { useAppTheme } from '../../ui/appearanceContext';
 
 export default function WorkoutDetailsRoute() {
-  const { id, returnToWorkout, returnToDay, returnToCalendar, returnToProgress } = useLocalSearchParams<{ id: string; returnToWorkout?: string; returnToDay?: string; returnToCalendar?: string; returnToProgress?: string }>();
+  const { id, returnToWorkout, returnToDay, returnToCalendar, returnToProgress, returnToHome } = useLocalSearchParams<{ id: string; returnToWorkout?: string; returnToDay?: string; returnToCalendar?: string; returnToProgress?: string; returnToHome?: string }>();
   const theme = useAppTheme();
   const [workout, setWorkout] = useState<SavedWorkout | null>(null), [error, setError] = useState('');
   const [edit, setEdit] = useState<WorkoutDraft | null>(null), [locations, setLocations] = useState<Location[]>([]);
@@ -21,7 +21,7 @@ export default function WorkoutDetailsRoute() {
   const action = useRef(false);
   const [routineOpen, setRoutineOpen] = useState(false), [routineNotice, setRoutineNotice] = useState('');
   function leaveDetails() {
-    if ((returnToWorkout === '1' || returnToDay === '1' || returnToCalendar === '1' || returnToProgress === '1') && router.canGoBack()) router.back();
+    if ((returnToWorkout === '1' || returnToDay === '1' || returnToCalendar === '1' || returnToProgress === '1' || returnToHome === '1') && router.canGoBack()) router.back();
     else router.replace('/');
   }
   async function beginEdit() {
@@ -44,7 +44,6 @@ export default function WorkoutDetailsRoute() {
   if (edit) return <SavedWorkoutEditor initial={edit} locations={locations} theme={theme}
     cancel={() => setEdit(null)} save={async draft => {
       const store = await openStore(); await store.updateWorkout(draft);
-      setEdit(null); setWorkout(null);
       try { setWorkout(await store.getWorkout(id)); }
       catch { setError('Changes saved. Return Home to reopen this workout.'); }
     }} />;

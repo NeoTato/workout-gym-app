@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import ProgressLibraryRoute from '../../../app/progress/index';
+import ProgressLibraryRoute from '../../../app/progress/exercises';
 import { useProgressLibrary } from '../useExerciseProgress';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn(), canGoBack: () => true } }));

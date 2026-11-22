@@ -8,12 +8,14 @@ import { fonts } from '../../ui/theme';
 import { useRestTimer } from './restContext';
 import { useRestClock } from './useRestClock';
 import { AlarmSoundPicker } from './AlarmSoundPicker';
+import { useBottomNavigationVisible } from '../navigation/navigationContext';
 
 export function RestTimerDock() {
+  const navigationVisible = useBottomNavigationVisible();
   const rest = useRestTimer(), theme = useAppTheme(), timer = rest.state?.timer ?? null;
   const now = useRestClock(timer), remaining = restRemaining(timer, now);
   if (!timer && (!rest.error || rest.visible)) return null;
-  return <SafeAreaView edges={['bottom']} style={{ backgroundColor: theme.surface, borderTopWidth: 1, borderTopColor: theme.border }}>
+  return <SafeAreaView edges={navigationVisible ? [] : ['bottom']} style={{ backgroundColor: theme.surface, borderTopWidth: 1, borderTopColor: theme.border }}>
     <View style={{ width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
       {timer && <>
         <Pressable accessibilityRole="button" accessibilityLabel={`Rest timer, ${remaining ? restClock(remaining) + ' remaining' : 'rest complete'}. Open timer options`} onPress={() => rest.open()} disabled={rest.busy}
